@@ -1,0 +1,42 @@
+.game {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index:; -1;
+}
+
+.canvasui {
+	position: absolute;
+	transition: opacity 0.1s linear;
+	-moz-transition: opacity 0.1s linear;
+   	z-index: 1;
+   	opacity:1;
+}
+
+body {
+ margin-top: 0px;
+ margin-right: 0px;
+ margin-bottom: 0px;
+ margin-left: 0px
+}
+
+
+td {
+	text-align: left; 
+	vertical-align: top;
+	width: 200px;
+}
+
+#diceroll {
+	position: absolute;
+	z-index: 1;
+	top: 50px;
+	left: 450px;
+}
+
+#turn {
+	position: absolute;
+	z-index: 1;
+	top: 25px;
+	left: 450px;
+}

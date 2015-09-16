@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dungeon Dice LoL</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+	 <script src="/socket.io/socket.io.js"></script>
+	<div id= "turn">player1</div>
+ 	<div id= "diceroll"></div>
+	 <table >
+	 	<canvas id="game" width="640" height="640" style="border:1px solid #000000;"></canvas>
+	  <tr>
+	    <td><div id= "crest"></div></td>
+	    <td><div id= "stat"></div></td>
+	    <td>
+	    	<table>
+	    	<tr><td><button type="button" id= "switch" class="ui">Switch Player</button></td></tr>	
+
+	    	<tr><td><button type="button" id= "roll" class="ui">Roll</button></td></tr>
+	    	<tr>
+	    		<td><button type="button" id= "summon" class="ui">Summon</button></td>
+	    		<td><button type="button" id= "summon0" class="ui">Summon1</button></td>	
+	    		<td><button type="button" id= "summon1" class="ui">Summon2</button></td>
+	    		<td><button type="button" id= "summon2" class="ui">Summon3</button></td>
+	    	</tr>
+	    	
+	    	<tr><td><button type="button" id= "endturn" class="ui">End Turn</button></td></tr>
+	    	</table>	
+	    </td>
+	  </tr>
+	</table> 
+	<script src="js/client.js"></script>
+</body>
+</html>
