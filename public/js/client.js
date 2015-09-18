@@ -56,26 +56,26 @@ var monsters = [];
 var selectedUnit = EMPTY;
 var movePathSelection = [];
 
-var units = [];
+//var units = [];
 //var board = [];
 
-for (var i=0; i<boardSizeY;i++){
-	units[i] = [];
-	for (var j=0;j<boardSizeX; j++){
-		units[i].push(-1);
-	}
-}
+//for (var i=0; i<boardSizeY;i++){
+//	units[i] = [];
+//	for (var j=0;j<boardSizeX; j++){
+//		units[i].push(-1);
+//	}
+//}
 
 //board[0][6] = PLAYER_2;
 //board[18][6] = PLAYER_1;
-
+/*
 for (var i=0; i<boardSizeX;i++){
 	units[i] = [];
 	for (var j=0;j<boardSizeY; j++){
 		units[i].push(-1);
 	}
 }
-
+*/
 function Game(){
 	this.player;
 	this.turn;
@@ -88,7 +88,7 @@ game.board = new Board();
 
 function Board(){
 	this.tiles = [];
-
+	this.units = [];
 
 	for (var i=0; i<boardSizeY;i++){
 		this.tiles[i] = [];
@@ -97,18 +97,60 @@ function Board(){
 		}
 	}
 
+	for (var i=0; i<boardSizeY;i++){
+		this.units[i] = [];
+		for (var j=0;j<boardSizeX; j++){
+			this.units[i].push(-1);
+		}
+	}
+
 	this.tiles[0][6] = PLAYER_2;
 	this.tiles[18][6] = PLAYER_1;
 
-	this.selected;
+	this.drawSelection = function (){
+		selection = getCurrentPlayer().tileSelected;
+		if (!selection || selection.length <= 0) {
+			return;
+		}
+		ctx.globalAlpha = 0.5;	
+		for (var i = 0; i<6; i++){
+			ctx.fillStyle = green;
+			if (!validPlacement(selection, game.board)){
+				ctx.fillStyle = red;
+			}
+			ctx.strokeStyle = "#303030";
+			ctx.lineWidth = 1;
+			drawSquare((selection[i][0])*squareSize, (selection[i][1])*squareSize);
+			//console.log(selection)
+		}
+		ctx.globalAlpha = 1;
 
-	this.getSelectedTile=function(){
-		return selected;
-	};
+	}
 
-	this.clearSelection = function(){
-		this.selected = [];
-	};
+	this.drawPath = function(){
+		movePathSelection = getCurrentPlayer().movePath;
+		if (movePathSelection.length > 1 && movePathSelection.length-1 <= getCurrentPlayer().pool.get(CREST_MOVEMENT)) {			
+			ctx.globalAlpha = 0.5;
+			
+			for (var i=1; i<movePathSelection.length; i++){	
+				ctx.fillStyle= "#000000";
+				ctx.strokeStyle = "#303030";
+				ctx.lineWidth = 1;
+				drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
+			}
+			ctx.globalAlpha = 1.0;	
+
+		};
+
+	}
+
+	this.render = function(){
+		ctx.clearRect(0,0,canvas.width,canvas.height)
+		drawBoard();
+		drawUnits();
+		this.drawSelection();
+		this.drawPath();
+	}
 
 	return this;
 }
@@ -274,9 +316,31 @@ function unit(type, x,y, player) {
 	this.atk = type.atk;
 	this.def = type.def;
 	this.player = player;
+	console.log(player);
+	this.hasAttacked = false;
+	this.canAttacked = true;
+	this.atkcost = 1;
 
 	setUnitAtLocation(this.id, [x,y]);
 	monsters.push(this);
+
+	this.attack = function(target){
+		playerpool = allplayers[this.player].pool
+		if (this.hasAttacked || playerpool.get(CREST_ATTACK) <= this.atkcost) return false;
+		target.hp = target.hp - this.atk;
+		setStatePanelText(target);
+		if (target.hp <= 0){
+			target.remove()
+		}
+		this.hasAttacked = true;
+		playerpool.set(CREST_ATTACK, playerpool.get(CREST_ATTACK) - this.atkcost);
+		updateCrest();
+		return true;
+	}
+
+	this.remove = function(){
+		monsters[this.id] = -1;		
+	}
 }
 
 
@@ -287,20 +351,39 @@ function getCurrentPlayer(){
 }
 
 function nextPlayer(){
-	if (currentPlayer == allplayers[0]){
+	if (currentPlayer.id == allplayers[0].id){
 		currentPlayer = allplayers[1];
+		
 	} else {
 		currentPlayer = allplayers[0];
 	}
+	console.log(currentPlayer)
+
 }
 
-function validPlacement(){
-	cshape = rotateShape(shape,rotate);
+function validPlacement(selection,board){
+	//var cshape;
+	//if (!selection){
+	//	cshape = rotateShape(shape,rotate)
+	//} else {
+	//	cshape = selection;
+	//	console.log("known selection")
+	//}
+	if (!selection){
+		return false;
+	}
+
+	if (selection.length <= 0){
+		return false;
+	}
+
 	valid = false;
 	for (var i=0; i<6; i++){
 		//boundaries
-		x = cursorX + cshape[i][0];
-		y = cursorY + cshape[i][1];
+		//console.log(selection)
+		x = selection[i][0];
+		y = selection[i][1];
+		
 		if (!boundCursor(x,y) || getBoardState(x,y) != EMPTY){
 			return false;
 		}
@@ -356,7 +439,6 @@ function updateDiceRollPool(player, crest, point){
 }
 
 
-
 function Player(){
 	var PLAYER_STATE_IDLE = 0;
 	var PLAYER_STATE_ROLL = 1;
@@ -370,8 +452,30 @@ function Player(){
 
 	this.state = PLAYER_STATE_IDLE;
 	this.summon = [];
+
+	//public variables
+	this.tileSelected = []
+	this.unitSelected;
+	this.movePath = []
+
+	this.makeSelection = function(){
+		if (this.tileSelected.length > 0 && validPlacement(this.tileSelected,game.board)){
+			var cshape = rotateShape(shape,rotate);
+			for (var i=0; i<6; i++){
+				x = this.tileSelected[i][0];
+				y = this.tileSelected[i][1];
+				setBoardState(PLAYER_1,[x,y]);
+			}
+			this.tileSelected = [];
+			return true;
+		}
+		return false
+	}
+
+
 	this.isPlaying = function(){
-		return PLAYER_ID == getCurrentPlayer()
+
+		return PLAYER_ID.id == getCurrentPlayer().id
 	}
 
 	this.disabled = function(a,b,c){
@@ -382,16 +486,21 @@ function Player(){
 
 
 	this.onIdle = function(){
-		this.state = PLAYER_STATE_IDLE;
-		setGameState(GAME_STATE_IDLE);
+
+	}
+
+	this.beginTurn = function (){
+		//this.state = PLAYER_STATE_IDLE;
+		//setGameState(GAME_STATE_IDLE);
 		rollButton.disabled = false;
 		summonButton.disabled = true;
 		endturnButton.disabled = true;
 		hideSummonButton(true);
-	}
 
-	this.beginTurn = function (){
-		this.onIdle()
+		//reset data
+		for (i=0;i<monsters.length;i++){
+			monsters[i].hasAttacked = false;
+		}
 	}
 
 	this.onRoll = function(){
@@ -448,20 +557,19 @@ function Player(){
 
 	}
 
-	this.onEndTurn = function(){
+	this.endTurn = function(){
 		this.state = PLAYER_STATE_IDLE;
-			
+		
 		nextPlayer();
-
+		//console.log("ending turn")
 		summonButton.disabled = true;
 		endturnButton.disabled = true;
 		rollButton.disabled = true;
 		setGameState(GAME_STATE_STOP);
 
-		console.log("Current turn:" + currentPlayer.id);
 
 		//render unselected unit
-		render();
+		//render();
 
 
 	}
@@ -524,7 +632,7 @@ addEventListener("keypress", function(e){
 			}
 			//validpos = validPlacement();
 		}
-		render();
+		//render();
 }, false);
 
 
@@ -566,14 +674,15 @@ var getUnitById = function(id){
 
 var getUnitAtLocation = function ([x,y]){
 	//console.log("unit at " + x +" " + y);
-	return units[y][x];
+	return game.board.units[y][x];
 }
 
 var setUnitAtLocation = function (id, point){
-	units[point[1]][point[0]] = id;
+	game.board.units[point[1]][point[0]] = id;
 }
 
 function getBoardState(x,y){
+	//console.log(x, y)
 	if (boundCursor(x,y)){
 		return game.board.tiles[y][x];
 	} else {
@@ -611,14 +720,19 @@ for (var i=0; i<3; i++){
 
 
 endturnButton.addEventListener("click", function(){
-	PLAYER_ID.onEndTurn();
+	PLAYER_ID.endTurn();
 })
 
 switchButton.addEventListener("click", function(){
-	nextPlayer();
+
 	if (PLAYER_ID.isPlaying()){
+		PLAYER_ID.endTurn();
+		
+	} else {
+		nextPlayer();	
 		PLAYER_ID.beginTurn();
 	}
+	console.log("Current turn:" + currentPlayer.id);
 })
 
 rollButton.addEventListener("click", function(){
@@ -663,20 +777,24 @@ function hideButton(button, boolean, point){
 
 new unit(id1, 6, 6, PLAYER_2);
 
-function createUnit(id, x, y){
-	new unit(id, x, y, PLAYER_1);
+function createUnit(id, x, y, player){
+	new unit(id, x, y, player.id);
 	//var unit2 = new unit(id1, 2, 2, PLAYER_2);
 }
 
 var moveUnit = function (id, x, y ){
-	m = getUnitById(id);
+	m = id;
+	if (!id){
+		console.log("Warning. Moving null unit.")
+		return
+	}
 	l = findPath([m.x, m.y], [x,y]).length;
 	if (l>1 && player1.pool.get(CREST_MOVEMENT) >= l-1){
 		setUnitAtLocation(EMPTY, [m.x, m.y]);
 		//units[m.x][m.y]=EMPTY;
 		m.x = x;
 		m.y = y;
-		setUnitAtLocation(id, [x,y])
+		setUnitAtLocation(m.id, [x,y])
 		//units[x][y]=id;
 		PLAYER_ID.pool.set(CREST_MOVEMENT, PLAYER_ID.pool.get(CREST_MOVEMENT) - l+1);
 		updateCrest()
@@ -697,9 +815,23 @@ function setDicePanelText(text){
 	dicePanel.innerHTML = text;
 }
 
-function setStatePanelText(text){
+function setStatePanelText(m){
+	var text = "";
+	if (m){
+		hpheart = "";
+		for (var i=0;i<m.hp;i=i+10){
+			hpheart = hpheart+heartImg;
+		}
+		text =  "<b>"+ m.name + "</b><br>" +  
+				"<b>HP</b> : "  + hpheart +"<br>" +
+				"<b>ATK</b> : " + m.atk +"<br>" +
+				"<b>DEF</b> : " + m.def +"<br>"
+	} 		
 	statPanel.innerHTML = text;
 }
+
+
+
 
 
 var drawBoard = function(){
@@ -743,7 +875,8 @@ var drawUnits = function() {
 		//console.log(monsters[i]);
 		m = monsters[i];
 		w = 1;
-		if (selectedUnit == m.id){
+		p = getCurrentPlayer()
+		if (p.unitSelected && p.unitSelected.id == m.id){
 			w = 3;
 		}
 		drawCircle(m.x, m.y,w, m.player);
@@ -755,9 +888,9 @@ var drawUnits = function() {
 var render = function() {
 
 	//cshape = shapes[ishape][rotate];
-	ctx.clearRect(0,0,canvas.width,canvas.height);
-	drawBoard();
-	drawUnits();
+	//ctx.clearRect(0,0,canvas.width,canvas.height);
+	//drawBoard();
+	//drawUnits();
 }
 
 //triggers
@@ -796,103 +929,119 @@ function registerPressEvent(condition, action){
 registerClickEvent( 
 	function(){return getGameState() == TILE_PLACEMENT} ,
 	function(){
-		console.log("clicking in tiles")
+		
 		//this.enabled = false;f
 	});
 
-registerClickEvent(function(){return getGameState() == UNIT_SELECT},
+registerClickEvent(function(){return getCurrentPlayer().unitSelected},
 	function(){
-		m = getUnitOnCursor(cursorX,cursorY);
+
+		var p = getCurrentPlayer()
+		var u = p.unitSelected;
+		var m = getUnitOnCursor(cursorX,cursorY);
+		//console.log("heselectionat " +cursorX, cursorY)
 		if (m){
-			if (m.id == selectedUnit){
+			//deselect
+		
+			p.movePath = []
+			if (m.id == u.id){
+				p.unitSelected = null;
 				setGameState(IDLE);
-				selectedUnit = EMPTY;
-				console.log("deselect")
 				SelectEvent.enabled = false;
+			//new selection
 			} else if (m.player == PLAYER_1){
-				//reselect
-				selectedUnit = m.id;
+				p.unitSelected = m;
+			//attacking
+			} else if (m.player == PLAYER_2){
+				if (u.attack(m)){
+					p.unitSelected = null;
+				}
 			}
+				
 		} else if (boundCursor(cursorX, cursorY)){
 			if (getBoardState(cursorX, cursorY) != EMPTY){
-				moveUnit(selectedUnit, cursorX,cursorY);
+				moveUnit(u, cursorX,cursorY);
+				
+				p.movePath = []
+				SelectEvent.enabled = false;
 			}
 			setGameState(IDLE);
+			p.unitSelected = null;
+
 		}
-		render();
+
+		//render();
 	})
 
 SelectEvent = registerClickEvent(
-	function(){return getGameState() == IDLE},
+	function(){return !getCurrentPlayer().unitSelected},
 	function(){	
-		m = getUnitOnCursor(cursorX,cursorY);
+		
+		var m = getUnitOnCursor(cursorX,cursorY);
 		if (m && m.player == PLAYER_1){
-			setGameState(UNIT_SELECT);
-			selectedUnit = m.id;
-			render();
-			console.log("selected unit id: " + selectedUnit);		
+			
+			//setGameState(UNIT_SELECT);
+			//selectedUnit = m.id;
+			getCurrentPlayer().unitSelected = m
+			//render();
+			//console.log("selected unit id: " + m);		
 		}
 	});
 
 registerClickEvent(
-	function(){return getGameState() == TILE_PLACEMENT && boundCursor(cursorX,cursorY) && validPlacement()},
-	function(){	
-		var cshape = rotateShape(shape,rotate);
-		for (var i=0; i<6; i++){
-			x = cursorX + cshape[i][0];
-			y = cursorY + cshape[i][1];
-			setBoardState(PLAYER_1,[x,y]);
-
+	function(){return getCurrentPlayer().tileSelected.length > 0},
+	function(){
+		var p = getCurrentPlayer()
+		if (p.makeSelection()){
+			createUnit(id0,cursorX, cursorY, p);
+			setGameState(IDLE);
+			hideSummonButton(true);
+			endturnButton.disabled = false;
+			//render unit
+			game.board.render()
 		}
-		createUnit(id0,cursorX, cursorY);
-		setGameState(IDLE);
-		hideSummonButton(true);
-		endturnButton.disabled = false;
-		//render unit
-		render();
 
 
 	});
 
 registerMoveEvent(
-	function(){return getGameState() == UNIT_SELECT}, 
+	function(){return getCurrentPlayer().unitSelected}, 
 	function(){
 		
-		m = getUnitById(selectedUnit);
-		movePathSelection = findPath([m.x, m.y],[cursorX,cursorY]);
+		var m = getCurrentPlayer().unitSelected;
+		getCurrentPlayer().movePath = findPath([m.x, m.y],[cursorX,cursorY]);
+
 		//console.log("move length is " + movePathSelection.length)
-		if (movePathSelection.length > player1.pool.get(CREST_MOVEMENT) +1) movePathSelection = [];
+		game.board.render()
+		/*
+		if (movePathSelection.length <= getCurrentPlayer().pool.get(CREST_MOVEMENT)) {			
+			ctx.globalAlpha = 0.5;
+			console.log("drawing")
+			for (var i=1; i<movePathSelection.length; i++){	
+				ctx.fillStyle= "#000000";
+				ctx.strokeStyle = "#303030";
+				ctx.lineWidth = 1;
+				drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
+			}
+			ctx.globalAlpha = 1.0;	
+		};
+		*/
 	});
 
 
 
+
 registerMoveEvent(
-	function(){return getGameState() == GAME_STATE_STOP || getGameState() == IDLE || getGameState() == UNIT_SELECT},
+	function(){return true},
 	function(){
 		m = getUnitOnCursor(cursorX,cursorY);
+		u = getCurrentPlayer().unitSelected
 		if (m){
-			hpheart = "";
-			for (var i=0;i<m.hp;i=i+10){
-				hpheart = hpheart+heartImg;
-			}
-			setStatePanelText(      "<b>"+ m.name + "</b><br>" +  
-									"<b>HP</b> : "  + hpheart +"<br>" +
-									"<b>ATK</b> : " + m.atk +"<br>" +
-									"<b>DEF</b> : " + m.def +"<br>")
-		
-		} else if (getGameState() == UNIT_SELECT){
-			hpheart = "";
-			m  = getUnitById(selectedUnit);
-			for (var i=0;i<m.hp;i=i+10){
-				hpheart = hpheart+heartImg;
-			}
-			setStatePanelText(      "<b>"+ m.name + "</b><br>" +  
-									"<b>HP</b> : "  + hpheart +"<br>" +
-									"<b>ATK</b> : " + m.atk +"<br>" +
-									"<b>DEF</b> : " + m.def +"<br>")
-
-		} else if (getGameState() == IDLE){
-			setStatePanelText("")
+			setStatePanelText(m)
+		} else if (u){
+			setStatePanelText(u)
+		} else {
+			setStatePanelText()
 		}
 	});
 
@@ -910,8 +1059,14 @@ registerMoveEvent(
 		var x = (cursorX*squareSize)-squareSize ;
 		var y = (cursorY*squareSize)-squareSize;
 		//render();
+		
+		pattern = [for (i of rotateShape(shape,rotate)) [i[0]+cursorX, i[1]+cursorY]]
+		//console.log(pattern)
+		
+		getCurrentPlayer().tileSelected = pattern;
+		/*
 		ctx.globalAlpha = 0.5;
-		var cshape = rotateShape(shape,rotate);
+		
 		validpos = validPlacement();
 		for (var i = 0; i<6; i++){
 			if (!validpos) {
@@ -928,9 +1083,12 @@ registerMoveEvent(
 			drawSquare((cshape[i][0])*squareSize+squareSize+x, (cshape[i][1])*squareSize+squareSize+y);
 		}
 		ctx.globalAlpha = 1;	
+		*/
+		//game.board.render()
 	})
 
 //movePathSelection
+/*
 registerMoveEvent(
 	function(){return getGameState() == UNIT_SELECT && movePathSelection.length > 1},
 	function(){
@@ -945,7 +1103,7 @@ registerMoveEvent(
 		}
 		ctx.globalAlpha = 1.0;	
 	});
-
+*/
 
 canvas.addEventListener("mousemove", function(e){
 	//if (getGameState() == GAME_STATE_STOP){
@@ -962,8 +1120,9 @@ canvas.addEventListener("mousemove", function(e){
 	for (var i=0; i< EVENT_LIST.length; i++){
 		//console.log(EVENT_LIST[i].action);
 		if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_MOVE && EVENT_LIST[i].condition()) {
-			render();
-			EVENT_LIST[i].action();		
+			//render();
+			EVENT_LIST[i].action();
+			game.board.render();		
 		}
 	}
 
@@ -1065,11 +1224,14 @@ function findPath(pathStart, pathEnd) {
 }
 
 canvas.addEventListener("click", function(e){
+	if (PLAYER_ID.id != currentPlayer.id)
+		return;
 	for (var i=0; i<EVENT_LIST.length; i++){
 		//console.log(EVENT_LIST[i].action);
 		if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_CLICK && EVENT_LIST[i].condition()) {
 			//render();
-			EVENT_LIST[i].action();		
+			EVENT_LIST[i].action();	
+			game.board.render()	
 			//render();
 		}
 	}
@@ -1089,12 +1251,6 @@ canvas.addEventListener("click", function(e){
 //}
 
 var middle = false;
-
-
-
-
-
-
 
 
 var printCursor = function() {
