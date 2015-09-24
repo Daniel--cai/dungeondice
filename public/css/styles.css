@@ -34,7 +34,7 @@ td {
 	left: 450px;
 }
 
-#turn {
+#players {
 	position: absolute;
 	z-index: 1;
 	top: 25px;
