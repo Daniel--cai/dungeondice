@@ -27,7 +27,7 @@ var playerPanel = document.getElementById("players")
 //var movementButton = document.getElementById("movement")
 
 var ctx = canvas.getContext("2d");
-var squareSize = 25;
+var squareSize = 30;
 var boardSizeX = 13;
 var boardSizeY= 19;
 canvas.width = 580;
@@ -102,12 +102,16 @@ function disableButtons(a,b,c){
 
 function drawSelection (player){
 	selection = player.tileSelected;
+	//console.log(player.tileSelected);
 	if (!selection || selection.length <= 0) {
 		return;
 	}
 	ctx.globalAlpha = 0.5;	
 	for (var i = 0; i<6; i++){
-		ctx.fillStyle = green;
+		ctx.fillStyle = purple;
+		if (player.num == PLAYER_2){
+			ctx.fillStyle = blue;	
+		}
 		//console.log(game.board)
 		if (!validPlacement(player)){
 			ctx.fillStyle = red;
@@ -127,6 +131,7 @@ function drawPath(){
 	//if (movePathSelection.length > 1 && movePathSelection.length-1 <= player.pool.pool[CREST_MOVEMENT]) {			
 	ctx.globalAlpha = 0.5;
 	for (var i=0; i<movePathSelection.length; i++){	
+		if (cursorX == movePathSelection[i][0] && cursorY == movePathSelection[i][1]) continue;
 		ctx.fillStyle= "#000000";
 		ctx.strokeStyle = "#303030";
 		ctx.lineWidth = 1;
@@ -277,73 +282,11 @@ var CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
 
 
 
-var id0 = {
-	name: 'Teemo',
-	hp: 30,
-	atk: 10,
-	def: 10,
-}
-
-var id1 = {
-	name: 'Soraka',
-	hp: 20,
-	atk: 10,
-	def: 20,
-}
-
-var id2 = {
-	name: 'Poppy',
-	hp: 30,
-	atk: 20,
-	def: 10,
-}
-
-var id3 = {
-	name: 'Garen',
-	hp: 30,
-	atk: 20,
-	def: 40,
-}
-
-var UNIT_IDS = [id0, id1, id2];
-
-var Dice_Teemo = new Dice(id0, [[CREST_SUMMON,1],
-								[CREST_SUMMON,1],
-								[CREST_SUMMON,1],
-								[CREST_SUMMON,1],
-								[CREST_MOVEMENT,2],
-								[CREST_ATTACK,1]])
-
-var Dice_Soraka = new Dice(id1, [[CREST_SUMMON,1],
-								 [CREST_SUMMON,1],
-								 [CREST_SUMMON,1],
-								 [CREST_SUMMON,1],
-								 [CREST_MAGIC,3],
-								 [CREST_TRAP,2]]);
-
-
-var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,3],
-								 [CREST_SUMMON,3],
-								 [CREST_DEFENSE,3],
-								 [CREST_MOVEMENT,1],
-								 [CREST_MAGIC,3],
-								 [CREST_TRAP,2]])
-
-var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,3],
-								 [CREST_SUMMON,3],
-								 [CREST_DEFENSE,3],
-								 [CREST_MOVEMENT,1],
-								 [CREST_MAGIC,3],
-								 [CREST_TRAP,2]])
-
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min;
-}
 
 //colours
 var blue    = "#000099";
 var red = "#990000";
-var green  = "#009900"; 
+var purple  = "#990099"; 
 var white = "#ffffff";
 var black = "#000000"
 
@@ -467,10 +410,10 @@ function validPlacement(player){
 			return false;
 		}
 		//adjacent
-		if (getBoardState(x+1,y) == PLAYER_1 || 
-			getBoardState(x-1,y) == PLAYER_1 ||
-			getBoardState(x,y-1) == PLAYER_1 ||
-			getBoardState(x,y+1) == PLAYER_1 ){
+		if (getBoardState(x+1,y) == player.num || 
+			getBoardState(x-1,y) == player.num ||
+			getBoardState(x,y-1) == player.num ||
+			getBoardState(x,y+1) == player.num ){
 			valid = true;
 		}
 	}
@@ -720,21 +663,10 @@ addEventListener("keypress", function(e){
 		//keysDown[e.keyCode] = true;
 		//console.log(e.charCode);
 		if (e.charCode == 122){
-			//console.log("rotate");
-			rotate++;
-			if (rotate == 4){
-				rotate = 0;	
-			}
-			validpos = validPlacement();
+			socket.emit('rotate shape');
 		} else if (e.charCode == 99){
-			shape++;
-			
-			if (shape == shapes.length){
-				shape = 0;		
-			}
-			//validpos = validPlacement();
+			socket.emit('change shape');
 		}
-		//render();
 }, false);
 
 
@@ -847,7 +779,7 @@ summonOptionButton[2].addEventListener("click", function(){
 
 
 endturnButton.addEventListener("click", function(){
-	console.log('endTurn not complete')
+	socket.emit('end turn');
 	//PLAYER_ID.endTurn();
 })
 /*
@@ -870,11 +802,11 @@ rollButton.addEventListener("click", function(){
     rollButton.disabled = true;
     summonButton.disabled = true;
     endturnButton.disabled = false;
-    dices = [Dice_Teemo, Dice_Soraka, Dice_Teemo];
-    var summonlevel = 0;
-    var summon = [[],[],[],[]];
+    //var dices = [Dice_Teemo, Dice_Soraka, Dice_Teemo];
+    //var summonlevel = 0;
+    //var summon = [[],[],[],[]];
     //update crestpool
-    socket.emit('c_roll',dices)
+    socket.emit('c_roll')
 
     socket.on('s_roll', function(data){
     	//console.log(data);
@@ -933,7 +865,7 @@ function hideButton(button, boolean, point){
 }
 
 //new unit(id1, 6, 6, PLAYER_2);
-
+/*
 function createUnit(id, x, y, player){
 	new unit(id, x, y, player.id);
 	//var unit2 = new unit(id1, 2, 2, PLAYER_2);
@@ -958,7 +890,7 @@ var moveUnit = function (id, x, y ){
 	}
 
 }
-
+*/
 
 var drawSquare = function(x,y){
 	ctx.fillRect(x,y,squareSize,squareSize);
@@ -973,14 +905,13 @@ function setDicePanelText(text){
 }
 
 function setStatePanelText(m){
-	//console.log(m.hp, m.name)
-	
+
 	var text = "";
 	if (m){
-		var m = m.type;
-		hpheart = "";
+		//var mt = m.type;
+		var hpheart = "";
 		for (var i=0;i<m.hp;i=i+10){
-			hpheart = hpheart+heartImg;
+			hpheart += heartImg;
 		}
 		text =  "<b>"+ m.name + "</b><br>" +  
 				"<b>HP</b> : "  + hpheart +"<br>" +
@@ -1004,7 +935,7 @@ var drawBoard = function(){
 	for (var i=0; i< boardSizeX; i++){
 		for (var j=0;j<boardSizeY; j++){
 			if (getBoardState(i,j)== PLAYER_1){
-				ctx.fillStyle = green;
+				ctx.fillStyle = purple;
 			} else if (getBoardState(i,j) == PLAYER_2){
 				ctx.fillStyle = blue;	
 			} else if (getBoardState(i,j) == EMPTY ){
@@ -1016,10 +947,10 @@ var drawBoard = function(){
 
 }
 
-var drawCircle = function(x,y,w,player) {
+var drawCircle = function(x,y,w,p) {
 	ctx.beginPath();
 	ctx.arc(x*squareSize+ squareSize/2, y*squareSize+ squareSize/2, squareSize/2, 0, 2 * Math.PI, false);
-	if (player.num == 0){
+	if (p.num == 0){
 		ctx.fillStyle = "#008080";
 	} else {
 		ctx.fillStyle = "#808000";
@@ -1038,10 +969,13 @@ var drawUnits = function() {
 		m = game.monsters[i];
 		w = 1;
 		//p = getCurrentPlayer()
-		if (player.unitSelected && player.unitSelected == m.id){
+		if (!m){
+			continue;
+		}
+		if (player.unitSelected == m.id){
 			w = 3;
 		}
-		if (opponent.unitSelected && opponent.unitSelected == m.id){
+		if (opponent.unitSelected == m.id){
 			w = 5;
 		}
 		drawCircle(m.x, m.y,w, m.player);
@@ -1083,7 +1017,7 @@ function registerPressEvent(condition, action){
 }
 //function(){getGameState() == TILE_PLACEMENT}
 
-
+/*
 
 registerClickEvent(
 	function(){return boundCursor(cursorX,cursorY)},
@@ -1123,7 +1057,6 @@ registerClickEvent(
 			}
 			//setGameState(IDLE);
 			//unitSelected = null;
-*/
 		//}
 
 		//render();
@@ -1162,7 +1095,7 @@ registerClickEvent(
 		});
 		
 	});
-*/
+/*
 registerMoveEvent(
 	function(){return player && player.unitSelected}, 
 	function(){
@@ -1184,32 +1117,31 @@ registerMoveEvent(
 			}
 			ctx.globalAlpha = 1.0;	
 		};
-		*/
+
 	});
-
-
-
+*/
 
 registerMoveEvent(
 	function(){return true},
 	function(){
-		var m = getUnitOnCursor(cursorX,cursorY);
-		//
 
-		if (m){
-			console.log(m);
-			setStatePanelText(m)
-		//} else if (player && player.unitSelected){
-		//	setStatePanelText(player.unitSelected)
-		} else {
-			setStatePanelText("")
-		}
 	});
 
 registerMoveEvent(
 	function(){return true},
 	function(){
 		socket.emit('mouse move', {X:cursorX, Y:cursorY})
+
+		var m = getUnitOnCursor(cursorX,cursorY);
+		if (m){
+			//console.log(m);
+			setStatePanelText(m)
+		//} else if (player && player.unitSelected){
+		//	setStatePanelText(player.unitSelected)
+		} else {
+			setStatePanelText("")
+		}
+
 	});
 
 registerClickEvent(
@@ -1355,6 +1287,7 @@ var render = function(){
 	drawSelection(player);
 	drawSelection(opponent);
 
+
 	drawPath();
 }
 
@@ -1362,7 +1295,7 @@ var render = function(){
 function update(data){
 	PLAYER_ID = data.pnum
 	game = data.game;
-	console.log(data.pnum)
+	//console.log(data.pnum)
 	opponent = game.players[0];
 	player = game.players[data.pnum];
 	if (data.pnum == 0){
@@ -1371,11 +1304,23 @@ function update(data){
 	
 	//console.log(player.tileSelected);
 	updateCrest(player.pool.pool);
+	var m = getUnitOnCursor(cursorX,cursorY);
+	if (m){
+		//console.log(m.name +" "+m.hp)
+		setStatePanelText(m)
+	}
 	render();
 
 	if (PLAYER_ID != game.turn%2){
 		disableButtons(true,true,true)
-	}
+	} else if (!player.rolled){
+		disableButtons(false,false,false)
+	} else if (!player.summoned) {
+		disableButtons(true,false,false)
+	} else if (player.tileSelected.length <=0){
+		hideSummonButton(true);
+		disableButtons(true,true,false)
+	} 
 }
 
 socket.on('updategame', function(data){

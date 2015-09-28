@@ -31,6 +31,9 @@ var Game = function (){
 
   }
 
+  this.isPlaying = function (player){
+    return this.turn%2 == player.num
+  }
 
   this.makeSelection = function(player){
     //console.log(this.tileSelected.length)
@@ -108,7 +111,7 @@ var Board = function (){
     //console.log(point);
     //console.log(id)
     console.log("setUnitAtLocid");
-    console.log(id);
+    //console.log(id);
     this.units[point[1]][point[0]] = id;
   }
 
@@ -141,10 +144,10 @@ var Board = function (){
       }
       //adjacent
 
-      if (this.getTileState(x+1,y) != EMPTY || 
-        this.getTileState(x-1,y) != EMPTY ||
-        this.getTileState(x,y-1) != EMPTY ||
-        this.getTileState(x,y+1) != EMPTY ){
+      if (this.getTileState(x+1,y) == player.num || 
+        this.getTileState(x-1,y) == player.num ||
+        this.getTileState(x,y-1) == player.num ||
+        this.getTileState(x,y+1) == player.num ){
         valid = true;
       }
     }
@@ -182,6 +185,23 @@ var Board = function (){
     if (this.validWalk(W,y)) result.push({x:W, y:y});
     return result;
   };
+
+  this.findPossiblePath = function(pathStart, squares){
+    var result = [];
+    console.log("findPossiblePath()")
+    for (var i=0; i<boardSizeX;i++){
+      for (var j=0; j<boardSizeY;j++){
+        if (!this.validWalk(i,j)) continue;
+        var possible = this.findPath(pathStart, [i,j])
+        //console.log(possible)
+        if (possible.length > 0 && possible.length <= squares+1){
+          result.push([i,j]);
+          //console.log([i,j] + " " + possible.length)
+        }  
+      }
+    }
+    return result;
+  }
 
   this.findPath = function(pathStart,pathEnd){
     var pathstart = new Node(null, {x:pathStart[0], y:pathStart[1]});
@@ -232,6 +252,24 @@ var Board = function (){
     }
     return result;
   }
+
+
+  this.moveUnit = function (id, x, y ){
+    if (id == EMPTY){
+      console.log("Warning. Moving null unit.")
+      return
+    }
+      //this.setUnitAtLoc = function ([m.x, m.y], EMPTY)
+      m.x = x;
+      m.y = y;
+      //this.setUnitAtLoc = function ([x, y], id)
+      //setUnitAtLocation(m.id, [x,y])
+      //units[x][y]=id;
+
+    }
+
+  
+
   return this;
 }
 
@@ -315,8 +353,8 @@ var id1 = {
 
 var id2 = {
   name: 'Poppy',
-  hp: 30,
-  atk: 20,
+  hp: 40,
+  atk: 10,
   def: 10,
 }
 
@@ -340,18 +378,18 @@ var Dice_Soraka = new Dice(id1, [[CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
-                 [CREST_SUMMON,3],
+                 [CREST_SUMMON,1],
                  [CREST_SUMMON,1]]);
 
 
-var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,3],
-                 [CREST_SUMMON,3],
-                 [CREST_DEFENSE,3],
-                 [CREST_MOVEMENT,1],
-                 [CREST_MAGIC,3],
-                 [CREST_TRAP,2]])
+var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,1],
+                 [CREST_SUMMON,1],
+                 [CREST_SUMMON,1],
+                 [CREST_SUMMON,1],
+                 [CREST_SUMMON,1],
+                 [CREST_SUMMON,1]]);
 
-var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,3],
+var Dice_Garen = new Dice(id3, [[CREST_SUMMON,3],
                  [CREST_SUMMON,3],
                  [CREST_DEFENSE,3],
                  [CREST_MOVEMENT,1],
@@ -399,7 +437,8 @@ function Unit(game, player, type, point) {
   
 
   this.attack = function(target){
-    playerpool = allplayers[this.player].pool
+    playerpool = this.player.pool;
+    //console.log(target)
     if (this.hasAttacked) {
       console.log("Already attack")
       return false
@@ -407,7 +446,7 @@ function Unit(game, player, type, point) {
   
 
     var d = manhattanDistance(this, target);
-    console.log(d)
+    
     if (d > this.atkrange){
       console.log("Out of range")
       return false
@@ -417,11 +456,10 @@ function Unit(game, player, type, point) {
       console.log("Not enough attack crest")
       return false;
     }
-
-
-
+    console.log(target.hp)
     target.hp = target.hp - this.atk;
-    setStatePanelText(target);
+    console.log("after attack" +target.hp)
+    //setStatePanelText(target);
     //dead
     if (target.hp <= 0){
       target.remove()
@@ -433,7 +471,7 @@ function Unit(game, player, type, point) {
   }
 
   this.remove = function(){
-    monsters[this.id] = -1;   
+    game.monsters[this.id] = null;   
   }
 }
 
@@ -592,25 +630,6 @@ var getUnitById = function(id){
 }
 
 
-var moveUnit = function (id, x, y ){
-  m = id;
-  if (!id){
-    console.log("Warning. Moving null unit.")
-    return
-  }
-  l = findPath([m.x, m.y], [x,y]).length;
-  if (l>1 && player1.pool.get(CREST_MOVEMENT) >= l-1){
-    //setUnitAtLocation(EMPTY, [m.x, m.y]);
-    //units[m.x][m.y]=EMPTY;
-    m.x = x;
-    m.y = y;
-    //setUnitAtLocation(m.id, [x,y])
-    //units[x][y]=id;
-    PLAYER_ID.pool.set(CREST_MOVEMENT, PLAYER_ID.pool.get(CREST_MOVEMENT) - l+1);
-    //updateCrest()
-  }
-
-}
 
 
 var drawSquare = function(x,y){
@@ -624,10 +643,10 @@ var heartImg = "<img src='assets/img/heart.png' width = 15 height = 15;/>"
 function setDicePanelText(text){
   dicePanel.innerHTML = text;
 }
-
+/*
 function setStatePanelText(m){
   var text = "";
-  if (m){
+  if (m != EMPTY){
     hpheart = "";
     for (var i=0;i<m.hp;i=i+10){
       hpheart = hpheart+heartImg;
@@ -638,70 +657,6 @@ function setStatePanelText(m){
         "<b>DEF</b> : " + m.def +"<br>"
   }     
   statPanel.innerHTML = text;
-}
-
-
-
-
-/*
-var drawBoard = function(board){
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 1;
-  //ctx.shadowBlur = 5;
-  //ctx.shadowColor = "grey";
-  //board[6][7] =  1;
-  for (var i=0; i< boardSizeX; i++){
-    for (var j=0;j<boardSizeY; j++){
-      if (game.board.getTileState(i,j)== PLAYER_1){
-        ctx.fillStyle = green;
-      } else if (game.getTileState(i,j) == PLAYER_2){
-        ctx.fillStyle = blue; 
-      } else if (game.getTileState(i,j) == EMPTY ){
-        ctx.fillStyle = "#303030";
-      }
-      drawSquare(i*squareSize,j*squareSize);
-    }
-  }
-
-}
-/*
-var drawCircle = function(x,y,w,player) {
-  ctx.beginPath();
-  ctx.arc(x*squareSize+ squareSize/2, y*squareSize+ squareSize/2, squareSize/2, 0, 2 * Math.PI, false);
-  if (player == PLAYER_1){
-    ctx.fillStyle = "#008080";
-  } else if (player == PLAYER_2){
-    ctx.fillStyle = "#808000";
-  }
-  ctx.fill();
-
-  ctx.lineWidth = w;
-  ctx.strokeStyle = '#000000';
-  ctx.stroke();
-}
-
-var drawUnits = function() {
-  for(var i=0; i<monsters.length; i++) {
-    //console.log(monsters[i]);
-    m = monsters[i];
-    w = 1;
-    p = getCurrentPlayer()
-    if (p.unitSelected && p.unitSelected.id == m.id){
-      w = 3;
-    }
-    drawCircle(m.x, m.y,w, m.player);
-
-  }
-
-}
-
-
-var render = function() {
-
-  //cshape = shapes[ishape][rotate];
-  //ctx.clearRect(0,0,canvas.width,canvas.height);
-  //drawBoard();
-  //drawUnits();
 }
 */
 
@@ -734,195 +689,6 @@ function registerMoveEvent(condition, action){
 function registerPressEvent(condition, action){
   return new Event(TRIGGER_KEY_PRESSED, condition, action)
 }
-//function(){getGameState() == TILE_PLACEMENT}
-
-
-/*
-registerClickEvent( 
-  function(){return getGameState() == TILE_PLACEMENT} ,
-  function(){
-    
-    //this.enabled = false;f
-  });
-
-registerClickEvent(function(){return getCurrentPlayer().unitSelected},
-  function(){
-
-    var p = getCurrentPlayer()
-    var u = p.unitSelected;
-    var m = getUnitOnCursor(cursorX,cursorY);
-    //console.log("heselectionat " +cursorX, cursorY)
-    if (m){
-      //deselect
-    
-      p.movePath = []
-      if (m.id == u.id){
-        p.unitSelected = null;
-        setGameState(IDLE);
-        SelectEvent.enabled = false;
-      //new selection
-      } else if (m.player == PLAYER_1){
-        p.unitSelected = m;
-      //attacking
-      } else if (m.player == PLAYER_2){
-        if (u.attack(m)){
-          p.unitSelected = null;
-        }
-      }
-        
-    } else if (boundCursor(cursorX, cursorY)){
-      if (game.getTileState(cursorX, cursorY) != EMPTY){
-        moveUnit(u, cursorX,cursorY);
-        
-        p.movePath = []
-        SelectEvent.enabled = false;
-      }
-      setGameState(IDLE);
-      p.unitSelected = null;
-
-    }
-
-    //render();
-  })
-
-SelectEvent = registerClickEvent(
-  function(){return !getCurrentPlayer().unitSelected},
-  function(){ 
-    
-    var m = getUnitOnCursor(cursorX,cursorY);
-    if (m && m.player == PLAYER_1){
-      
-      //setGameState(UNIT_SELECT);
-      //selectedUnit = m.id;
-      getCurrentPlayer().unitSelected = m
-      //render();
-      //console.log("selected unit id: " + m);    
-    }
-  });
-
-registerClickEvent(
-  function(){return getCurrentPlayer().tileSelected.length > 0},
-  function(){
-    var p = getCurrentPlayer()
-    if (p.makeSelection()){
-      createUnit(id0,cursorX, cursorY, p);
-      setGameState(IDLE);
-      hideSummonButton(true);
-      endturnButton.disabled = false;
-      //render unit
-      game.board.render()
-    }
-
-
-  });
-
-registerMoveEvent(
-  function(){retumakeSelectionrn getCurrentPlayer().unitSelected}, 
-  function(){
-    
-    var m = getCurrentPlayer().unitSelected;
-    getCurrentPlayer().movePath = findPath([m.x, m.y],[cursorX,cursorY]);
-
-    //console.log("move length is " + movePathSelection.length)
-    game.board.render()
-    /*
-    if (movePathSelection.length <= getCurrentPlayer().pool.get(CREST_MOVEMENT)) {      
-      ctx.globalAlpha = 0.5;
-      console.log("drawing")
-      for (var i=1; i<movePathSelection.length; i++){ 
-        ctx.fillStyle= "#000000";
-        ctx.strokeStyle = "#303030";
-        ctx.lineWidth = 1;
-        drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
-      }
-      ctx.globalAlpha = 1.0;  
-    };
-    });
-  
-  
-
-
-registerMoveEvent(
-  function(){return true},
-  function(){
-    m = getUnitOnCursor(cursorX,cursorY);
-    u = getCurrentPlayer().unitSelected
-    if (m){
-      setStatePanelText(m)
-    } else if (u){
-      setStatePanelText(u)
-    } else {
-      setStatePanelText()
-    }
-  });
-
-registerMoveEvent(
-  function(){return getGameState() == TILE_PLACEMENT},
-  function(){
-    //console.log('bug');
-    //validpos = ;
-    //draw square;
-  });
-
-registerMoveEvent(
-  function(){return getGameState() == TILE_PLACEMENT}, 
-  function(){
-    var cursorX = 0;
-    var cursorY = 0;
-    var shape = 0;
-    var rotate = 0;
-    var x = (cursorX*squareSize)-squareSize ;
-    var y = (cursorY*squareSize)-squareSize;
-    //render();
-    
-    //var pattern = [for (i of rotateShape(shape,rotate)) [i[0]+cursorX, i[1]+cursorY]]
-    //console.log(pattern)
-    var pattern = [];
-    var cshape = rotateShape(shape,rotate)
-    for (var i=0; i< cshape.length;i++){
-      pattern.push([cshape[i][0]+cursorX, cshape[i][1]+cursorY])
-    }
-    getCurrentPlayer().tileSelected = pattern;
-    
-    ctx.globalAlpha = 0.5;
-    
-    validpos = validPlacement();
-    for (var i = 0; i<6; i++){
-      if (!validpos) {
-        ctx.fillStyle = red;
-      } else if (i == 0){
-        ctx.fillStyle = blue;
-      } else if (validpos) {
-        ctx.fillStyle = green;
-      } 
-      ctx.strokeStyle = "#303030";
-      ctx.lineWidth = 1;
-      ctx.shadowBlur = 0;
-      ctx.shadowColor = "grey";
-      drawSquare((cshape[i][0])*squareSize+squareSize+x, (cshape[i][1])*squareSize+squareSize+y);
-    }
-    ctx.globalAlpha = 1;  
-    
-    //game.board.render()
-  })
-*/
-//movePathSelection
-/*
-registerMoveEvent(
-  function(){return getGameState() == UNIT_SELECT && movePathSelection.length > 1},
-  function(){
-    
-    ctx.globalAlpha = 0.5;
-    for (var i=1; i<movePathSelection.length; i++){
-      
-      ctx.fillStyle= "#000000";
-      ctx.strokeStyle = "#303030";
-      ctx.lineWidth = 1;
-      drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
-    }
-    ctx.globalAlpha = 1.0;  
-  });
-*/
 
 
 function manhattanDistance(point, goal){
@@ -932,7 +698,7 @@ function manhattanDistance(point, goal){
 
 
 
-
+/*
 var middle = false;
 
 
@@ -955,27 +721,13 @@ var drawGame = function(){
   
 }
 
-//if (PLAYER_ID.isPlaying()) {
-//  //PLAYER_ID.nextState();
-//}
-
 var main = function(){
   drawGame();
   //requestAnimationFrame(main);
   //printCursor();
 
 }
-
-
-
-//
-//
-//
-//
-//  FIXED
-//
-//
-//
+*/
 function Player(id){
   var PLAYER_STATE_IDLE = 0;
   var PLAYER_STATE_ROLL = 1;
@@ -1002,6 +754,8 @@ function Player(id){
   this.tileSelected = []
   this.unitSelected = EMPTY;
   this.movePath = []
+  this.rolled = false;
+  this.summoned = false;
 
 /*
   this.isPlaying = function(){
@@ -1020,8 +774,10 @@ function Player(id){
 
   }
 */
+
+
   this.beginTurn = function (){
-    //this.state = PLAYER_STATE_IDLE;
+    //this.state = PLAYER_STA1T1E_IDLE;
     //setGameState(GAME_STATE_IDLE);
     rollButton.disabled = false;
     summonButton.disabled = true;
@@ -1036,7 +792,7 @@ function Player(id){
 
   this.onRoll = function(){
 
-    var dices = [Dice_Teemo, Dice_Soraka, Dice_Teemo];
+    var dices = [Dice_Teemo, Dice_Soraka, Dice_Poppy];
       
 
     var summonlevel = 0;
@@ -1107,6 +863,9 @@ function Player(id){
 var update = function(game){
     var p1 = game.players[0];
     var p2 = game.players[1];
+    if (!p1 || !p2){
+      return;
+    }
     //console.log(p1.id)
     //console.log(p2.id)
     io.to(p1.id).emit('updategame', {pnum: p1.num,game :game});
@@ -1125,6 +884,9 @@ io.on('connection', function(socket){
     sockets[socket.id] = socket;
 
     var game = opengames.pop();
+
+  
+
     if (!game){
       game = new Game();
       opengames.push(game);
@@ -1161,6 +923,7 @@ io.on('connection', function(socket){
 
     var createUnit = function (player, id, point){
       //console.log(point)
+      if (!id) return;
       var game = games[player.id]
       new Unit(game, player, id, point);
     //var unit2 = new unit(id1, 2, 2, PLAYER_2);
@@ -1176,55 +939,11 @@ io.on('connection', function(socket){
     }
 
 
-    socket.on('c_roll', function(data){
-      var game = games[socket.id]
-      var p1 = getCurrentPlayer(socket.id)
-      //var player = games.allplayers;
-      console.log('rolling ' + data.dices);
-      var gain = p1.pool.pool.slice();
-      //console.log(gain)
-      p1.onRoll()
-      
-      for (var i=0; i<gain.length; i++){
-        gain[i] = p1.pool.get(i) - gain[i];
-      }
-      console.log(p1.pool.pool)
-      console.log(gain)
-      var names = []
-      for (var i=0; i<p1.summon.length; i++){
-        names.push(p1.summon[i].type)
-      } 
-
-      var datato = {
-        summon: names, 
-        pool: p1.pool.pool, 
-        level: p1.summonlevel, 
-        gain: gain,
-      }
-      socket.emit('s_roll',datato)
-    });
-
-
-
-    socket.on('c_summonoption', function (data){
-      var game = games[socket.id]
-      var p1 = getCurrentPlayer(socket.id)
-      
-      //console.log(p1)
-
-      p1.summonchoice = data;
-      p1.tileSelected = rotateShape(p1.shape,p1.rotate)
-      //console.log('summoinggd')
-      //console.log(p1.tileSelected)
-      update(game)
-      //socket.emit('updategame', {pnum: p1.num,game:game});
-
-    });
 
     var c_tilemove = function (cursor){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
-      console.log(socket.id)
+      //console.log(socket.id)
       p1.cursorX = cursor.X;
       p1.cursorY = cursor.Y;
       //console.log(cursor.X,cursor.Y)
@@ -1245,14 +964,15 @@ io.on('connection', function(socket){
       }
       var game = games[socket.id]
       var m = game.monsters[p1.unitSelected]
+      //p1.movePath = game.board.findPossiblePath({x:m.x, y:m.y},p1.pool.get(CREST_MOVEMENT));
       //console.log([m.x, m.y],[cursor.X,cursor.Y])
-      p1.movePath =  game.board.findPath([m.x, m.y],[cursor.X,cursor.Y]);
-      var plen = p1.movePath.length
+      //p1.movePath =  game.board.findPath([m.x, m.y],[cursor.X,cursor.Y]);
+      //var plen = p1.movePath.length
 
-      //console.log("movePath legnth:" + p1.pool.get(CREST_MOVEMENT))
-      if (plen < 2 || plen-1 > p1.pool.get(CREST_MOVEMENT)) { 
-        p1.movePath = []
-      }   
+      ////console.log("movePath legnth:" + p1.pool.get(CREST_MOVEMENT))
+      //if (plen < 2 || plen-1 > p1.pool.get(CREST_MOVEMENT)) { 
+      //  p1.movePath = []
+      //}   
       update(game);
     }
 
@@ -1278,11 +998,12 @@ io.on('connection', function(socket){
       if (game.makeSelection(p1)){
         var point = [p1.cursorX, p1.cursorY];
         console.log("make selection");
-       
-        createUnit(p1,id0,point)
+        //console.log()
+        createUnit(p1,p1.summon[p1.summonchoice].type,point)
         p1.tileSelected = [];
         p1.shape = 0;
         p1.rotate = 0;
+        p1.summoned = true;
         update(game);
       }
     }
@@ -1290,10 +1011,6 @@ io.on('connection', function(socket){
     var c_selectunit = function (p){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
-      console.log("c_select unit")
-      //console.log(game.board.units)
-      console.log(game.board.getUnitAtLoc(p.X, p.Y))
-      console.log("c_select unit2")
       var m = game.monsters[game.board.getUnitAtLoc(p.X, p.Y)]
 
       //console.log(game.board.getUnitAtLoc(p[0], p[1]));
@@ -1302,12 +1019,18 @@ io.on('connection', function(socket){
           if (m.id == p1.unitSelected){
             p1.unitSelected = EMPTY;
             console.log("deselect");
+            p1.movePath = []
           } else {
             p1.unitSelected = m.id;
+            p1.movePath = game.board.findPossiblePath([p.X, p.Y],p1.pool.get(CREST_MOVEMENT))
             console.log("selecetd unit m0");
           }
-        } else {
-          console.log("attack!")
+        } else if (p1.unitSelected != EMPTY){
+          if (game.monsters[p1.unitSelected].attack(m)){
+            console.log("attack!")
+            p1.unitSelected = EMPTY;
+          }
+          
         }
       } else { 
         console.log("no unit on tile")
@@ -1315,30 +1038,165 @@ io.on('connection', function(socket){
       update(game);  
     }
 
+    var c_unitmove = function(data){
+      var game = games[socket.id]
+      var p1 = getCurrentPlayer(socket.id)
+      var m = game.monsters[p1.unitSelected]
+      //console.log([m.x, m.y],[cursor.X,cursor.Y])
+      var path = game.board.findPath([m.x,m.y],[data.X,data.Y]);
+      //console.log([m.x, m.y],[cursor.X,cursor.Y])
+      //p1.movePath =  game.board.findPath([m.x, m.y],[cursor.X,cursor.Y]);
+      var plen = path.length
+
+      ////console.log("movePath legnth:" + p1.pool.get(CREST_MOVEMENT))
+      //console.log("movePath legnth:" + p1.pool.get(CREST_MOVEMENT))
+      if (plen > 1 && plen-1 <= p1.pool.get(CREST_MOVEMENT)) { 
+        p1.movePath = [];
+
+        //game.board.moveUnit(p1.unitSelected, data.X,data.Y);
+
+        game.board.setUnitAtLoc([m.x, m.y], EMPTY)
+        m.x = data.X;
+        m.y = data.Y;
+        game.board.setUnitAtLoc([data.X, data.Y], p1.unitSelected)
+        p1.pool.update(CREST_MOVEMENT,-(plen-1))
+        p1.unitSelected = EMPTY;
+      }   
+
+    }
+
+    socket.on('end turn', function(){
+      var game = games[socket.id]
+      var player = getCurrentPlayer(socket.id)
+      if (!game.isPlaying(player)) return
+      game.turn++;
+      player.summoned = false;
+      player.rolled = false;
+      player.unitSelected = EMPTY;
+      player.summon = [];
+      player.summonlevel = 0
+      for (var i=0; i<game.monsters.length;i++){
+        if (game.monsters[i].player.num == player.num){
+          game.monsters[i].hasAttacked = false;
+          game.monsters[i].canAttacked = true;
+        }
+      }
+      update(game)
+    });
+
     socket.on('mouse move', function(data){
       //console.log(data)
       var game = games[socket.id]
       var player = getCurrentPlayer(socket.id)
+      if (!game.isPlaying(player)) return
       if (player.tileSelected.length > 0){
         c_tilemove(data)
       } else if (player.unitSelected != EMPTY){
         c_unitpathmove(data);
-
       }
-
+      update(game);
     });
 
     socket.on('mouse click', function (data){
       var game = games[socket.id]
       var player = getCurrentPlayer(socket.id)
+      if (!game.isPlaying(player)) return
       if (player.tileSelected.length > 0){
         //console.log("tile place")
         c_tilesplace(data);
+      } else if (
+      player.unitSelected != EMPTY && 
+      game.board.getTileState(data.X, data.Y) != EMPTY && 
+      game.board.getUnitAtLoc(data.X,data.Y) == EMPTY){
+        c_unitmove(data);
       } else if (boundCursor(data.X,data.Y)){
         c_selectunit(data);
-      }
+      } 
+      update(game)
     })
 
+    socket.on('rotate shape', function(){
+      var game = games[socket.id];
+      var p1 = getCurrentPlayer(socket.id);
+      if (!game.isPlaying(p1)) return
+      if (p1.tileSelected.length == 0) return;
+      p1.rotate++;
+      if (p1.rotate == 4){
+        p1.rotate = 0; 
+      }
+      p1.tileSelected = [];
+      var cshape = rotateShape(p1.shape,p1.rotate);
+      for (var i=0; i<cshape.length; i++){
+        p1.tileSelected.push([cshape[i][0]+p1.cursorX, cshape[i][1]+p1.cursorY])
+      }
+      update(game)
+    })
+
+    socket.on('change shape', function(){
+      var game = games[socket.id];
+      var p1 = getCurrentPlayer(socket.id);
+      if (!game.isPlaying(p1)) return
+      if (p1.tileSelected.length == 0) return;
+      p1.shape++;
+      if (p1.shape == shapes.length){
+        p1.shape = 0;    
+      }
+      p1.tileSelected = [];
+      var cshape = rotateShape(p1.shape,p1.rotate);
+      for (var i=0; i<cshape.length; i++){
+        p1.tileSelected.push([cshape[i][0]+p1.cursorX, cshape[i][1]+p1.cursorY])
+      }
+      update(game)
+    })
+
+
+    socket.on('c_roll', function(){
+      var game = games[socket.id]
+      var p1 = getCurrentPlayer(socket.id)
+      if (!game.isPlaying(p1)) return
+      //var player = games.allplayers;
+      //console.log('rolling ' + data.dices);
+      var gain = p1.pool.pool.slice();
+      //console.log(gain)
+      p1.onRoll()
+      
+      for (var i=0; i<gain.length; i++){
+        gain[i] = p1.pool.get(i) - gain[i];
+      }
+      console.log(p1.pool.pool)
+      console.log(gain)
+      var names = []
+      for (var i=0; i<p1.summon.length; i++){
+        names.push(p1.summon[i].type)
+      } 
+
+      var datato = {
+        summon: names, 
+        pool: p1.pool.pool, 
+        level: p1.summonlevel, 
+        gain: gain,
+      }
+      p1.rolled = true;
+      update(game)
+      socket.emit('s_roll',datato)
+    });
+
+
+
+    socket.on('c_summonoption', function (data){
+      var game = games[socket.id]
+      var p1 = getCurrentPlayer(socket.id)
+      if (!game.isPlaying(p1)) return
+      //console.log(p1)
+
+      p1.summonchoice = data;
+      p1.tileSelected = rotateShape(p1.shape,p1.rotate)
+      //console.log('summoinggd')
+      //console.log(p1.tileSelected)
+      update(game)
+      //socket.emit('updategame', {pnum: p1.num,game:game});
+
+    });
 
 
     socket.on('disconnect', function(){
