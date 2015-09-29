@@ -16,6 +16,13 @@ var opengames = []
 var games = []
 //var currentPlayer;
 
+//game states
+var GAME_STATE_ROLL = 0;
+var GAME_STATE_SUMMON = 1;
+var GAME_STATE_UNIT = 2;
+var GAME_STATE_END = 3;
+
+
 var Game = function (){
   this.players = []
   this.turn = 0;
@@ -23,12 +30,15 @@ var Game = function (){
   //this.currentPlayer;
   this.monsters =[];
 
+
+
+
+
   this.init = function (){
     //main();
     this.board = new Board();
     //PLAYER_ID.beginTurn();
     console.log("ready")
-
   }
 
   this.isPlaying = function (player){
@@ -110,7 +120,7 @@ var Board = function (){
   this.setUnitAtLoc = function (point, id){
     //console.log(point);
     //console.log(id)
-    console.log("setUnitAtLocid");
+    //console.log("setUnitAtLocid");
     //console.log(id);
     this.units[point[1]][point[0]] = id;
   }
@@ -739,7 +749,7 @@ function Player(id){
   this.num;
   this.pool = new Pool();
 
-  //this.state = PLAYER_STATE_IDLE;
+  this.state = GAME_STATE_END;
   this.summon = [];
   this.summonlevel = 0;
   this.summonchoice = EMPTY;
@@ -756,6 +766,9 @@ function Player(id){
   this.movePath = []
   this.rolled = false;
   this.summoned = false;
+  this.dices = [Dice_Teemo, Dice_Teemo, Dice_Teemo, Dice_Teemo, Dice_Teemo,
+                Dice_Soraka, Dice_Soraka,Dice_Soraka, Dice_Soraka, Dice_Soraka,
+                Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,];
 
 /*
   this.isPlaying = function(){
@@ -775,33 +788,45 @@ function Player(id){
   }
 */
 
+  this.endTurn = function (game){
+    this.state = GAME_STATE_END;
+    var opponent = game.players[((this.num == 0) ? 1 : 0)]
+    opponent.beginTurn(game);
 
-  this.beginTurn = function (){
+  }
+
+  this.beginTurn = function (game){
     //this.state = PLAYER_STA1T1E_IDLE;
     //setGameState(GAME_STATE_IDLE);
-    rollButton.disabled = false;
-    summonButton.disabled = true;
-    endturnButton.disabled = true;
-    hideSummonButton(true);
+    console.log("begin")
+    this.state = GAME_STATE_ROLL;
+    this.summoned = false;
+    this.rolled = false;
+    this.unitSelected = EMPTY;
+    this.summon = [];
+    this.summonlevel = 0;
+    this.shape = 0;
+    this.rotate = 0;
 
     //reset data
-    for (i=0;i<monsters.length;i++){
-      monsters[i].hasAttacked = false;
+    for (var i=0; i<game.monsters.length;i++){
+      if (game.monsters[i].player.num == this.num){
+        game.monsters[i].hasAttacked = false;
+        game.monsters[i].canAttacked = true;
+      }
     }
   }
 
-  this.onRoll = function(){
+  this.onRoll = function(dices){
 
-    var dices = [Dice_Teemo, Dice_Soraka, Dice_Poppy];
-      
-
+    //var dices = dices//[Dice_Teemo, Dice_Soraka, Dice_Poppy];
     var summonlevel = 0;
     var summon = [[],[],[],[],[]];
     //update crestpool
+    //console.log(dices)
     for (var i=0;i<dices.length; i++){
-    
       var r = dices[i].roll();
-    
+      
       if (r[0] != CREST_SUMMON){
         //console.log(this.pool);
         this.pool.update(r[0],r[1])
@@ -821,7 +846,7 @@ function Player(id){
       this.summon = summon[summonlevel];
       this.summonlevel = summonlevel
     }
-
+    //console.log(this.summon)
     
   }
 
@@ -836,22 +861,7 @@ function Player(id){
 
   }
 
-  this.endTurn = function(){
-    this.state = PLAYER_STATE_IDLE;
-    
-    nextPlayer();
-    //console.log("ending turn")
-    summonButton.disabled = true;
-    endturnButton.disabled = true;
-    rollButton.disabled = true;
-    setGameState(GAME_STATE_STOP);
 
-
-    //render unselected unit
-    //render();
-
-
-  }
   return this;
 }
 
@@ -885,8 +895,6 @@ io.on('connection', function(socket){
 
     var game = opengames.pop();
 
-  
-
     if (!game){
       game = new Game();
       opengames.push(game);
@@ -902,7 +910,7 @@ io.on('connection', function(socket){
       game.players.push(p1);
       games[socket.id] = game;
       game.init();
-
+      game.players[0].beginTurn(game);
 
       var temp = [5,16];
       new Unit(game, p1, id1, temp);
@@ -1004,6 +1012,7 @@ io.on('connection', function(socket){
         p1.shape = 0;
         p1.rotate = 0;
         p1.summoned = true;
+        p1.state = GAME_STATE_UNIT;
         update(game);
       }
     }
@@ -1029,6 +1038,7 @@ io.on('connection', function(socket){
           if (game.monsters[p1.unitSelected].attack(m)){
             console.log("attack!")
             p1.unitSelected = EMPTY;
+            p1.movePath = []
           }
           
         }
@@ -1066,21 +1076,14 @@ io.on('connection', function(socket){
     }
 
     socket.on('end turn', function(){
+
       var game = games[socket.id]
       var player = getCurrentPlayer(socket.id)
       if (!game.isPlaying(player)) return
+      player.endTurn(game);
       game.turn++;
-      player.summoned = false;
-      player.rolled = false;
-      player.unitSelected = EMPTY;
-      player.summon = [];
-      player.summonlevel = 0
-      for (var i=0; i<game.monsters.length;i++){
-        if (game.monsters[i].player.num == player.num){
-          game.monsters[i].hasAttacked = false;
-          game.monsters[i].canAttacked = true;
-        }
-      }
+      //console.log('end turn')
+      
       update(game)
     });
 
@@ -1150,35 +1153,37 @@ io.on('connection', function(socket){
     })
 
 
-    socket.on('c_roll', function(){
+    socket.on('c_roll', function(data){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
       if (!game.isPlaying(p1)) return
-      //var player = games.allplayers;
-      //console.log('rolling ' + data.dices);
-      var gain = p1.pool.pool.slice();
-      //console.log(gain)
-      p1.onRoll()
+      //var gain = p1.pool.pool.slice();
+      var dices = [];
       
-      for (var i=0; i<gain.length; i++){
-        gain[i] = p1.pool.get(i) - gain[i];
+      if (data.length != 3) return;
+      p1.state = GAME_STATE_SUMMON;
+      for (i=0; i<3; i++){
+        dices.push(p1.dices[data[i]])
       }
-      console.log(p1.pool.pool)
-      console.log(gain)
+      //console.log(dices)
+      //console.log(dices)
+      p1.onRoll(dices)
+      //console.log(p1.pool.pool)
+      //console.log(gain)
       var names = []
       for (var i=0; i<p1.summon.length; i++){
         names.push(p1.summon[i].type)
       } 
-
+      
       var datato = {
         summon: names, 
         pool: p1.pool.pool, 
         level: p1.summonlevel, 
-        gain: gain,
+        //gain: gain,
       }
       p1.rolled = true;
       update(game)
-      socket.emit('s_roll',datato)
+      //socket.emit('s_roll',datato)
     });
 
 

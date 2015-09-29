@@ -12,7 +12,7 @@ socket.on('new player id', function(players){
 
 var canvas = document.getElementById("games");
 //var switchButton = document.getElementById("switch");
-var summonButton = document.getElementById("summon");
+//var summonButton = document.getElementById("summon");
 
 var summonOptionButton = [for (i of [0,1,2]) document.getElementById("summon"+i)]
 
@@ -41,13 +41,11 @@ var PLAYER_1 = 0;
 var PLAYER_2 = 1;
 
 //game states
-/*
-var IDLE = 0
-var TILE_PLACEMENT = 1;
-var UNIT_SELECT = 2;
-var GAME_STATE_IDLE = 0;
-var GAME_STATE_STOP = 3;
-*/
+
+var GAME_STATE_ROLL = 0;
+var GAME_STATE_SUMMON = 1;
+var GAME_STATE_UNIT = 2;
+var GAME_STATE_END = 3;
 
 
 //states
@@ -59,43 +57,14 @@ var shape = 0;
 var validpos = true;
 var monsters = [];
 var selectedUnit = EMPTY;
-//var movePathSelection = [];
 
-//var units = [];
-//var board = [];
-
-//for (var i=0; i<boardSizeY;i++){
-//	units[i] = [];
-//	for (var j=0;j<boardSizeX; j++){
-//		units[i].push(-1);
-//	}
-//}
-
-//board[0][6] = PLAYER_2;
-//board[18][6] = PLAYER_1;
-/*
-for (var i=0; i<boardSizeX;i++){
-	units[i] = [];
-	for (var j=0;j<boardSizeY; j++){
-		units[i].push(-1);
-	}
-}
-*/
-//function Game(){
-//	this.player;
-//	this.turn;
-//	this.board;
-//	return this;
-//}
 
 var game;
 
-//game = new Game();
-//game.board = new Board();
-
 function disableButtons(a,b,c){
 		rollButton.disabled = a;
-		summonButton.disabled = b;
+		hideSummonButton(b)
+		//summonButton.disabled = b;
 		endturnButton.disabled = c;
 }
 
@@ -108,8 +77,11 @@ function drawSelection (player){
 	}
 	ctx.globalAlpha = 0.5;	
 	for (var i = 0; i<6; i++){
-		ctx.fillStyle = purple;
-		if (player.num == PLAYER_2){
+		if (i == 0){
+			ctx.fillStyle = black;
+		} else if (player.num == PLAYER_1){
+			ctx.fillStyle = purple;
+		} else if (player.num == PLAYER_2){
 			ctx.fillStyle = blue;	
 		}
 		//console.log(game.board)
@@ -141,6 +113,160 @@ function drawPath(){
 
 	//};
 
+}
+
+var Buttons = [];
+
+function drawButton(){
+	for (var i=0; i< Buttons.length; i++){
+		if (!Buttons[i].hidden){
+			Buttons[i].render();
+		}
+	}
+}
+
+
+var Event_Button_Focus = function(x,y){
+	if (player.state == GAME_STATE_ROLL || GAME_STATE_SUMMON){
+		for (var i=0;i<Buttons.length; i++){
+			var b = Buttons[i];
+			if (b.hidden) continue;
+			b.onFocus(x,y);
+			b.onUnfocus(x,y);
+		}
+	}
+}
+
+var Event_Button_Click = function(x,y){
+	if (player.state == GAME_STATE_ROLL || GAME_STATE_SUMMON){
+		for (var i=0;i<Buttons.length; i++){
+			var b = Buttons[i];
+			if (b.hidden) continue;
+			b.onClick(x,y)
+		}
+	}
+}
+
+var summonToggle;
+
+var Button = function(id, img, x, y,sx,sy,unit){
+	this.rx = x;
+	this.ry = y;
+	this.x = x;
+	this.y = y;
+
+	this.sx = sx;
+	this.sy = sy;
+	console.log(this.sx,this.sy)
+	this.hidden = false;
+	this.toggle = false;
+	this.focus = false;
+	this.id = id;
+	this.unit = unit;
+	this.onFocus = function(x,y){
+
+		if (this.focus) return;
+		//console.log(x,y, b.x, b.y, b.wx, b.hy)
+		if (x >= this.x && x <= this.sx+this.x && y >= this.y && y <= this.sy+this.y) {
+			if (player.state == GAME_STATE_ROLL){
+				this.focus = true;
+			} 
+			render();
+		}
+	}
+	this.onUnfocus = function(x,y){
+		if (!this.focus) return;
+		if (this.toggle) return;
+		if (x < this.x || x > this.sx+this.x || y < this.y || y > this.sy+this.y) {
+			if (player.state == GAME_STATE_ROLL){
+				this.focus = false;
+			} 
+			render();
+		}
+	}
+	this.onClick = function(x,y){
+		if (x >= this.x && x <= this.sx+this.x && y >= this.y && y <= this.sy+this.y) {
+			if (player.state == GAME_STATE_ROLL){
+	
+				if (this.toggle){
+					this.toggle = false;
+					DiceSelection.splice(DiceSelection.indexOf(this),1);
+					this.onUnfocus(x,y);	
+				} else {
+					this.toggle = true;
+					DiceSelection.unshift(this);
+					if (DiceSelection.length > 3){
+						var b = DiceSelection.pop();
+						b.toggle = false;
+						b.onUnfocus(x,y);
+					}	
+				}
+
+			} else if (player.state == GAME_STATE_SUMMON ){
+				if (DiceSelection.indexOf(this) != EMPTY){
+					summonToggle = this;
+					socket.emit('c_summonoption', 1)
+				}
+			}
+			//if (DiceSelection.length == 3){
+			//	disableButtons(false,true,true);
+			//	console.log("on")
+			//} else {
+			//	console.log("of")
+			//	disableButtons(true,true,true);
+			//}
+			update()
+		}	
+
+		//console.log("button " + this.name + " " + this.toggle)
+	}
+	this.img = img;
+	
+
+	this.render = function(){
+		ctx.globalAlpha = 0.25;
+		if (player.state == GAME_STATE_ROLL || player.state == GAME_STATE_SUMMON){
+			var mod = 0;
+			if (player.state == GAME_STATE_ROLL){
+				ctx.globalAlpha = 1;
+			}
+
+			if (this.focus){
+				mod = 3;
+			}
+
+			if (this.toggle){
+				ctx.globalAlpha = 1;
+				if (player.state == GAME_STATE_ROLL){
+					ctx.fillStyle = black;
+				} else if (player.state == GAME_STATE_SUMMON){
+					if (summonToggle == this){
+						ctx.fillStyle = black;
+					} else {
+						ctx.fillStyle = white;
+					}
+				}
+				ctx.fillRect(this.rx-(mod*2),this.ry-(mod*2), this.sx+4*mod,this.sy+4*mod);
+			}
+			drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+2*mod, this.sy+2*mod)
+		} else {
+			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
+		}
+		
+		ctx.globalAlpha = 1;
+	}
+	Buttons.push(this);
+	return this;
+}
+
+var DicePool = []
+var DiceSelection = []
+for (var i=0; i<3; i++){
+	for (var j=0;j<5;j++){
+		var b = new Button((i*5)+j,heartImage, 415+50*i,300+50*j, 36,36)
+		DicePool.push(b);
+		
+	}
 }
 
 
@@ -269,8 +395,6 @@ function Dice(type, pattern){
 	}
 }
 
-
-
 var CREST_MOVEMENT = 0;
 var CREST_ATTACK = 1;
 var CREST_DEFENSE = 2;
@@ -296,8 +420,14 @@ heartImage.onload = function(){
 	heartReady = true;
 	//init();
 };
-
 heartImage.src = 'assets/img/heart.png';
+
+var img_crest_rdy = false;
+var img_crest = new Image();
+img_crest.onload = function(){
+	img_crest_rdy = true;
+}
+img_crest.src = "assets/img/crests.jpg"
 
 
 
@@ -448,217 +578,6 @@ function Pool(){
 }
 
 
-
-// player state
-/*
-var tileSelected = []
-var tileShape = [];
-var unitSelected;
-var movePath = []
-*/
-/*
-var makeSelection = function(){
-	if (player.tileSelected && player.tileSelected.length > 0 && validPlacement(tileSelected,game.board)){
-		var cshape = rotateShape(shape,rotate);
-		for (var i=0; i<6; i++){
-			x = this.tileSelected[i][0];
-			y = this.tileSelected[i][1];
-			setBoardState(PLAYER_1,[x,y]);
-		}
-		tileSelected = [];
-		return true;
-	}
-	return false
-}
-*/
-/*
-var isPlaying = function(){
-	return PLAYER_ID.id == getCurrentPlayer().id
-}*/
-
-
-this.onIdle = function(){
-
-}
-
-var beginTurn = function (){
-	//this.state = PLAYER_STATE_IDLE;
-	//setGameState(GAME_STATE_IDLE);
-	rollButton.disabled = false;
-	summonButton.disabled = true;
-	endturnButton.disabled = true;
-	hideSummonButton(true);
-
-	//reset data
-	/*
-	for (i=0;i<monsters.length;i++){
-		monsters[i].hasAttacked = false;
-	}*/
-}
-
-var onRoll = function(){
-	//console.log("onRoll");
-	this.state = PLAYER_STATE_ROLL;
-	//setDicePanelText("+2 MOVEMENT")
-	
-	
-}
-
-var onSummon= function(){
-	console.log("summon");	
-	//this.state = PLAYER_STATE_SUMMON;
-	//setGameState(TILE_PLACEMENT);
-	rollButton.disabled = true;
-	summonButton.disabled = true;
-	endturnButton.disabled = true;
-	hideSummonButton(false);
-
-}
-
-var endTurn = function(){
-	this.state = PLAYER_STATE_IDLE;
-	
-	nextPlayer();
-	//console.log("ending turn")
-	summonButton.disabled = true;
-	endturnButton.disabled = true;
-	rollButton.disabled = true;
-	setGameState(GAME_STATE_STOP);
-
-
-	//render unselected unit
-	//render();
-}
-
-//var playerid = 0;
-//var PLAYER_ID
-/*
-function Player(){
-
-	this.id = playerid;
-	playerid++;
-	this.pool = new Pool();
-
-	//public variables
-	this.tileSelected = []
-	this.unitSelected;
-	this.movePath = []
-
-	this.makeSelection = function(){
-		if (this.tileSelected.length > 0 && validPlacement(this.tileSelected,game.board)){
-			var cshape = rotateShape(shape,rotate);
-			for (var i=0; i<6; i++){
-				x = this.tileSelected[i][0];
-				y = this.tileSelected[i][1];
-				setBoardState(PLAYER_1,[x,y]);
-			}
-			this.tileSelected = [];
-			return true;
-		}
-		return false
-	}
-
-
-	this.isPlaying = function(){
-		return PLAYER_ID.id == getCurrentPlayer().id
-	}
-
-
-	this.onIdle = function(){
-
-	}
-
-	this.beginTurn = function (){
-		//this.state = PLAYER_STATE_IDLE;
-		//setGameState(GAME_STATE_IDLE);
-		rollButton.disabled = false;
-		summonButton.disabled = true;
-		endturnButton.disabled = true;
-		hideSummonButton(true);
-
-		//reset data
-		for (i=0;i<monsters.length;i++){
-			monsters[i].hasAttacked = false;
-		}
-	}
-
-	this.onRoll = function(){
-		//console.log("onRoll");
-		this.state = PLAYER_STATE_ROLL;
-		//setDicePanelText("+2 MOVEMENT")
-		
-		
-	}
-
-	this.onSummon= function(){
-		console.log("summon");	
-		//this.state = PLAYER_STATE_SUMMON;
-		//setGameState(TILE_PLACEMENT);
-		rollButton.disabled = true;
-		summonButton.disabled = true;
-		endturnButton.disabled = true;
-		hideSummonButton(false);
-
-	}
-
-	this.endTurn = function(){
-		this.state = PLAYER_STATE_IDLE;
-		
-		nextPlayer();
-		//console.log("ending turn")
-		summonButton.disabled = true;
-		endturnButton.disabled = true;
-		rollButton.disabled = true;
-		setGameState(GAME_STATE_STOP);
-
-
-		//render unselected unit
-		//render();
-
-
-	}
-
-
-	allplayers.push(this);
-	//console.log("player")
-	//console.log(this)
-	return this;
-}
-
-player1 = new Player();
-player2 = new Player();
-*/
-//currentPlayer = player1;
-
-//PLAYER_ID = player1;
-
-var rotateShape = function(shape,rotate){
-	shape = shapes[shape];
-	cshape = [[0,0],[0,0],[0,0],[0,0], [0,0],[0,0]]
-	if (rotate == 0){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = shape[i][0];
-			cshape[i][1] = shape[i][1];
-		}
-	} else if (rotate == 1){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = -shape[i][1];
-			cshape[i][1] = -shape[i][0]
-		}
-	} else if (rotate == 2){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = -shape[i][0];
-			cshape[i][1] = -shape[i][1];
-		}
-	} else if (rotate == 3){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = shape[i][1];
-			cshape[i][1] = shape[i][0]
-		}
-	}
-	return cshape;
-}
-
 addEventListener("keypress", function(e){
 		//keysDown[e.keyCode] = true;
 		//console.log(e.charCode);
@@ -741,22 +660,20 @@ function updateCrest(pool){
 						"<b>Trap</b>: " + pool[CREST_TRAP] +"<br>";
 
 }
-
+/*
 summonButton.addEventListener("click", function(){
 	console.log("summon");	
 	//this.state = PLAYER_STATE_SUMMON;
 	//setGameState(TILE_PLACEMENT);
-	rollButton.disabled = true;
-	summonButton.disabled = true;
-	endturnButton.disabled = true;
+	//rollButton.disabled = true;
+	//summonButton.disabled = true;
+	//endturnButton.disabled = true;
 	hideSummonButton(false);
 });
-
-var summoni = i;
+*/
 for (var i=0; i<3; i++){
 	summonOptionButton[i].hidden = true;	
-	console.log(i);
-	summoni = i;
+	//console.log(i);
 }
 
 summonOptionButton[0].addEventListener("click", function(){
@@ -780,6 +697,11 @@ summonOptionButton[2].addEventListener("click", function(){
 
 endturnButton.addEventListener("click", function(){
 	socket.emit('end turn');
+	for (i=0; i<DiceSelection.length; i++){
+		DiceSelection[i].toggle = false;
+		DiceSelection[i].onUnfocus(9999,9999);
+	}
+	DiceSelection = []
 	//PLAYER_ID.endTurn();
 })
 /*
@@ -799,33 +721,28 @@ switchButton.addEventListener("click", function(){
 rollButton.addEventListener("click", function(){
 	//this.state = PLAYER_STATE_ROLL;
     //setDicePanelText("+2 MOVEMENT")
-    rollButton.disabled = true;
-    summonButton.disabled = true;
-    endturnButton.disabled = false;
     //var dices = [Dice_Teemo, Dice_Soraka, Dice_Teemo];
     //var summonlevel = 0;
     //var summon = [[],[],[],[]];
     //update crestpool
-    socket.emit('c_roll')
-
+    socket.emit('c_roll', [for (d of DiceSelection) d.id])
     socket.on('s_roll', function(data){
     	//console.log(data);
     	updateCrest(data.pool);
     	var string = "";
-
     	if (data.summon.length > 0){
     		//console.log(data.summon)
     		string += "Summoning level: " + data.level + "<br\>";
-      		summonButton.disabled = false; 
       		summonNames = data.summon; 
       		
       		//this.summon = summon[summonlevel];
     	}
-    	for (var i=0; i<data.gain.length; i++){
-    		if (data.gain[i]){
-    			string += "+" + data.gain[i] + CREST_TEXT[i] + "<br\>" 
-    		}
-    	}
+    	//for (var i=0; i<data.gain.length; i++){
+    	//	if (data.gain[i]){
+    	//		string += "+" + data.gain[i] + CREST_TEXT[i] + "<br\>" 
+    	//	}
+    	//}
+    	//disableButtons(true,false,false)
 		setDicePanelText(string);
     })
 })
@@ -838,8 +755,8 @@ function hideSummonButton(boolean){
 		}
 	} else {
 		
-		for (var i=0;i<summonNames.length; i++){
-			summonOptionButton[i].innerHTML = summonNames[i].name;
+		for (var i=0;i<player.summon.length; i++){
+			summonOptionButton[i].innerHTML = player.summon[i].type.name;
 			summonOptionButton[i].hidden = false;
 		}
 	}
@@ -891,6 +808,8 @@ var moveUnit = function (id, x, y ){
 
 }
 */
+
+
 
 var drawSquare = function(x,y){
 	ctx.fillRect(x,y,squareSize,squareSize);
@@ -1279,6 +1198,27 @@ var printCursor = function() {
 
 var then = Date.now();
 
+function drawCrest(crest, x,y, sx, sy){
+	//var size = wx;
+	if (img_crest_rdy) {
+		if (crest == CREST_SUMMON){
+			ctx.drawImage(img_crest,0,0,58,58, x, y, sx, sy);
+		} else if (crest == CREST_MOVEMENT){
+			ctx.drawImage(img_crest,55,0,59,58, x, y, sx, sy);
+		} else if (crest == CREST_MAGIC){
+			ctx.drawImage(img_crest,112,0,59,58, x, y, sx, sy);
+		} else if (crest == CREST_ATTACK){
+			ctx.drawImage(img_crest,169,0,59,58, x, y, sx, sy);
+		} else if (crest == CREST_DEFENSE){
+			ctx.drawImage(img_crest,227,0,59,58, x, y, sx, sy);
+		} else if (crest == CREST_TRAP){
+			ctx.drawImage(img_crest,284,0,59,58, x, y, sx, sy);
+		}
+		
+		
+	};
+}
+
 var render = function(){
 	//console.log("rendering")
 	ctx.clearRect(0,0,canvas.width,canvas.height)
@@ -1286,22 +1226,13 @@ var render = function(){
 	drawUnits();
 	drawSelection(player);
 	drawSelection(opponent);
-
-
 	drawPath();
+	//drawCrest(CREST_TRAP, 500, 500)
+	drawButton()
+
 }
 
-
-function update(data){
-	PLAYER_ID = data.pnum
-	game = data.game;
-	//console.log(data.pnum)
-	opponent = game.players[0];
-	player = game.players[data.pnum];
-	if (data.pnum == 0){
-		opponent = game.players[1];
-	}
-	
+function update(){
 	//console.log(player.tileSelected);
 	updateCrest(player.pool.pool);
 	var m = getUnitOnCursor(cursorX,cursorY);
@@ -1310,16 +1241,23 @@ function update(data){
 		setStatePanelText(m)
 	}
 	render();
+	player.dices = Buttons;
 
-	if (PLAYER_ID != game.turn%2){
+	if (player.state == GAME_STATE_END){
 		disableButtons(true,true,true)
-	} else if (!player.rolled){
-		disableButtons(false,false,false)
-	} else if (!player.summoned) {
+	} else if (player.state == GAME_STATE_ROLL){
+		if (DiceSelection.length == 3){
+			disableButtons(false,true,true)
+		} else {
+			disableButtons(true,true,true)
+		}
+	} else if (player.state == GAME_STATE_SUMMON){
 		disableButtons(true,false,false)
-	} else if (player.tileSelected.length <=0){
-		hideSummonButton(true);
+	} else if (player.state == GAME_STATE_UNIT) {
 		disableButtons(true,true,false)
+	//} else if (player.tileSelected.length <=0){
+	//	hideSummonButton(true);
+	//	disableButtons(true,true,false)
 	} 
 }
 
@@ -1328,7 +1266,16 @@ socket.on('updategame', function(data){
 		playerPanel.innerHTML += " player: " + data.pnum;
 		init();
 	}
-	update(data)
+	PLAYER_ID = data.pnum
+	game = data.game;
+	//console.log(data.pnum)
+	opponent = game.players[0];
+	player = game.players[data.pnum];
+	if (data.pnum == 0){
+		opponent = game.players[1];
+	}
+
+	update()
 });
 var PLAYER_ID = -1;
 var player;
@@ -1349,6 +1296,9 @@ var init = function (){
 		
 		cursorX = Math.floor(e.pageX/squareSize);
 	    cursorY = Math.floor(e.pageY/squareSize);
+	 
+	    Event_Button_Focus(e.pageX, e.pageY);
+		
 		if (prevX == cursorX && prevY == cursorY){
 			return;
 		}
@@ -1370,6 +1320,8 @@ var init = function (){
 	canvas.addEventListener("click", function(e){
 		//if (PLAYER_ID.id != currentPlayer.id)
 		//	return;
+		Event_Button_Click(e.pageX, e.pageY);
+		
 		for (var i=0; i<EVENT_LIST.length; i++){
 			//console.log(EVENT_LIST[i].action);
 			if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_CLICK && EVENT_LIST[i].condition()) {
