@@ -14,8 +14,6 @@ var canvas = document.getElementById("games");
 //var switchButton = document.getElementById("switch");
 //var summonButton = document.getElementById("summon");
 
-var summonOptionButton = [for (i of [0,1,2]) document.getElementById("summon"+i)]
-
 var rollButton = document.getElementById("roll");
 var endturnButton = document.getElementById("endturn");
 
@@ -64,7 +62,7 @@ var game;
 
 function disableButtons(a,b,c){
 		rollButton.disabled = a;
-		hideSummonButton(b)
+		//hideSummonButton(b)
 		//summonButton.disabled = b;
 		endturnButton.disabled = c;
 }
@@ -86,7 +84,7 @@ function drawSelection (player){
 			ctx.fillStyle = blue;	
 		}
 		//console.log(game.board)
-		if (!validPlacement(player)){
+		if (!player.valid){
 			ctx.fillStyle = red;
 		}
 		ctx.strokeStyle = "#303030";
@@ -128,14 +126,23 @@ function drawButton(){
 
 
 var Event_Button_Focus = function(x,y){
-	if (player.state == GAME_STATE_ROLL || GAME_STATE_SUMMON){
-		for (var i=0;i<Buttons.length; i++){
-			var b = Buttons[i];
-			if (b.hidden) continue;
-			b.onFocus(x,y);
-			b.onUnfocus(x,y);
+	for (var i=0;i<Buttons.length; i++){
+		var b = Buttons[i];
+		if (b.hidden) continue;
+		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
+			if (player.state == GAME_STATE_ROLL){
+				b.onFocus(x,y);
+			}
+			var m = player.dices[b.id].type;
+			setStatePanelText(m)
+		} else {
+			if (player.state == GAME_STATE_ROLL){
+				b.onUnfocus(x,y);
+			}
 		}
+		
 	}
+	
 }
 
 var Event_Button_Click = function(x,y){
@@ -143,7 +150,9 @@ var Event_Button_Click = function(x,y){
 		for (var i=0;i<Buttons.length; i++){
 			var b = Buttons[i];
 			if (b.hidden) continue;
-			b.onClick(x,y)
+			if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
+				b.onClick(x,y)
+			}
 		}
 	}
 }
@@ -163,61 +172,65 @@ var Button = function(id, img, x, y,sx,sy,unit){
 	this.toggle = false;
 	this.focus = false;
 	this.id = id;
-	this.unit = unit;
+	//this.unit = unit;
+
+	this.reset = function(){
+		this.toggle = false;
+		this.focus = false;
+	}
+
 	this.onFocus = function(x,y){
 
 		if (this.focus) return;
 		//console.log(x,y, b.x, b.y, b.wx, b.hy)
-		if (x >= this.x && x <= this.sx+this.x && y >= this.y && y <= this.sy+this.y) {
-			if (player.state == GAME_STATE_ROLL){
-				this.focus = true;
-			} 
-			render();
-		}
+		if (player.state == GAME_STATE_ROLL){
+			this.focus = true;
+		} 
+		render();
+
 	}
 	this.onUnfocus = function(x,y){
 		if (!this.focus) return;
 		if (this.toggle) return;
-		if (x < this.x || x > this.sx+this.x || y < this.y || y > this.sy+this.y) {
-			if (player.state == GAME_STATE_ROLL){
-				this.focus = false;
-			} 
-			render();
+		
+		if (player.state == GAME_STATE_ROLL){
+			this.focus = false;
 		}
+		render();
 	}
 	this.onClick = function(x,y){
-		if (x >= this.x && x <= this.sx+this.x && y >= this.y && y <= this.sy+this.y) {
-			if (player.state == GAME_STATE_ROLL){
 	
-				if (this.toggle){
-					this.toggle = false;
-					DiceSelection.splice(DiceSelection.indexOf(this),1);
-					this.onUnfocus(x,y);	
-				} else {
-					this.toggle = true;
-					DiceSelection.unshift(this);
-					if (DiceSelection.length > 3){
-						var b = DiceSelection.pop();
-						b.toggle = false;
-						b.onUnfocus(x,y);
-					}	
-				}
-
-			} else if (player.state == GAME_STATE_SUMMON ){
-				if (DiceSelection.indexOf(this) != EMPTY){
-					summonToggle = this;
-					socket.emit('c_summonoption', 1)
-				}
+		if (player.state == GAME_STATE_ROLL){
+	
+			if (this.toggle){
+				this.toggle = false;
+				DiceSelection.splice(DiceSelection.indexOf(this),1);
+				this.onUnfocus(x,y);	
+			} else {
+				this.toggle = true;
+				DiceSelection.unshift(this);
+				if (DiceSelection.length > 3){
+					var b = DiceSelection.pop();
+					b.toggle = false;
+					b.onUnfocus(x,y);
+				}	
 			}
-			//if (DiceSelection.length == 3){
-			//	disableButtons(false,true,true);
-			//	console.log("on")
-			//} else {
-			//	console.log("of")
-			//	disableButtons(true,true,true);
-			//}
-			update()
-		}	
+
+		} else if (player.state == GAME_STATE_SUMMON ){
+			if (this.toggle){
+				summonToggle = this;
+				socket.emit('c_summonoption', this.id)
+			}
+		}
+		//if (DiceSelection.length == 3){
+		//	disableButtons(false,true,true);
+		//	console.log("on")
+		//} else {
+		//	console.log("of")
+		//	disableButtons(true,true,true);
+		//}
+		update()
+			
 
 		//console.log("button " + this.name + " " + this.toggle)
 	}
@@ -303,9 +316,8 @@ img_crest.onload = function(){
 }
 img_crest.src = "assets/img/crests.jpg"
 
-
+/*
 function validPlacement(player){
-
 	var selection = player.tileSelected;
 	if (!selection){
 		return false;
@@ -334,7 +346,7 @@ function validPlacement(player){
 	}
 	return valid;
 }
-
+*/
 
 //pool states
 function Pool(){
@@ -441,37 +453,12 @@ summonButton.addEventListener("click", function(){
 	hideSummonButton(false);
 });
 */
-for (var i=0; i<3; i++){
-	summonOptionButton[i].hidden = true;	
-	//console.log(i);
-}
 
-summonOptionButton[0].addEventListener("click", function(){
-	console.log("summonoption:"+ 0);
-	socket.emit('c_summonoption', 0)
-
-})
-
-summonOptionButton[1].addEventListener("click", function(){
-	console.log("summonoption:"+ 1);
-	socket.emit('c_summonoption', 1)
-
-})
-
-summonOptionButton[2].addEventListener("click", function(){
-	console.log("summonoption:"+ 2);
-	socket.emit('c_summonoption', 2)
-
-})
 
 
 endturnButton.addEventListener("click", function(){
 	socket.emit('end turn');
-	for (i=0; i<DiceSelection.length; i++){
-		DiceSelection[i].toggle = false;
-		DiceSelection[i].onUnfocus(9999,9999);
-	}
-	DiceSelection = []
+
 	//PLAYER_ID.endTurn();
 })
 /*
@@ -496,7 +483,7 @@ rollButton.addEventListener("click", function(){
     //var summon = [[],[],[],[]];
     //update crestpool
     socket.emit('c_roll', [for (d of DiceSelection) d.id])
-    socket.on('s_roll', function(data){
+    /*socket.on('s_roll', function(data){
     	//console.log(data);
     	updateCrest(data.pool);
     	var string = "";
@@ -514,23 +501,8 @@ rollButton.addEventListener("click", function(){
     	//}
     	//disableButtons(true,false,false)
 		setDicePanelText(string);
-    })
+    })*/
 })
-
-function hideSummonButton(boolean){
-	
-	if (boolean){
-		for (var i=0; i<3; i++){
-			summonOptionButton[i].hidden = true;
-		}
-	} else {
-		
-		for (var i=0;i<player.summon.length; i++){
-			summonOptionButton[i].innerHTML = player.summon[i].type.name;
-			summonOptionButton[i].hidden = false;
-		}
-	}
-}
 
 function hideButton(button, boolean, point){
 	b = "hidden";
@@ -889,25 +861,40 @@ function update(){
 		//console.log(m.name +" "+m.hp)
 		setStatePanelText(m)
 	}
-	render();
-	player.dices = Buttons;
+
+	for (i=0; i<15; i++){
+		if (!player.dices[i]){
+			Buttons[i].hidden = true;
+		}
+	}
 
 	if (player.state == GAME_STATE_END){
 		disableButtons(true,true,true)
+		for (i=0;i<15;i++) Buttons[i].reset();
+		DiceSelection = [];
 	} else if (player.state == GAME_STATE_ROLL){
 		if (DiceSelection.length == 3){
 			disableButtons(false,true,true)
 		} else {
 			disableButtons(true,true,true)
 		}
+
 	} else if (player.state == GAME_STATE_SUMMON){
 		disableButtons(true,false,false)
+		for (i=0;i<15;i++) Buttons[i].reset();
+		for (i=0;i<player.summon.length;i++) {
+			Buttons[player.summon[i]].toggle = true;
+			Buttons[player.summon[i]].focus = true;
+		}
+
 	} else if (player.state == GAME_STATE_UNIT) {
 		disableButtons(true,true,false)
 	//} else if (player.tileSelected.length <=0){
 	//	hideSummonButton(true);
 	//	disableButtons(true,true,false)
 	} 
+
+	render();
 }
 
 socket.on('updategame', function(data){

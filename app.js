@@ -44,7 +44,7 @@ var Game = function (){
 
   this.makeSelection = function(player){
     //console.log(this.tileSelected.length)
-    if (player.tileSelected.length > 0 && this.board.validPlacement(player)){
+    if (player.tileSelected.length > 0 && player.valid){
       var cshape = rotateShape(this.shape,this.rotate);
       for (var i=0; i<6; i++){
         x = player.tileSelected[i][0];
@@ -139,7 +139,7 @@ var Board = function (){
       return false;
     }
 
-    valid = false;
+    var valid = false;
     for (var i=0; i<6; i++){
       //boundaries
       //console.log(selection)
@@ -378,23 +378,23 @@ var Dice_Teemo = new Dice(id0, [[CREST_SUMMON,1],
                 [CREST_SUMMON,1],
                 [CREST_SUMMON,1],
                 [CREST_SUMMON,1],
-                [CREST_SUMMON,1],
-                [CREST_SUMMON,1]])
+                [CREST_MAGIC,3],
+                [CREST_MOVEMENT,1]])
 
 var Dice_Soraka = new Dice(id1, [[CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
-                 [CREST_SUMMON,1],
-                 [CREST_SUMMON,1]]);
+                 [CREST_DEFENSE,3],
+                 [CREST_MAGIC,3]]);
 
 
 var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
-                 [CREST_SUMMON,1],
-                 [CREST_SUMMON,1]]);
+                 [CREST_TRAP,3],
+                 [CREST_ATTACK,1]]);
 
 var Dice_Garen = new Dice(id3, [[CREST_SUMMON,3],
                  [CREST_SUMMON,3],
@@ -684,6 +684,7 @@ function Player(id){
   this.movePath = []
   this.rolled = false;
   this.summoned = false;
+  this.valid = false;
   this.dices = [Dice_Teemo, Dice_Teemo, Dice_Teemo, Dice_Teemo, Dice_Teemo,
                 Dice_Soraka, Dice_Soraka,Dice_Soraka, Dice_Soraka, Dice_Soraka,
                 Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,];
@@ -708,6 +709,7 @@ function Player(id){
     this.summonlevel = 0;
     this.shape = 0;
     this.rotate = 0;
+    this.valid = false;
 
     //reset data
     for (var i=0; i<game.monsters.length;i++){
@@ -718,15 +720,16 @@ function Player(id){
     }
   }
 
-  this.onRoll = function(dices){
+  this.onRoll = function(data){
 
-    //var dices = dices//[Dice_Teemo, Dice_Soraka, Dice_Poppy];
     var summonlevel = 0;
     var summon = [[],[],[],[],[]];
-    //update crestpool
-    //console.log(dices)
-    for (var i=0;i<dices.length; i++){
-      var r = dices[i].roll();
+
+    //var dicechoice= [];
+      
+    for (var i=0;i<data.length; i++){
+      var dices = this.dices[data[i]]
+      var r = dices.roll();
       
       if (r[0] != CREST_SUMMON){
         //console.log(this.pool);
@@ -735,7 +738,7 @@ function Player(id){
         console.log(CREST_TEXT[r[0]] + " " + r[1]);
   
       } else {
-        summon[r[1]].push(dices[i]);
+        summon[r[1]].push(data[i]);
         console.log("SUMMON " + r[1]);
         if (summon[r[1]].length > 1){
           summonlevel = r[1]
@@ -745,7 +748,8 @@ function Player(id){
     if (summonlevel){
       //string += "Summoning level: " + summonlevel + "<br\>";
       this.summon = summon[summonlevel];
-      this.summonlevel = summonlevel
+      console.log(this.summon)
+      //this.summonlevel = summonlevel
     }
     //console.log(this.summon)
     
@@ -861,6 +865,7 @@ io.on('connection', function(socket){
       for (var i=0; i<cshape.length; i++){
         p1.tileSelected.push([cshape[i][0]+cursor.X, cshape[i][1]+cursor.Y])
       }
+      p1.valid = game.board.validPlacement(p1)
       //console.log(p1.tileSelected)
       update(game); 
     }
@@ -908,7 +913,8 @@ io.on('connection', function(socket){
         var point = [p1.cursorX, p1.cursorY];
         console.log("make selection");
         //console.log()
-        createUnit(p1,p1.summon[p1.summonchoice].type,point)
+        createUnit(p1,p1.dices[p1.summonchoice].type,point)
+        p1.dices[p1.summonchoice] = null;
         p1.tileSelected = [];
         p1.shape = 0;
         p1.rotate = 0;
@@ -1094,33 +1100,21 @@ io.on('connection', function(socket){
       var p1 = getCurrentPlayer(socket.id)
       if (!game.isPlaying(p1)) return
       //var gain = p1.pool.pool.slice();
-      var dices = [];
+
       
       if (data.length != 3) return;
-      p1.state = GAME_STATE_SUMMON;
-      for (i=0; i<3; i++){
-        dices.push(p1.dices[data[i]])
-      }
 
-      //console.log(dices)
-      //console.log(dices)
-      p1.onRoll(dices)
-      //console.log(p1.pool.pool)
-      //console.log(gain)
-      var names = []
-      for (var i=0; i<p1.summon.length; i++){
-        names.push(p1.summon[i].type)
-      } 
+      p1.onRoll(data)
+      p1.state = GAME_STATE_SUMMON;
+
+      //var names = []
+      //for (var i=0; i<p1.summon.length; i++){
+      //  names.push(p1.summon[i].type)
+      //} 
       
-      var datato = {
-        summon: names, 
-        pool: p1.pool.pool, 
-        level: p1.summonlevel, 
-        //gain: gain,
-      }
-      p1.rolled = true;
+      //p1.rolled = true;
       update(game)
-      //socket.emit('s_roll',datato)
+
     });
 
 
@@ -1129,7 +1123,7 @@ io.on('connection', function(socket){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
       if (!game.isPlaying(p1)) return
-      //console.log(p1)
+      console.log("summon dice choice:" +data)
 
       p1.summonchoice = data;
 
