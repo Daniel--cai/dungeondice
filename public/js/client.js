@@ -45,7 +45,8 @@ var PLAYER_2 = 1;
 var GAME_STATE_ROLL = 0;
 var GAME_STATE_SUMMON = 1;
 var GAME_STATE_UNIT = 2;
-var GAME_STATE_END = 3;
+var GAME_STATE_SELECT = 3;
+var GAME_STATE_END = 4;
 
 
 //states
@@ -248,11 +249,10 @@ var Button = function(id, img, x, y,sx,sy,unit){
 				}
 				ctx.fillRect(this.rx-(mod*2),this.ry-(mod*2), this.sx+4*mod,this.sy+4*mod);
 			}
-			drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+2*mod, this.sy+2*mod)
+			drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
 		} else {
 			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
 		}
-		
 		ctx.globalAlpha = 1;
 	}
 	Buttons.push(this);
@@ -266,132 +266,6 @@ for (var i=0; i<3; i++){
 		var b = new Button((i*5)+j,heartImage, 415+50*i,300+50*j, 36,36)
 		DicePool.push(b);
 		
-	}
-}
-
-
-
-/*
-function Board(){
-	this.tiles = [];
-	this.units = [];
-	
-	for (var i=0; i<boardSizeY;i++){
-		this.tiles[i] = [];
-		for (var j=0;j<boardSizeX; j++){
-			this.tiles[i].push(-1);
-		}
-	}
-
-	for (var i=0; i<boardSizeY;i++){
-		this.units[i] = [];
-		for (var j=0;j<boardSizeX; j++){
-			this.units[i].push(-1);
-		}
-	}
-
-
-	this.tiles[0][6] = PLAYER_2;
-	this.tiles[18][6] = PLAYER_1;
-	
-	this.drawSelection = function (){
-		selection = getCurrentPlayer().tileSelected;
-		if (!selection || selection.length <= 0) {
-			return;
-		}
-		ctx.globalAlpha = 0.5;	
-		for (var i = 0; i<6; i++){
-			ctx.fillStyle = green;
-			if (!validPlacement(selection, game.board)){
-				ctx.fillStyle = red;
-			}
-			ctx.strokeStyle = "#303030";
-			ctx.lineWidth = 1;
-			drawSquare((selection[i][0])*squareSize, (selection[i][1])*squareSize);
-			//console.log(selection)
-		}
-		ctx.globalAlpha = 1;
-
-	}
-
-	this.drawPath = function(){
-		movePathSelection = getCurrentPlayer().movePath;
-		if (movePathSelection.length > 1 && movePathSelection.length-1 <= getCurrentPlayer().pool.get(CREST_MOVEMENT)) {			
-			ctx.globalAlpha = 0.5;
-			
-			for (var i=1; i<movePathSelection.length; i++){	
-				ctx.fillStyle= "#000000";
-				ctx.strokeStyle = "#303030";
-				ctx.lineWidth = 1;
-				drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
-			}
-			ctx.globalAlpha = 1.0;	
-
-		};
-
-	}
-
-	this.render = function(){
-		ctx.clearRect(0,0,canvas.width,canvas.height)
-		drawBoard();
-		drawUnits();
-		this.drawSelection();
-		this.drawPath();
-	}
-	
-
-	return this;
-}
-*/
-
-var shapes = [
-	//t
-	[[0,0],[0,-1],[-1,0],[1,0], [0,1],[0,2]],
-
-	//T
-	[[0,0],[0,3],[-1,0],[1,0], [0,1],[0,2]],
-	//long s
-	[[0,0],[0,-1],[0,-2],[1,0], [1,1],[1,2]],
-	[[0,0],[1,-1],[1,-2],[1,0], [0,1],[0,2]],
-
-	//short s
-	[[0,0],[0,-1],[0,-2],[-1,-2], [0,1],[1,1]],
-	[[0,0],[0,-1],[0,-2],[1,-2], [0,1],[-1,1]],
-
-	//stairs
-	[[0,0],[0,-1],[-1,-1],[1,0], [1,1],[2,1]],
-	[[0,0],[0,-1],[1,-1],[-1,0], [-1,1],[-2,1]],
-
-	//inverted stairs
-	[[0,0],[-1,0],[0,-1],[0,1], [1,1],[0,2]],
-	[[0,0],[1,0],[0,-1],[0,1], [-1,1],[0,2]],
-
-	//duck
-	[[0,0],[-1,0],[0,-1],[0,1], [1,2],[0,2]],
-	[[0,0],[1,0],[0,-1],[0,1], [-1,2],[0,2]],
-
-	//m
-	[[0,0],[0,-1],[-1,-1],[1,0], [2,0],[2,1]],
-	[[0,0],[0,-1],[1,-1],[-1,0], [-2,0],[-2,1]],
-]
-
-
-//dice pool
-diceid = 0;
-function Dice(type, pattern){
-	this.id = diceid;
-	diceid++;
-	this.type = type;
-	//this.move=move;
-	//this.attack=attack;
-	//this.defense=defense;
-	//this.magic=magic;
-	//this.trap=trap;
-	this.pattern = pattern;
-	this.roll = function(){
-		//var i = ;
-		//console.log(i);
-		return this.pattern[getRandomInt(0,6)];
 	}
 }
 
@@ -430,96 +304,8 @@ img_crest.onload = function(){
 img_crest.src = "assets/img/crests.jpg"
 
 
-
-/*
-idcounter = 0;
-
-function unit(type, x,y, player) {
-
-	this.id = idcounter;
-	idcounter++;
-	this.name = type.name;
-	this.type = type;
-	this.x = x;
-	this.y = y;
-	this.hp = type.hp;
-	this.atk = type.atk;
-	this.def = type.def;
-	this.player = player;
-	console.log(player);
-	this.hasAttacked = false;
-	this.canAttacked = true;
-	this.atkcost = 1;
-	this.atkrange = 1;
-
-	//setUnitAtLocation(this.id, [x,y]);
-	monsters.push(this);
-
-	this.attack = function(target){
-		playerpool = allplayers[this.player].pool
-		if (this.hasAttacked) {
-			console.log("Already attack")
-			return false
-		}
-	
-
-		var d = manhattanDistance(this, target);
-		console.log(d)
-		if (d > this.atkrange){
-			console.log("Out of range")
-			return false
-		}
-
-		if (playerpool.get(CREST_ATTACK) < this.atkcost){
-			console.log("Not enough attack crest")
-			return false;
-		}
-
-
-
-		target.hp = target.hp - this.atk;
-		setStatePanelText(target);
-		//dead
-		if (target.hp <= 0){
-			target.remove()
-		}
-		this.hasAttacked = true;
-		playerpool.set(CREST_ATTACK, playerpool.get(CREST_ATTACK) - this.atkcost);
-		updateCrest();
-		return true;
-	}
-
-	this.remove = function(){
-		monsters[this.id] = -1;		
-	}
-}
-
-/*
-var allplayers = [];
-
-function getCurrentPlayer(){
-	return currentPlayer ;
-}
-
-function nextPlayer(){
-	if (currentPlayer.id == allplayers[0].id){
-		currentPlayer = allplayers[1];
-		
-	} else {
-		currentPlayer = allplayers[0];
-	}
-	console.log(currentPlayer)
-
-}
-*/
 function validPlacement(player){
-	//var cshape;
-	//if (!selection){
-	//	cshape = rotateShape(shape,rotate)
-	//} else {
-	//	cshape = selection;
-	//	console.log("known selection")
-	//}
+
 	var selection = player.tileSelected;
 	if (!selection){
 		return false;
@@ -535,7 +321,6 @@ function validPlacement(player){
 		//console.log(selection)
 		x = selection[i][0];
 		y = selection[i][1];
-		
 		if (!boundCursor(x,y) || getBoardState(x,y) != EMPTY){
 			return false;
 		}
@@ -547,24 +332,9 @@ function validPlacement(player){
 			valid = true;
 		}
 	}
-
 	return valid;
 }
 
-/*
-var gameState = IDLE;
-
-function setGameState(state){
-	gameState = state;
-	selectedUnit = EMPTY;
-
-	//hideButton(movementButton,true);
-
-} 
-function getGameState(){
-	return gameState;
-}
-*/
 
 //pool states
 function Pool(){
@@ -934,111 +704,6 @@ function registerMoveEvent(condition, action){
 function registerPressEvent(condition, action){
 	return new Event(TRIGGER_KEY_PRESSED, condition, action)
 }
-//function(){getGameState() == TILE_PLACEMENT}
-
-/*
-
-registerClickEvent(
-	function(){return boundCursor(cursorX,cursorY)},
-	function(){
-		//var p = getCurrentPlayer()
-		//var u = player.unitSelected;
-		//var m = getUnitOnCursor(cursorX,cursorY);
-		socket.emit('c_selectunit', [cursorX, cursorY])
-		//console.log("heselectionat " +cursorX, cursorY)
-		//if (m){
-			//deselect
-		//	movePath = []
-
-			/*
-			if (m.id == u.id){
-				//unitSelected = null;
-				setGameState(IDLE);
-				SelectEvent.enabled = false;
-				
-			//new selection
-			} else if (m.player == PLAYER_1){
-				unitSelected = m;
-			//attacking
-			} else if (m.player == PLAYER_2){
-				if (u.attack(m)){
-					unitSelected = null;
-				}
-			}
-			*/
-			/*	
-		} else if (boundCursor(cursorX, cursorY)){
-			if (getBoardState(cursorX, cursorY) != EMPTY){
-				moveUnit(u, cursorX,cursorY);
-				
-				movePath = []
-				SelectEvent.enabled = false;
-			}
-			//setGameState(IDLE);
-			//unitSelected = null;
-		//}
-
-		//render();
-	})
-/*
-SelectEvent = registerClickEvent(
-	function(){return player.unitSelected},
-	function(){	
-		console.log("deselection")
-		var m = getUnitOnCursor(cursorX,cursorY);
-		if (m && m.player == PLAYER_1){
-			
-			//setGameState(UNIT_SELECT);
-			//selectedUnit = m.id;
-			unitSelected = m
-			//render();
-			//console.log("selected unit id: " + m);		
-		}
-	});
-
-registerClickEvent(
-	function(){return player && player.tileSelected.length > 0},
-	function(){
-		//var p = getCurrentPlayer()
-		console.log("tile place")
-		socket.emit('c_tilesplace')
-		socket.on('s_tilesplace', function(data){
-			console.log('s_tilesplace')
-			//tileSelected = [];
-			//p.makeSelection()
-			//createUnit(id0,cursorX, cursorY, p);
-			//setGameState(IDLE);
-			//hideSummonButton(true);
-			//endturnButton.disabled = false;
-			//render();
-		});
-		
-	});
-/*
-registerMoveEvent(
-	function(){return player && player.unitSelected}, 
-	function(){
-		
-		//var m = game.monsters[player.unitSelected];
-		//movePathSelection = findPath([m.x, m.y],[cursorX,cursorY]);
-
-		//console.log("move length is " + movePath.length)
-		//render()
-		/*
-		if (movePathSelection.length <= getCurrentPlayer().pool.get(CREST_MOVEMENT)) {			
-			ctx.globalAlpha = 0.5;
-			console.log("drawing")
-			for (var i=1; i<movePathSelection.length; i++){	
-				ctx.fillStyle= "#000000";
-				ctx.strokeStyle = "#303030";
-				ctx.lineWidth = 1;
-				drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
-			}
-			ctx.globalAlpha = 1.0;	
-		};
-
-	});
-*/
 
 registerMoveEvent(
 	function(){return true},
@@ -1069,23 +734,6 @@ registerClickEvent(
 		socket.emit('mouse click', {X:cursorX, Y:cursorY})
 	});
 
-//movePathSelection
-/*
-registerMoveEvent(
-	function(){return getGameState() == UNIT_SELECT && movePathSelection.length > 1},
-	function(){
-		
-		ctx.globalAlpha = 0.5;
-		for (var i=1; i<movePathSelection.length; i++){
-			
-			ctx.fillStyle= "#000000";
-			ctx.strokeStyle = "#303030";
-			ctx.lineWidth = 1;
-			drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
-		}
-		ctx.globalAlpha = 1.0;	
-	});
-*/
 
 
 
@@ -1224,11 +872,12 @@ var render = function(){
 	ctx.clearRect(0,0,canvas.width,canvas.height)
 	drawBoard();
 	drawUnits();
+	drawButton()
 	drawSelection(player);
 	drawSelection(opponent);
 	drawPath();
 	//drawCrest(CREST_TRAP, 500, 500)
-	drawButton()
+
 
 }
 

@@ -20,7 +20,8 @@ var games = []
 var GAME_STATE_ROLL = 0;
 var GAME_STATE_SUMMON = 1;
 var GAME_STATE_UNIT = 2;
-var GAME_STATE_END = 3;
+var GAME_STATE_SELECT = 3;
+var GAME_STATE_END = 4;
 
 
 var Game = function (){
@@ -29,10 +30,6 @@ var Game = function (){
   this.board;
   //this.currentPlayer;
   this.monsters =[];
-
-
-
-
 
   this.init = function (){
     //main();
@@ -580,37 +577,6 @@ var rotateShape = function(shape,rotate){
   }
   return cshape;
 }
-/*
-addEventListener("keypress", function(e){
-    //keysDown[e.keyCode] = true;
-    //console.log(e.charCode);
-    if (e.charCode == 122){
-      //console.log("rotate");
-      rotate++;
-      if (rotate == 4){
-        rotate = 0; 
-      }
-      validpos = validPlacement();
-    } else if (e.charCode == 99){
-      shape++;
-      
-      if (shape == shapes.length){
-        shape = 0;    
-      }
-      //validpos = validPlacement();
-    }
-    //render();
-}, false);
-*/
-
-
-
-//cursorX = 0;
-//cursorY = 0;
-//pageX = 0;
-//pageY = 0;
-//PLAYER_ID.pool.set(CREST_MOVEMENT, 5);
-
 
 
 var boundCursor = function(x, y){
@@ -653,22 +619,7 @@ var heartImg = "<img src='assets/img/heart.png' width = 15 height = 15;/>"
 function setDicePanelText(text){
   dicePanel.innerHTML = text;
 }
-/*
-function setStatePanelText(m){
-  var text = "";
-  if (m != EMPTY){
-    hpheart = "";
-    for (var i=0;i<m.hp;i=i+10){
-      hpheart = hpheart+heartImg;
-    }
-    text =  "<b>"+ m.name + "</b><br>" +  
-        "<b>HP</b> : "  + hpheart +"<br>" +
-        "<b>ATK</b> : " + m.atk +"<br>" +
-        "<b>DEF</b> : " + m.def +"<br>"
-  }     
-  statPanel.innerHTML = text;
-}
-*/
+
 
 //triggers
 var TRIGGER_MOUSE_CLICK = 0;
@@ -706,38 +657,6 @@ function manhattanDistance(point, goal){
 }
 
 
-
-
-/*
-var middle = false;
-
-
-var then = Date.now();
-var init = function (){
- // updateCrest()
-  //if (bgReady){
-  main();
-  PLAYER_ID.beginTurn();
-  console.log("ready")
-  //}
-}
-
-var drawGame = function(){
-  var now = Date.now();
-  var delta = now - then;
-  
-  render();
-  then = now;
-  
-}
-
-var main = function(){
-  drawGame();
-  //requestAnimationFrame(main);
-  //printCursor();
-
-}
-*/
 function Player(id){
   var PLAYER_STATE_IDLE = 0;
   var PLAYER_STATE_ROLL = 1;
@@ -760,7 +679,6 @@ function Player(id){
   this.cursorX;
   this.cursorY;
 
-  //public variables
   this.tileSelected = []
   this.unitSelected = EMPTY;
   this.movePath = []
@@ -770,23 +688,6 @@ function Player(id){
                 Dice_Soraka, Dice_Soraka,Dice_Soraka, Dice_Soraka, Dice_Soraka,
                 Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,];
 
-/*
-  this.isPlaying = function(){
-
-    return PLAYER_ID.id == getCurrentPlayer().id
-  }
-
-  this.disabled = function(a,b,c){
-    rollButton.disabled = a;
-    summonButton.disabled = b;
-    endturnButton.disabled = c;
-  }
-
-
-  this.onIdle = function(){
-
-  }
-*/
 
   this.endTurn = function (game){
     this.state = GAME_STATE_END;
@@ -1000,7 +901,7 @@ io.on('connection', function(socket){
       c_tilesconfig(data)
     });
 
-    var c_tilesplace = function (data){
+    var c_tilesplace = function (){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
       if (game.makeSelection(p1)){
@@ -1017,10 +918,11 @@ io.on('connection', function(socket){
       }
     }
 
-    var c_selectunit = function (p){
+
+    var c_selectunit = function (){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
-      var m = game.monsters[game.board.getUnitAtLoc(p.X, p.Y)]
+      var m = game.monsters[game.board.getUnitAtLoc(p1.cursorX, p1.cursorY)]
 
       //console.log(game.board.getUnitAtLoc(p[0], p[1]));
       if (m){
@@ -1029,50 +931,83 @@ io.on('connection', function(socket){
             p1.unitSelected = EMPTY;
             console.log("deselect");
             p1.movePath = []
+            p1.state = GAME_STATE_UNIT;
           } else {
             p1.unitSelected = m.id;
-            p1.movePath = game.board.findPossiblePath([p.X, p.Y],p1.pool.get(CREST_MOVEMENT))
+            p1.movePath = game.board.findPossiblePath([p1.cursorX, p1.cursorY],p1.pool.get(CREST_MOVEMENT))
             console.log("selecetd unit m0");
+            p1.state = GAME_STATE_SELECT;
           }
-        } else if (p1.unitSelected != EMPTY){
-          if (game.monsters[p1.unitSelected].attack(m)){
-            console.log("attack!")
-            p1.unitSelected = EMPTY;
-            p1.movePath = []
-          }
-          
-        }
+        } 
       } else { 
         console.log("no unit on tile")
       }
       update(game);  
     }
 
-    var c_unitmove = function(data){
+    var unitmove = function(game, board, player, loc){
+
+        var m = game.monsters[player.unitSelected]
+        var path = board.findPath([m.x,m.y],loc);
+    
+        var plen = path.length
+
+        if (plen > 1 && plen-1 <= player.pool.get(CREST_MOVEMENT)) { 
+          player.movePath = [];
+
+          //game.board.moveUnit(p1.unitSelected, data.X,data.Y);
+
+          board.setUnitAtLoc([m.x, m.y], EMPTY)
+          m.x = loc[0];
+          m.y = loc[1];
+          board.setUnitAtLoc(loc, player.unitSelected)
+          player.pool.update(CREST_MOVEMENT,-(plen-1))
+          player.unitSelected = EMPTY;
+          player.state = GAME_STATE_UNIT;
+        } 
+    }
+
+    var attack = function(player, target){ 
+      if (game.monsters[player.unitSelected].attack(target)){
+        console.log("attack!")
+        player.unitSelected = EMPTY;
+        player.movePath = [];
+        player.state = GAME_STATE_UNIT;
+      }
+    }
+
+    var reselection = function (board, player, target){
+        if (target.id == player.unitSelected){
+          player.unitSelected = EMPTY;
+          console.log("deselect");
+          player.movePath = []
+          player.state = GAME_STATE_UNIT;
+        } else {
+          player.unitSelected = target.id;
+          var pathoptions = board.findPossiblePath([player.cursorX, player.cursorY],player.pool.get(CREST_MOVEMENT))
+          player.movePath = pathoptions;
+        }
+    }
+
+    var c_actionunit = function(){
       var game = games[socket.id]
-      var p1 = getCurrentPlayer(socket.id)
-      var m = game.monsters[p1.unitSelected]
-      //console.log([m.x, m.y],[cursor.X,cursor.Y])
-      var path = game.board.findPath([m.x,m.y],[data.X,data.Y]);
-      //console.log([m.x, m.y],[cursor.X,cursor.Y])
-      //p1.movePath =  game.board.findPath([m.x, m.y],[cursor.X,cursor.Y]);
-      var plen = path.length
+      var player = getCurrentPlayer(socket.id)
+      var m = game.monsters[player.unitSelected]
+      var u = game.board.getUnitAtLoc(player.cursorX, player.cursorY)
+      //console.log("click")
+      var loc = [player.cursorX, player.cursorY];
+      if (u != EMPTY){
+        var target = game.monsters[u];
+        if (target.player != player){
+          attack(player, target);
+        } else if (target.player == player){
+          reselection(game.board, player, target);
 
-      ////console.log("movePath legnth:" + p1.pool.get(CREST_MOVEMENT))
-      //console.log("movePath legnth:" + p1.pool.get(CREST_MOVEMENT))
-      if (plen > 1 && plen-1 <= p1.pool.get(CREST_MOVEMENT)) { 
-        p1.movePath = [];
-
-        //game.board.moveUnit(p1.unitSelected, data.X,data.Y);
-
-        game.board.setUnitAtLoc([m.x, m.y], EMPTY)
-        m.x = data.X;
-        m.y = data.Y;
-        game.board.setUnitAtLoc([data.X, data.Y], p1.unitSelected)
-        p1.pool.update(CREST_MOVEMENT,-(plen-1))
-        p1.unitSelected = EMPTY;
-      }   
-
+        } 
+      } else if (game.board.getTileState(loc[0], loc[1]) != EMPTY) {
+        unitmove(game, game.board, player, loc);
+        console.log("move")
+      } 
     }
 
     socket.on('end turn', function(){
@@ -1092,28 +1027,29 @@ io.on('connection', function(socket){
       var game = games[socket.id]
       var player = getCurrentPlayer(socket.id)
       if (!game.isPlaying(player)) return
+
+      player.cursorX = data.X;
+      player.cursorY = data.Y;
+
       if (player.tileSelected.length > 0){
         c_tilemove(data)
-      } else if (player.unitSelected != EMPTY){
+      } else if (player.state == GAME_STATE_SELECT){
         c_unitpathmove(data);
       }
       update(game);
     });
 
-    socket.on('mouse click', function (data){
+    socket.on('mouse click', function (){
       var game = games[socket.id]
       var player = getCurrentPlayer(socket.id)
       if (!game.isPlaying(player)) return
-      if (player.tileSelected.length > 0){
+      if (player.state == GAME_STATE_SUMMON){
         //console.log("tile place")
-        c_tilesplace(data);
-      } else if (
-      player.unitSelected != EMPTY && 
-      game.board.getTileState(data.X, data.Y) != EMPTY && 
-      game.board.getUnitAtLoc(data.X,data.Y) == EMPTY){
-        c_unitmove(data);
-      } else if (boundCursor(data.X,data.Y)){
-        c_selectunit(data);
+        c_tilesplace();
+      } else if (player.state == GAME_STATE_SELECT){
+          c_actionunit();    
+      } else if (player.state == GAME_STATE_UNIT){
+        c_selectunit();
       } 
       update(game)
     })
@@ -1165,6 +1101,7 @@ io.on('connection', function(socket){
       for (i=0; i<3; i++){
         dices.push(p1.dices[data[i]])
       }
+
       //console.log(dices)
       //console.log(dices)
       p1.onRoll(dices)
@@ -1195,9 +1132,13 @@ io.on('connection', function(socket){
       //console.log(p1)
 
       p1.summonchoice = data;
-      p1.tileSelected = rotateShape(p1.shape,p1.rotate)
-      //console.log('summoinggd')
-      //console.log(p1.tileSelected)
+
+      p1.tileSelected = []
+      var cshape = rotateShape(p1.shape,p1.rotate);
+      for (var i=0; i<cshape.length; i++){
+        p1.tileSelected.push([cshape[i][0]+p1.cursorX, cshape[i][1]+p1.cursorY])
+      }
+  
       update(game)
       //socket.emit('updategame', {pnum: p1.num,game:game});
 
@@ -1206,15 +1147,6 @@ io.on('connection', function(socket){
 
     socket.on('disconnect', function(){
           console.log('user disconnected');
-          /*
-          for (i=0; i<playersockets.length; i++){
-              if (players[i].id == socket.id){
-                  players[i].id = ""
-              }
-          }
-
-          io.emit('new player id', players)
-          */
     });
 });
 
