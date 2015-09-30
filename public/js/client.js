@@ -125,6 +125,7 @@ function drawButton(){
 }
 
 
+
 var Event_Button_Focus = function(x,y){
 	for (var i=0;i<Buttons.length; i++){
 		var b = Buttons[i];
