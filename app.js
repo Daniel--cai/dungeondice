@@ -20,8 +20,9 @@ var games = []
 var GAME_STATE_ROLL = 0;
 var GAME_STATE_SUMMON = 1;
 var GAME_STATE_UNIT = 2;
-var GAME_STATE_SELECT = 3;
-var GAME_STATE_END = 4;
+var GAME_STATE_COMBAT = 3;
+var GAME_STATE_SELECT = 4;
+var GAME_STATE_END = 5;
 
 
 var Game = function (){
@@ -30,6 +31,9 @@ var Game = function (){
   this.board;
   //this.currentPlayer;
   this.monsters =[];
+  this.combat = null;
+
+  //this.timeout = false;
 
   this.init = function (){
     //main();
@@ -374,10 +378,10 @@ var id3 = {
 
 var UNIT_IDS = [id0, id1, id2];
 
-var Dice_Teemo = new Dice(id0, [[CREST_SUMMON,1],
-                [CREST_SUMMON,1],
-                [CREST_SUMMON,1],
-                [CREST_SUMMON,1],
+var Dice_Teemo = new Dice(id0, [[CREST_SUMMON,2],
+                [CREST_SUMMON,2],
+                [CREST_SUMMON,2],
+                [CREST_SUMMON,2],
                 [CREST_MAGIC,3],
                 [CREST_MOVEMENT,1]])
 
@@ -389,10 +393,10 @@ var Dice_Soraka = new Dice(id1, [[CREST_SUMMON,1],
                  [CREST_MAGIC,3]]);
 
 
-var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,1],
-                 [CREST_SUMMON,1],
-                 [CREST_SUMMON,1],
-                 [CREST_SUMMON,1],
+var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,3],
+                 [CREST_SUMMON,3],
+                 [CREST_SUMMON,3],
+                 [CREST_SUMMON,3],
                  [CREST_TRAP,3],
                  [CREST_ATTACK,1]]);
 
@@ -415,9 +419,51 @@ var white = "#ffffff";
 var black = "#000000"
 
 
+var SpellID = 0;
+var SpellList = []
 
+function Spell(name, cost){
+  this.name = name;
+  this.cost = cost;
+  this.id =  SpellID;
+  this.cooldown = 1
+  SpellID++;
+}
+
+
+var UNIT_STATUS_STUNNED = 0;
+var UNIT_STATUS_KNOCKED_UP = 1;
+var UNIT_STATUS_SILENCED = 2
+
+function Buff(name, duration){
+  this.name = name;
+  this.duration = duration;
+
+}
+
+function BuffEffect(buff){
+  this.buff = buff;
+  this.duration = buff.duration;
+  this.onApply = null;
+  this.onEffect = null;
+  this.onFinish = null;
+
+}
+
+var LEBLANC_mimic = new Spell("Mimic", [CREST_MAGIC, 2]);
+var LEBLANC_sigil_of_silence = new Spell("Sigil of Silence", [CREST_MAGIC, 2])
+
+var SPELL_TEEMO_blinding_dart = new Spell("Blinding Dart", [CREST_ATTACK, 2])
+var BUFF_TEEMO_blinding_dart = new Buff("Blinding Dart", 1);
 
 //idcounter = 0;
+
+function Combat(unit, target){
+  this.unit = unit;
+  this.target = target;
+  this.atkmodifier = unit.atk;
+  this.defmodifier = 0;
+}
 
 function Unit(game, player, type, point) {
 
@@ -437,43 +483,101 @@ function Unit(game, player, type, point) {
   this.canAttacked = true;
   this.atkcost = 1;
   this.atkrange = 1;
+  this.buff = []
+  //this.game = game;
   game.monsters.push(this);
   this.id = game.monsters.length-1;
   game.board.setUnitAtLoc(point,this.id);
   
-  
+  this.guard = function(target){
+    //socket = sockets[player.id];
+    game = games[player.id]
+    game.combat = new Combat(this, target);
+    var opponent = game.players[((player.num == 0) ? 1 : 0)]
+    opponent.state = GAME_STATE_COMBAT;
+    this.player.state = GAME_STATE_COMBAT;
+    console.log("changing state to combat: " + opponent.num)
+    update(game);
 
-  this.attack = function(target){
-    playerpool = this.player.pool;
-    //console.log(target)
-    if (this.hasAttacked) {
-      console.log("Already attack")
-      return false
-    }
-  
+    //socket.emit('guard trigger', );
+  }
 
-    var d = manhattanDistance(this, target);
-    
-    if (d > this.atkrange){
-      console.log("Out of range")
-      return false
-    }
-
-    if (playerpool.get(CREST_ATTACK) < this.atkcost){
-      console.log("Not enough attack crest")
-      return false;
-    }
+  this.postattack = function(target){
     console.log(target.hp)
-    target.hp = target.hp - this.atk;
-    console.log("after attack" +target.hp)
+    game = games[this.player.id]
+    combat = game.combat;
+    var dmg = combat.atkmodifier - combat.defmodifier;
+    if (dmg < 0) {
+      dmg = 0;
+    }
+    target.hp = target.hp - dmg;
+    console.log(combat.atkmodifier + " mod " + combat.defmodifier)
+    console.log("after attack " +target.hp)
     //setStatePanelText(target);
     //dead
     if (target.hp <= 0){
       target.remove()
     }
+    delete combat;
+    game.combat = null;
     this.hasAttacked = true;
-    playerpool.set(CREST_ATTACK, playerpool.get(CREST_ATTACK) - this.atkcost);
+    this.player.unitSelected = EMPTY;
+    this.player.movePath = [];
+    this.player.state = GAME_STATE_UNIT;
+    //var opponent = game.players[((this.num == 0) ? 1 : 0)]
+    target.player.state = GAME_STATE_UNIT;
+
+    this.player.pool.set(CREST_ATTACK, this.player.pool.get(CREST_ATTACK) - this.atkcost);
     //updateCrest();
+    update(game);
+
+  }
+
+  var reset = function(game){
+
+  }
+
+  this.attack = function(target){
+    playerpool = this.player.pool;
+    //console.log(target)
+   var d = manhattanDistance(this, target);
+    if (playerpool.get(CREST_ATTACK) < this.atkcost){
+      console.log("Not enough attack crest")
+
+
+      return false;
+    }
+
+
+    if (d > this.atkrange){
+      console.log("Out of range")
+
+      var socket = sockets[this.player.id]
+      socket.emit('alert', "Out of range");
+      return false
+    }
+    if (this.hasAttacked) {
+      console.log("Already attack")
+      game = games[this.player.id]
+     
+      var socket = sockets[this.player.id]
+      socket.emit('alert', "Already attacked");
+      return false
+    }
+  
+ 
+    
+
+
+
+    //this.postattack(target);
+    
+    if (target.player.pool.get(CREST_DEFENSE) > 0){
+      this.guard(target);
+    } else {
+      this.postattack(target);
+    }
+   
     return true;
   }
 
@@ -607,24 +711,15 @@ var getUnitById = function(id){
 
 
 
-
-var drawSquare = function(x,y){
-  ctx.fillRect(x,y,squareSize,squareSize);
-  ctx.strokeRect(x,y,squareSize,squareSize);
-}
-
-var heartImg = "<img src='assets/img/heart.png' width = 15 height = 15;/>"
-
-
-function setDicePanelText(text){
-  dicePanel.innerHTML = text;
-}
-
-
 //triggers
 var TRIGGER_MOUSE_CLICK = 0;
 var TRIGGER_MOUSE_MOVE = 1;
 var TRIGGER_KEY_PRESSED = 2;
+var TRIGGER_UNIT_DEATH = 3;
+var TRIGGER_UNIT_ATTACK = 3;
+var TRIGGER_UNIT_ATTACKED = 3;
+var TRIGGER_TURN_END = 4;
+
 
 
 var eventTriggerKey = 0;
@@ -637,6 +732,9 @@ function Event(trigger, condition, action){
   this.action = action; 
   this.enabled = true;
   EVENT_LIST.push(this);
+  this.triggerunit = null;
+  this.targetunit = null;
+  this.location = null;
 }
 
 function registerClickEvent(condition, action){
@@ -691,9 +789,16 @@ function Player(id){
 
 
   this.endTurn = function (game){
+
+    sockets[this.id].emit('alert', "End Phase");
     this.state = GAME_STATE_END;
     var opponent = game.players[((this.num == 0) ? 1 : 0)]
     opponent.beginTurn(game);
+
+    this.tileSelected = []
+    this.unitSelected = EMPTY;
+    this.movePath = []
+
 
   }
 
@@ -702,9 +807,9 @@ function Player(id){
     //setGameState(GAME_STATE_IDLE);
     console.log("begin")
     this.state = GAME_STATE_ROLL;
+    sockets[this.id].emit('alert', "Dice Roll Phase");
     this.summoned = false;
     this.rolled = false;
-    this.unitSelected = EMPTY;
     this.summon = [];
     this.summonlevel = 0;
     this.shape = 0;
@@ -724,18 +829,19 @@ function Player(id){
 
     var summonlevel = 0;
     var summon = [[],[],[],[],[]];
-
+    var result = [];
     //var dicechoice= [];
       
     for (var i=0;i<data.length; i++){
       var dices = this.dices[data[i]]
       var r = dices.roll();
-      
+      result.push(r)
       if (r[0] != CREST_SUMMON){
         //console.log(this.pool);
         this.pool.update(r[0],r[1])
         //console.log(this.pool);
         console.log(CREST_TEXT[r[0]] + " " + r[1]);
+
   
       } else {
         summon[r[1]].push(data[i]);
@@ -751,6 +857,7 @@ function Player(id){
       console.log(this.summon)
       //this.summonlevel = summonlevel
     }
+    return result;
     //console.log(this.summon)
     
   }
@@ -871,9 +978,9 @@ io.on('connection', function(socket){
     }
 
     var c_unitpathmove = function (cursor){
-            var p1 = getCurrentPlayer(socket.id)
+        var p1 = getCurrentPlayer(socket.id)
       if (p1.unitSelected == EMPTY){
-        console.log('1266:moving path when no unit is selected')
+        console.log('925:moving path when no unit is selected')
         return
       }
       var game = games[socket.id]
@@ -906,6 +1013,8 @@ io.on('connection', function(socket){
       c_tilesconfig(data)
     });
 
+
+
     var c_tilesplace = function (){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
@@ -920,6 +1029,7 @@ io.on('connection', function(socket){
         p1.rotate = 0;
         p1.summoned = true;
         p1.state = GAME_STATE_UNIT;
+        socket.emit('alert', 'Action Phase')
         update(game);
       }
     }
@@ -976,9 +1086,7 @@ io.on('connection', function(socket){
     var attack = function(player, target){ 
       if (game.monsters[player.unitSelected].attack(target)){
         console.log("attack!")
-        player.unitSelected = EMPTY;
-        player.movePath = [];
-        player.state = GAME_STATE_UNIT;
+
       }
     }
 
@@ -995,9 +1103,9 @@ io.on('connection', function(socket){
         }
     }
 
-    var c_actionunit = function(){
-      var game = games[socket.id]
-      var player = getCurrentPlayer(socket.id)
+    var c_actionunit = function(game, player){
+      //var game = games[socket.id]
+      //var player = getCurrentPlayer(socket.id)
       var m = game.monsters[player.unitSelected]
       var u = game.board.getUnitAtLoc(player.cursorX, player.cursorY)
       //console.log("click")
@@ -1028,6 +1136,21 @@ io.on('connection', function(socket){
       update(game)
     });
 
+    socket.on('guard response', function(data){
+      var game = games[socket.id];
+      if (data == 1){
+        
+        if (!game.combat) {
+          console.log("Attempting to respond to null guard  event")
+          return
+        }
+        game.combat.target.player.pool.update(CREST_DEFENSE,-1);
+        game.combat.defmodifier = game.combat.target.def;
+      }  
+      //} else if (data == 0)
+      game.combat.unit.postattack(game.combat.target);
+    })
+
     socket.on('mouse move', function(data){
       //console.log(data)
       var game = games[socket.id]
@@ -1053,11 +1176,13 @@ io.on('connection', function(socket){
         //console.log("tile place")
         c_tilesplace();
       } else if (player.state == GAME_STATE_SELECT){
-          c_actionunit();    
+          c_actionunit(game, player);    
       } else if (player.state == GAME_STATE_UNIT){
         c_selectunit();
       } 
+
       update(game)
+
     })
 
     socket.on('rotate shape', function(){
@@ -1104,7 +1229,8 @@ io.on('connection', function(socket){
       
       if (data.length != 3) return;
 
-      p1.onRoll(data)
+      var result = p1.onRoll(data)
+      sockets[this.id].emit('alert', "Dice Dimension Phase")
       p1.state = GAME_STATE_SUMMON;
 
       //var names = []
@@ -1113,6 +1239,7 @@ io.on('connection', function(socket){
       //} 
       
       //p1.rolled = true;
+      socket.emit('s_roll', result)
       update(game)
 
     });

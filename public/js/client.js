@@ -16,15 +16,25 @@ var canvas = document.getElementById("games");
 
 var rollButton = document.getElementById("roll");
 var endturnButton = document.getElementById("endturn");
+var yesButton = document.getElementById('yesguard');
+var noButton = document.getElementById('noguard');
 
+var passiveButton = document.getElementById('passive');
+var qButton = document.getElementById('q');
+var wButton = document.getElementById('w');
+var eButton = document.getElementById('e');
+var rButton = document.getElementById('r');
 
 var statPanel = document.getElementById("stat");
 var crestPanel = document.getElementById("crest");
 var dicePanel = document.getElementById("diceroll");
 var playerPanel = document.getElementById("players")
+
 //var movementButton = document.getElementById("movement")
 
 var ctx = canvas.getContext("2d");
+
+
 var squareSize = 30;
 var boardSizeX = 13;
 var boardSizeY= 19;
@@ -43,9 +53,9 @@ var PLAYER_2 = 1;
 var GAME_STATE_ROLL = 0;
 var GAME_STATE_SUMMON = 1;
 var GAME_STATE_UNIT = 2;
-var GAME_STATE_SELECT = 3;
-var GAME_STATE_END = 4;
-
+var GAME_STATE_COMBAT = 3;
+var GAME_STATE_SELECT = 4;
+var GAME_STATE_END = 5;
 
 //states
 var keyZ = 122;
@@ -62,6 +72,9 @@ var game;
 
 function disableButtons(a,b,c){
 		rollButton.disabled = a;
+		yesButton.hidden = b;
+		noButton.hidden = b;
+		
 		//hideSummonButton(b)
 		//summonButton.disabled = b;
 		endturnButton.disabled = c;
@@ -116,6 +129,61 @@ function drawPath(){
 
 var Buttons = [];
 
+//var AlertText = "";
+
+var Timeout = null;
+var TimeoutReady = true;
+var TimeoutAlpha = 0;
+var AlertText = "";
+var DialogText = "sdf";
+
+function alertTimeout(){
+	//console.log("timeout");
+	TimeoutAlpha--;
+	//console.log(TimeoutAlpha);
+	if (TimeoutAlpha < 0) {
+		Timeout.remove();
+		Timeout = null;
+		AlertText = "";
+		//socket.emit('alert timeout');
+	}
+	
+	
+}
+
+function drawDialog(text){
+	if (DialogText != ""){
+		ctx.strokeStyle = red;
+		ctx.lineWidth = 3;
+		ctx.fillStyle = white;
+		ctx.fillRect(200,200,200,80);
+		ctx.strokeRect(200,200,200,80);
+		ctx.fillStyle = black;
+		ctx.font = ctx.font = "13px Arial";
+		ctx.fillText(DialogText,225, 225 )
+	}
+	
+}
+
+function drawAlert(){
+	if (AlertText != ""){
+		//ctx.globalAlpha = TimeoutAlpha/30;
+		ctx.globalAlpha = 0.75;
+		//console.log(TimeoutAlpha/30*100)
+
+		ctx.strokeStyle = red;
+		ctx.lineWidth = 3;
+		ctx.fillStyle = white;
+		ctx.fillRect(200,200,200,80);
+		ctx.strokeRect(200,200,200,80);
+		ctx.fillStyle = black;
+		ctx.font = ctx.font = "13px Arial";
+		ctx.fillText(AlertText,225, 225 )
+		//ctx.fillText("x"+p[1],400 + j* 28+15,255 + i*30+30);
+	} 
+	ctx.globalAlpha = 1;
+}
+
 function drawButton(){
 	for (var i=0; i< Buttons.length; i++){
 		if (!Buttons[i].hidden){
@@ -126,25 +194,60 @@ function drawButton(){
 
 
 
+var DicePattern = [];
+
+function drawDicePattern(){
+	var count = 0
+	for (var i=0; i< DicePattern.length;i++){
+		for (var j=0; j<6; j++){
+			var p = DicePattern[i].pattern[j];
+			drawCrest(p[0], 400 + j* 28, 255 + i*30, 25, 25)
+			ctx.fillStyle = red;
+			if (p[0] == 5) {
+				//ctx.fillText(p[1],400 + j* 28+9,255 + i*30+16);	
+			} else {
+				ctx.font = ctx.font = "10px Arial";
+				ctx.fillText("x"+p[1],400 + j* 28+15,255 + i*30+30);
+			}
+			
+		}
+	}
+}
+function changeCursor(cursor){
+	console.log("sdf");
+	canvas.style.cursor = cursor;
+
+	//body.cursor = cursor;
+}
+
 var Event_Button_Focus = function(x,y){
+	DicePattern = [];
 	for (var i=0;i<Buttons.length; i++){
 		var b = Buttons[i];
 		if (b.hidden) continue;
 		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
 			if (player.state == GAME_STATE_ROLL){
 				b.onFocus(x,y);
+				
 			}
+			
 			var m = player.dices[b.id].type;
+			DicePattern.push(player.dices[b.id]);
 			setStatePanelText(m)
 		} else {
+	
 			if (player.state == GAME_STATE_ROLL){
 				b.onUnfocus(x,y);
+				
 			}
 		}
 		
 	}
+	render();
 	
 }
+
+
 
 var Event_Button_Click = function(x,y){
 	if (player.state == GAME_STATE_ROLL || GAME_STATE_SUMMON){
@@ -178,6 +281,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 	this.reset = function(){
 		this.toggle = false;
 		this.focus = false;
+		//icePattern = [];
 	}
 
 	this.onFocus = function(x,y){
@@ -185,19 +289,29 @@ var Button = function(id, img, x, y,sx,sy,unit){
 		if (this.focus) return;
 		//console.log(x,y, b.x, b.y, b.wx, b.hy)
 		if (player.state == GAME_STATE_ROLL){
+			changeCursor("pointer")
 			this.focus = true;
+		
+			//DicePattern = [];
+			//DicePattern.push(player.dices[0])
+
 		} 
-		render();
+		//render();
 
 	}
 	this.onUnfocus = function(x,y){
+
 		if (!this.focus) return;
-		if (this.toggle) return;
 		
+		if (this.toggle) return;
+		changeCursor("default")
+		//changeCursor("pointer")
 		if (player.state == GAME_STATE_ROLL){
-			this.focus = false;
+			this.focus = false;	
+			
+			//DicePattern = [];
 		}
-		render();
+		//render();
 	}
 	this.onClick = function(x,y){
 	
@@ -206,7 +320,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 			if (this.toggle){
 				this.toggle = false;
 				DiceSelection.splice(DiceSelection.indexOf(this),1);
-				this.onUnfocus(x,y);	
+				//this.onUnfocus(x,y);	
 			} else {
 				this.toggle = true;
 				DiceSelection.unshift(this);
@@ -264,8 +378,14 @@ var Button = function(id, img, x, y,sx,sy,unit){
 				ctx.fillRect(this.rx-(mod*2),this.ry-(mod*2), this.sx+4*mod,this.sy+4*mod);
 			}
 			drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
+			var lvl = player.dices[this.id].pattern[0][1]
+			ctx.fillStyle = black;
+			ctx.fillText(lvl,this.rx+15,this.ry+21);
 		} else {
 			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
+			ctx.fillStyle = black;
+			var lvl = player.dices[this.id].pattern[0][1]
+			ctx.fillText(lvl,this.rx+15,this.ry+21);
 		}
 		ctx.globalAlpha = 1;
 	}
@@ -409,10 +529,10 @@ var getUnitById = function(id){
 
 }
 
-var getUnitAtLocation = function ([x,y]){
+var getUnitAtLocation = function (l){
 	//console.log("unit at " + x +" " + y);
 	if (game)
-		return game.board.units[y][x];
+		return game.board.units[l[1]][l[0]];
 }
 /*
 var setUnitAtLocation = function (id, point){
@@ -456,6 +576,19 @@ summonButton.addEventListener("click", function(){
 */
 
 
+yesButton.addEventListener("click", function(){
+	socket.emit('guard response', 1);
+})
+
+noButton.addEventListener("click", function(){
+	socket.emit('guard response', 0);
+})
+
+qButton.addEventListener("click", function(){
+	socket.emit('q');
+})
+
+
 
 endturnButton.addEventListener("click", function(){
 	socket.emit('end turn');
@@ -483,7 +616,11 @@ rollButton.addEventListener("click", function(){
     //var summonlevel = 0;
     //var summon = [[],[],[],[]];
     //update crestpool
-    socket.emit('c_roll', [for (d of DiceSelection) d.id])
+    var data = [];
+    for (var i=0; i<DiceSelection.length; i++){
+    	data.push(DiceSelection[i].id)
+    }
+    socket.emit('c_roll', data)
     /*socket.on('s_roll', function(data){
     	//console.log(data);
     	updateCrest(data.pool);
@@ -652,6 +789,7 @@ var drawUnits = function() {
 var TRIGGER_MOUSE_CLICK = 0;
 var TRIGGER_MOUSE_MOVE = 1;
 var TRIGGER_KEY_PRESSED = 2;
+var TRIGGER_TIMEOUT = 3;
 
 
 var eventTriggerKey = 0;
@@ -663,8 +801,17 @@ function Event(trigger, condition, action){
 	this.condition = condition;
 	this.action = action; 
 	this.enabled = true;
+	this.interval = 0;
+	this.timeout = 0;
 	EVENT_LIST.push(this);
+
+	this.remove = function(){
+		this.enabled = false;
+		//EVENT_LIST.splice(EVENT_LIST.indexOf(this),1);
+		console.log("removed");
+	}
 }
+
 
 function registerClickEvent(condition, action){
 	return new Event(TRIGGER_MOUSE_CLICK, condition, action)
@@ -676,6 +823,12 @@ function registerMoveEvent(condition, action){
 
 function registerPressEvent(condition, action){
 	return new Event(TRIGGER_KEY_PRESSED, condition, action)
+}
+
+function registerTimerEvent(interval, action) {
+	var e = new Event(TRIGGER_TIMEOUT, function(){return true}, action);
+	e.interval = interval;
+	return e;
 }
 
 registerMoveEvent(
@@ -693,6 +846,11 @@ registerMoveEvent(
 		if (m){
 			//console.log(m);
 			setStatePanelText(m)
+			if (m.player.id != player.id && player.unitSelected != EMPTY){
+				changeCursor("crosshair")
+			} else {
+				changeCursor("default")
+			}
 		//} else if (player && player.unitSelected){
 		//	setStatePanelText(player.unitSelected)
 		} else {
@@ -840,24 +998,29 @@ function drawCrest(crest, x,y, sx, sy){
 	};
 }
 
+
 var render = function(){
 	//console.log("rendering")
 	ctx.clearRect(0,0,canvas.width,canvas.height)
 	drawBoard();
 	drawUnits();
 	drawButton()
+	
+	drawDicePattern();
 	drawSelection(player);
 	drawSelection(opponent);
 	drawPath();
+	drawAlert();
+	drawDialog();
 	//drawCrest(CREST_TRAP, 500, 500)
-
-
 }
+
 
 function update(){
 	//console.log(player.tileSelected);
 	updateCrest(player.pool.pool);
 	var m = getUnitOnCursor(cursorX,cursorY);
+	DialogText = ""
 	if (m){
 		//console.log(m.name +" "+m.hp)
 		setStatePanelText(m)
@@ -881,22 +1044,65 @@ function update(){
 		}
 
 	} else if (player.state == GAME_STATE_SUMMON){
-		disableButtons(true,false,false)
+		disableButtons(true,true,false)
 		for (i=0;i<15;i++) Buttons[i].reset();
 		for (i=0;i<player.summon.length;i++) {
 			Buttons[player.summon[i]].toggle = true;
 			Buttons[player.summon[i]].focus = true;
 		}
-
 	} else if (player.state == GAME_STATE_UNIT) {
 		disableButtons(true,true,false)
+		if (game.turn%2 != player.num){
+			disableButtons(true,true,true)
+		}
+
 	//} else if (player.tileSelected.length <=0){
 	//	hideSummonButton(true);
 	//	disableButtons(true,true,false)
-	} 
+	} else if (player.state == GAME_STATE_COMBAT) {
+		if (game.combat.unit.player.num != player.num){
+			disableButtons(true,false,true);
+			DialogText = "Use a defense crest?"
+		} else {
+			disableButtons(true,true,true);
+			DialogText = "Waiting for opponent..."
+		}
+
+		//console.log(game.combat);
+	}
 
 	render();
 }
+
+//socket.on('guard trigger', function(){
+//	console.log("to guarding");
+//})
+
+socket.on('s_roll', function(data){
+	console.log(data);
+	var string = "";
+
+	for (var i=0; i<data.length; i++){
+		if (data[i][0] != CREST_SUMMON){
+			string += "+" + data[i][1] + CREST_TEXT[data[i][0]] + "<br\>" 
+		}
+	}
+	setDicePanelText(string);
+})
+
+socket.on('alert', function(data){
+	//console.log("new laert" + TimeoutAlpha)
+	if (Timeout != null){
+		Timeout.remove();
+	}
+	Timeout = registerTimerEvent(100, alertTimeout);
+	TimeoutAlpha = 1500/100;
+	TimeoutReady = false;
+	AlertText = data;
+	
+})
+
+
 
 socket.on('updategame', function(data){
 	if (!game){
@@ -908,6 +1114,7 @@ socket.on('updategame', function(data){
 	//console.log(data.pnum)
 	opponent = game.players[0];
 	player = game.players[data.pnum];
+	
 	if (data.pnum == 0){
 		opponent = game.players[1];
 	}
@@ -968,6 +1175,7 @@ var init = function (){
 				//render();
 			}
 		}
+		
 		//SelectEvent.enabled = true;
 		//if (getGameState() == GAME_STATE_STOP){
 		//	console.log("paused");
@@ -975,18 +1183,38 @@ var init = function (){
 		//} 
 
 	});
-
+	drawGame();
 	console.log("ready")
 	//}
 }
 
+var Second = 0;
+
 var drawGame = function(){
 	var now = Date.now();
 	var delta = now - then;
-	
-	
 	then = now;
-	
+	window.requestAnimationFrame(drawGame);
+	Second += delta;
+	//console.log(delta);
+	if (Second >= 100){
+		Second = 0;
+		//console.log("one second");
+		for (var i=0; i<EVENT_LIST.length; i++){
+
+			if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_TIMEOUT) {
+				EVENT_LIST[i].timeout += 100;
+				if (EVENT_LIST[i].timeout >= EVENT_LIST[i].interval){
+					EVENT_LIST[i].action();	
+					EVENT_LIST[i].timeout = 0;
+				}
+				
+			}
+		}
+	}
+	if (game){
+		render()
+	}
 }
 
 //if (PLAYER_ID.isPlaying()) {

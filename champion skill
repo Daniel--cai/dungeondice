@@ -1,0 +1,261 @@
+Teemo
+Blind: target monster's attack next turn will always miss
+Mushroom: places mushroom on the tile. If stepped on, deal 10 damage to surrounding area.
+
+
+Soraka
+Movement crest cost half if there is an injured ally around Soraka.
+
+Wish: heals all ally unit for 10. Cannot go above max hp
+Blue stuff: silence target area until the next turn. Silenced units cannot activate abilities. Passive abilities are still in effect.
+
+
+
+Nasus
+Nasus gains 10 hp each time he deals damage by basic attack
+Siphon strike. Deals attack damage. If nasus kills a champion, this permanently gains 10 damage.
+Wither: target monster cost 1 extra crest  to move for each square until the end of their next turn.
+
+Vayne
+Night hunter movement cost half if she walks  towards the direction an enemy champion
+
+Tumble. Moves one square away. Can be diagonally. Vayne can attack additional for this turn.
+
+Condemn: knock back target 1 squares backwards. If the unit cannot move there, deal 10 damage and the target is stunned until the end of the next turn.
+
+Jinx
+If jinx scores a kill, jinx is able to move equal to the number of life point the decayed unit had on the same turn.
+
+Pow pow fish bones Jinx attack deal area effect around the target. Cost 2 extra attack.
+
+
+Trap,
+Setup the ground with trap. Enemy champions at the end of the next turn are immobilised.
+
+
+
+Sivir
+Sivir movement cost 1 less if she attacks, on the next turn
+
+Spell shield: event block the ability used on sivir.
+Hurls a boomerang forward 3 squares. Deals attack damage to the first target, and 10 less for each subsequent targets. The boomerang  hurls forward 3 then back
+
+Annie
+Fireball: deals 10 damage to target. Every 3 ability cast, also stuns the target
+
+Molten armor. Gain 10 defense for the next turn. Enemies who attack receive 10 damage for each attack.
+
+Tibbers. Deal 10 damage to targets around the square. Summons tibber 30/10/0. Only one tibber can exist at a time.
+
+Blitzcrank.
+If blitzcrank drops to 10 hp, you can use up to 3 defense crest to gain a shield. For each crest used, it gains 10. Shield lasts until the end of turn, and can only be used once per round.
+
+Blitz
+
+Pulls the target up to 3 square away in front of blitzcrank.
+
+Thresh
+Flay: 
+Lantern: Pulls ally target to a square around thresh location.
+Soul. Champions that die live a soul behind. If thresh collects the soul, he permanently gains 10 def.
+
+Leblanc
+Sigil deals 10 damage to target. If this target is hit again by Leblanc ability this turn, deal extra 20 damage.
+Distortion: deals 10 damage to area and moves Leblanc to square. Until the end of the next turn. She can deactivate to switch back to her original position.
+
+Mimic
+
+
+Ahri
+Her attacks and charm build point. For every 3rd point, she gains hp 10hp
+
+Orb
+Deals 10 damage to 2 squares away. The orb then comes back dealing 10 damage to units hit. Enemy champion cannot guard against the second hit.
+
+Charm: deals 10 damage. The target is stunned and moves 1 square towards Ahri next turn.
+
+Rammus
+Taunt. The target for the next turn has to attack rammus. The crest will go negative if the player has no attack crest.
+
+Shield: attackers take 10 damage each time they attack or use an ability on rammus
+
+Braum.
+Braum attacks leave a mark on the target. If the target is attacked another time this turn. This target is stunned for the next turn. Enemies hit by this ability are immune for 5 turns.
+Raises shield up. Cancels the first effect or attack of all projectiles in the row  until the end of the turn. Subsequent ability deal damage to Braum instead.
+
+Stand behind me:
+Jumps to an ally position. Both Braum and the ally gain 10def until the end of the next turn.
+
+Karthus
+If karthus dies, he may use ability up to one more time before it is removed from the field.
+
+Small
+Deals 5 damage to a target. If this kills a target, half the cost of this is refunded.
+
+Deals 20 damage to all enemy champions. Cool down-2 turns.
+
+
+Nunu. :
+Every 3rd attack his next ability cast is free
+
+Snowball. Deals 10 damage target. Movement speed cost double for the next turn.
+
+Charge up.
+For up to the next 3 turns, he may charge this ability. Deals 10 damage plus 20 for each second channeled. He may not move or perform another ability while this is in effect.
+
+Fiora
+Vital point
+When fiora first attacks a target, she reveals a vital point around the direction of the target. If she hits the other 3 vital point, the target immediately takes 100 damage. This damage cannot be blocked or reduced. Changing attack target resets all vital points on the previous target.
+
+Lunge
+dashes to a target area up to 2 squares away. If a vital spot exists around the new location, she may perform another attack on the vital point.  Can only be used once a turn.
+
+Riposte.
+Party's the next projectile towards fiora. If this ability is a disable, the enemy is stunned instead.
+
+Ezreal
+Mystic shot. Shoots a projectile forward dealing attack + 10 damage. The cost the next ability costs 1 less.
+
+Essence flux
+Deals damage in a line. Allies hit by this ability has their attack cost reduced by half.
+
+Shift
+Teleports to a square 2 squares away. And deals 10 damage to a random enemy a rounded ezreal
+
+Lucian
+When Lucian uses an ability, he may attack twice. The second attack deals half the damage rounded down.
+
+Beam
+Deal 20 damage 3 squares in front of Lucian. Can only be used if a target exists that is up to 2 squares away.
+
+Lightslinger
+Marks an enemy target 2 projectiles away. Gain 1 movement  Each time Lucian or an ally champion attacks this target,
+
+Darius
+Attack leaves a dot that deals 10 damage every turn for the next 3 turns. Stacks up to 4 times
+
+Spin. Deals 10 damage to 8 squares around darius. Adds a passive stack
+
+Slam dunk
+Deals 20 damage per passive stack damage on enemy target. If this kills an enemy, the cost of this ability is refunded
+
+Garen
+Passive healing
+If Garen is not Damaged for 3 turns, he gains 10hp each turn. While Garen is on the field, the enemy with the most kills gains villain.
+
+Spin
+Spins for 3 turn. During this time, Garen may not use any other ability. And deals 10 around Garen after movement or at the end of the turn.
+
+ult.
+Deals Damage based of life point of missing. If the target is the villain, thry recieves extra damage and the damage cannot be guarded. If there is a tie, no target is selected.
+
+Lulu
+Faerie, lulu's attack also shoot 10damage projectile and hits the first target hit.
+
+Glitterlance.
+Deals 10 damage 3 squares in a line. Targets hit are slowed until the end of their next turn.
+
+Pix help.
+Ally, the ally gains a 20hp shield that lasts until the end of the next turn. Faerie also changes host to the target, and its effect is activated when the new host attacks instead.
+
+Enemy
+Deals 20 damage to a single target. Reveals the target until the end of next turn.
+
+Janna
+Tail wind.
+Ally's walking towards Janna cost 1/2 less. Does not stack with other similar effects
+
+Shield
+Target ally gains a 20hp shield. And 10 attack.
+
+Slow
+Movement speed cost half the amount. If Janna uses this ability, target is slowed until the end of next turn. Until the end of your next turn, Janna loses the passive of this ability.
+
+
+Kogmaw
+If Kogmaw dies. He may deal 20 dmg to a target up to 1 square away from the position. This damage cannot be guarded.
+
+Barrage
+Kogmaw attack deals extra 10 damage. And gains 2 range. This damage cannot be guarded. Lasts 2 turns. Cool down 5 turns.
+
+Artillery strike.
+
+Deals 10 damage to a target 3 squares away.  The damage and cost  is doubled for each consecutive turn this ability is used. This resets when not used.
+
+Kalista
+
+Kalista may move one square away each time she attacks for 1 movement crest
+
+Bind an ally target permanently. If the bonded ally attacks the same target during the same turn. At any time, she maybe draw soul of this target, rendering it untargetable until the end of this turn. After this, the ally chooses a direction kalista choice. Fires the ally up to 3 squares away. Stuns first target hit.
+
+Rend. Auto attack build rend stacks on a target. For each 2 stack, deal 10 damage
+
+Sona
+Power chord.
+Each time sona uses damage or heal build stacks. Every four ability the ability gains an extra passive ability
+
+Damage
+Deals damage to 1 around sona. Prioritises higher level monster. Target ally gains 10 attack damage the next time they attack
+
+Heal
+Heals sona and the lowest hp around sona for 5. Gain 5 shield until the end of the enemy next turn.
+Crescendo.
+2 squares 3 wide. Stuns targets hit.
+
+Orianna
+Command attack
+Moves the ball to target square. Deals damage along the way. Not unit collision
+Shield. Shields an for 20 shield ally and move the ball to the square
+Shock wave
+Units around the ball are thrown around the
+Ball and dealt damage.
+
+Alistar
+Pulverise
+Knocks up all units around alistar until the end of their next turn.
+
+Headbutt
+Charges two squares forward. If an enemy unit exists, that unit is pushed in the same direction up to 2 squares away. Alistar may pay the cost of pulverise to activate it's effect in placement of the knock back.
+
+
+Ultimate breaks free all forms of disables on alistar. He gains 20atk 20def until the start of the players next turn.
+
+Yasuo
+Each time Yasuo moves, he gains a charge. At 5 squares, he gains a 20 shield that lasts until the start of the players next turn.
+
+Tornado
+Jabs forward deals 20 damage. Every 3 tornados, a tornado is projected forward, up to 3 squares away. Enemies caught in the tornado are knocked up.
+
+Raises a windwall in the direction . Absorbs all projectile until the start of the next turn. Can be used during either players turn.
+
+Zed
+Shuriken
+Throws stars 2 squares forward. Mimiced shuriken are thrown diagonally.
+
+
+Living shadow summons a cloned who squares in the direction. This shadow mimics  every move made by zed. Zed may reactivate at anytime to swap positions with the shadow.
+
+Spin
+Spins and deals damage. If multiple shadows overlap, the target is movements peer  slowed instead. Lasts 1 extra turn for each shadow.
+
+Ulti
+Summons a living shadow behind the target.
+Mimics all action made by zed.
+
+Syndra
+Summons a ball on the field and deals damage on the square
+
+Grabs a spheres nearby and fires the ball in the square
+
+Knock away. Pushes all units 2 squares away. Balls moves 3 square away. If a ball collides with any units, they are stunned for 1 turn.
+
+Ulti
+Deals 30 damage plus each square on the field. The balls last on the field for an extra turn.
+
+Aatrox
+Blood well
+Each time Aatrox attacks he builds
+
+Every 2 attack, he either
+Deals 20 bonus damage and cost 10 health.
+Recover 20health
