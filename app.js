@@ -24,6 +24,13 @@ var GAME_STATE_COMBAT = 3;
 var GAME_STATE_SELECT = 4;
 var GAME_STATE_END = 5;
 
+var PLAYER_STATE_NEUTRAL = 0;
+var PLAYER_STATE_MOVE = 1;
+var PLAYER_STATE_ATTACK = 2;
+var PLAYER_STATE_SPELL_TARGET = 3;
+var PLAYER_STATE_SPELL_LOC = 4;
+
+
 
 var Game = function (){
   this.players = []
@@ -32,6 +39,8 @@ var Game = function (){
   //this.currentPlayer;
   this.monsters =[];
   this.combat = null;
+  this.props = [];
+  //this.chain = [];
 
   //this.timeout = false;
 
@@ -422,11 +431,14 @@ var black = "#000000"
 var SpellID = 0;
 var SpellList = []
 
-function Spell(name, cost){
+function Spell(name, cost, target){
   this.name = name;
   this.cost = cost;
   this.id =  SpellID;
-  this.cooldown = 1
+  this.cooldown = 1;
+  this.target = target
+
+  this.onAttack = null;
   SpellID++;
 }
 
@@ -438,23 +450,84 @@ var UNIT_STATUS_SILENCED = 2
 function Buff(name, duration){
   this.name = name;
   this.duration = duration;
+  this.durationcounter = duration;
+  this.owner = null;
 
+  this.onApply = function(){console.log("onApply not implemented for " + this.name)};
+  this.onEffect = function(){console.log("onEffect not implemented for " + this.name)};
+  this.onFinish = function(){console.log("onFinish not implemented for " + this.name)};
+  this.onAttack = function(){console.log("onAttack not implemented for " + this.name)};
+  this.onDefend = function(){console.log("onDefend not implemented for " + this.name)};
+  this.onMove = function(){console.log("onMove not implemented for " + this.name)};;
 }
 
-function BuffEffect(buff){
-  this.buff = buff;
-  this.duration = buff.duration;
-  this.onApply = null;
-  this.onEffect = null;
-  this.onFinish = null;
+var BUFF_stun = new Buff("Stunned", 1);
+var BUFF_silence = new Buff("Silenced", 1);
+var BUFF_root = new Buff("Root", 1);
+var BUFF_knock_up = new Buff("Knock Up", 1);
 
+var SPELL_TEEMO1 = new Spell("Blinding Dart", [CREST_ATTACK, 2], "enemy")
+
+var SPELL_TEEMO2 = new Spell("Noxious Trap", [CREST_MAGIC, 2], "location")
+
+
+//SPELL_TEEMO1.target = [ENEMY];
+//var BUFF_TEEMO1 = new Buff("Blinding Dart", 1);
+
+function ApplyBuff(caster, target, buff){
+  for (var i = 0; i<target.buff.length; i++){
+    if (target.buff[i].name == buff.name){
+      return;
+    }
+  }
+  target.buff.push(buff);
+  buff.owner = caster;
 }
 
-var LEBLANC_mimic = new Spell("Mimic", [CREST_MAGIC, 2]);
-var LEBLANC_sigil_of_silence = new Spell("Sigil of Silence", [CREST_MAGIC, 2])
+function DamageUnit(trigger, target, damage){
+  //event
+  if (damage <=0) return false
+  target.hp = target.hp - damage;
+  if (target.hp <= 0){
+    target.remove()
+  }
+  return true;
+}
+function DamageLoc (trigger, targetlocation){}
 
-var SPELL_TEEMO_blinding_dart = new Spell("Blinding Dart", [CREST_ATTACK, 2])
-var BUFF_TEEMO_blinding_dart = new Buff("Blinding Dart", 1);
+
+
+SPELL_TEEMO1.onEffect = function(event){
+  //console.log(event)
+  var buff = new Buff("Blinding Dart", 1);
+  buff.onAttack = function(event){
+    event.dmg = 0;
+    var game = games[event.attacker.player.id]
+    alertGlobal(game, "Missed!")
+  }
+  ApplyBuff(event.trigger, event.target, buff)
+  //DamageUnit(event.trigger, event.target, 10);
+
+
+  return "";
+}
+
+SPELL_TEEMO2.onEffect = function(event){
+  var mushroom = new Prop("Toxic Mushroom", event.trigger.player, event.location);
+  mushroom.onCollision = function(event){
+    var game = games[event.trigger.player.id]
+    alertGlobal(game, "Toxic Mushroom!")
+    
+  }  
+  //console.log(event)
+  //var buff = new Buff("Blinding Dart", 1);
+  //ApplyBuff(event.trigger, event.target, buff)
+  //DamageUnit(event.trigger, event.target, 10);
+
+
+  return "";
+}
+
 
 //idcounter = 0;
 
@@ -465,9 +538,17 @@ function Combat(unit, target){
   this.defmodifier = 0;
 }
 
-function Unit(game, player, type, point) {
+function Prop(name, player, point) {
+  this.x = point[0];
+  this.y = point[1];
+  this.player = player;
+  this.name = name;
+  this.onCollision = function(){console.log(name + ".onCollision not implemented")};
+  games[player.id].props.push(this)
+  return this;
+}
 
-
+function Unit(game, player, type, point, level) {
   //idcounter++;
   this.name = type.name;
   this.type = type;
@@ -478,12 +559,15 @@ function Unit(game, player, type, point) {
   this.atk = type.atk;
   this.def = type.def;
   this.player = player;
-  //console.log(player);
+  if (level)this.level = level;
   this.hasAttacked = false;
   this.canAttacked = true;
   this.atkcost = 1;
   this.atkrange = 1;
   this.buff = []
+
+  this.spells = [SPELL_TEEMO1, SPELL_TEEMO2];
+
   //this.game = game;
   game.monsters.push(this);
   this.id = game.monsters.length-1;
@@ -510,20 +594,33 @@ function Unit(game, player, type, point) {
     if (dmg < 0) {
       dmg = 0;
     }
-    target.hp = target.hp - dmg;
-    console.log(combat.atkmodifier + " mod " + combat.defmodifier)
-    console.log("after attack " +target.hp)
+    var event = {attacker: this, target: target, dmg: dmg }
+    for (var i=0; i< this.buff.length; i++){
+      
+      this.buff[i].onAttack(event);
+      //if (this.buff[i].name == "Blinding Dart"){
+      //  dmg = 0;
+      //  alertGlobal(game, "Missed!")
+      //}
+    }
+
+    if (DamageUnit(event.attacker, event.target, event.dmg)){
+      console.log(combat.atkmodifier + " mod " + combat.defmodifier)
+      console.log("after attack " +target.hp)
+    }
+    //target.hp = target.hp - dmg;
+    //console.log(combat.atkmodifier + " mod " + combat.defmodifier)
+    //console.log("after attack " +target.hp)
     //setStatePanelText(target);
     //dead
-    if (target.hp <= 0){
-      target.remove()
-    }
+
     delete combat;
     game.combat = null;
     this.hasAttacked = true;
     this.player.unitSelected = EMPTY;
     this.player.movePath = [];
     this.player.state = GAME_STATE_UNIT;
+    this.player.actionstate = PLAYER_STATE_NEUTRAL;
     //var opponent = game.players[((this.num == 0) ? 1 : 0)]
     target.player.state = GAME_STATE_UNIT;
 
@@ -756,17 +853,12 @@ function manhattanDistance(point, goal){
 
 
 function Player(id){
-  var PLAYER_STATE_IDLE = 0;
-  var PLAYER_STATE_ROLL = 1;
-  var PLAYER_STATE_SUMMON = 2
-  var PLAYER_STATE_PLACEMENT = 3 
-  var PLAYER_STATE_ACTION = 4;
 
   this.id = id;
   this.num;
   this.pool = new Pool();
 
-  this.state = GAME_STATE_END;
+  this.state = PLAYER_STATE_NEUTRAL;
   this.summon = [];
   this.summonlevel = 0;
   this.summonchoice = EMPTY;
@@ -788,6 +880,8 @@ function Player(id){
                 Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,Dice_Poppy,];
 
 
+  this.spell = EMPTY;
+
   this.endTurn = function (game){
 
     sockets[this.id].emit('alert', "End Phase");
@@ -803,7 +897,7 @@ function Player(id){
   }
 
   this.beginTurn = function (game){
-    //this.state = PLAYER_STA1T1E_IDLE;
+
     //setGameState(GAME_STATE_IDLE);
     console.log("begin")
     this.state = GAME_STATE_ROLL;
@@ -815,6 +909,8 @@ function Player(id){
     this.shape = 0;
     this.rotate = 0;
     this.valid = false;
+    this.spell = EMPTY
+    this.actionstate = PLAYER_STATE_NEUTRAL;
 
     //reset data
     for (var i=0; i<game.monsters.length;i++){
@@ -864,7 +960,7 @@ function Player(id){
 
   this.onSummon= function(){
     console.log("on summon");  
-    //this.state = PLAYER_STATE_SUMMON;
+
     //setGameState(TILE_PLACEMENT);
     //rollButton.disabled = true;
     //summonButton.disabled = true;
@@ -894,6 +990,17 @@ var update = function(game){
     io.to(p2.id).emit('updategame', {pnum: p2.num,game :game});
 }
 
+function alertGlobal(game, alert){
+    var p1 = game.players[0];
+    var p2 = game.players[1];
+    if (!p1 || !p2){
+      return;
+    }
+    //console.log(p1.id)
+    //console.log(p2.id)
+    io.to(p1.id).emit('alert', alert );
+    io.to(p2.id).emit('alert', alert );
+}
 
 
 io.on('connection', function(socket){
@@ -924,8 +1031,12 @@ io.on('connection', function(socket){
       game.init();
       game.players[0].beginTurn(game);
 
+      var temp = [4,16];
+      new Unit(game, game.players[0], id1, temp);
       var temp = [5,16];
-      new Unit(game, p1, id1, temp);
+      new Unit(game, game.players[1], id1, temp);
+      var temp = [6,16];
+      new Prop("Toxic Mushroom", p1, temp);
       update(game);
       console.log(game.players[0].id)
       console.log("connecting with...");
@@ -1066,10 +1177,19 @@ io.on('connection', function(socket){
         var m = game.monsters[player.unitSelected]
         var path = board.findPath([m.x,m.y],loc);
     
-        var plen = path.length
+        var plen = path.length;
 
         if (plen > 1 && plen-1 <= player.pool.get(CREST_MOVEMENT)) { 
-          player.movePath = [];
+          var event = {trigger: m, location: loc}
+          for (var i=0; i<path.length; i++){
+              for (var j=0; j<game.props.length; j++){
+                if (game.props[j] && game.props[j].x == path[i][0] && game.props[j].y == path[i][1]){
+                  game.props[j].onCollision(event);
+                }
+              }
+             
+          }
+          //player.movePath = [];
 
           //game.board.moveUnit(p1.unitSelected, data.X,data.Y);
 
@@ -1078,9 +1198,13 @@ io.on('connection', function(socket){
           m.y = loc[1];
           board.setUnitAtLoc(loc, player.unitSelected)
           player.pool.update(CREST_MOVEMENT,-(plen-1))
-          player.unitSelected = EMPTY;
-          player.state = GAME_STATE_UNIT;
+          clear(player);
+
+          //prop onCollision events
+
+          return true;
         } 
+        return false;
     }
 
     var attack = function(player, target){ 
@@ -1092,36 +1216,87 @@ io.on('connection', function(socket){
 
     var reselection = function (board, player, target){
         if (target.id == player.unitSelected){
-          player.unitSelected = EMPTY;
+
           console.log("deselect");
-          player.movePath = []
-          player.state = GAME_STATE_UNIT;
-        } else {
+          clear(player)
+        } else if (target.player.id == player.id) {
+          console.log("reselect");
           player.unitSelected = target.id;
           var pathoptions = board.findPossiblePath([player.cursorX, player.cursorY],player.pool.get(CREST_MOVEMENT))
           player.movePath = pathoptions;
         }
     }
 
+    var clear = function (player){
+      player.unitSelected = EMPTY;
+      player.state = GAME_STATE_UNIT;
+      player.actionstate = PLAYER_STATE_NEUTRAL;
+      player.movePath = []
+      player.spell = EMPTY;
+      //console.log()
+    }
+
+
     var c_actionunit = function(game, player){
       //var game = games[socket.id]
       //var player = getCurrentPlayer(socket.id)
       var m = game.monsters[player.unitSelected]
-      var u = game.board.getUnitAtLoc(player.cursorX, player.cursorY)
+      var u = game.board.getUnitAtLoc(player.cursorX, player.cursorY);
       //console.log("click")
       var loc = [player.cursorX, player.cursorY];
-      if (u != EMPTY){
-        var target = game.monsters[u];
-        if (target.player != player){
-          attack(player, target);
-        } else if (target.player == player){
-          reselection(game.board, player, target);
+      if (player.actionstate == PLAYER_STATE_NEUTRAL){
+       
+        var m = game.monsters[u];
+        if (u != EMPTY) {
+          reselection(game.board, player, m)
+        };
+			} else if (player.actionstate == PLAYER_STATE_MOVE){
+  			if (game.board.getTileState(loc[0], loc[1]) != EMPTY){
+            if (!unitmove(game, game.board, player, loc)){
+              socket.emit('alert', 'Invalid movement');
+            }
+            //console.log("move");
+          
+        }
 
+			} else if (player.actionstate == PLAYER_STATE_ATTACK){
+        console.log('preparing to attack')
+        
+        if (u != EMPTY){
+          var target = game.monsters[u];
+          if (target.player != player){
+      
+            attack(player, target);
+            
+          } else if (target.player == player){
+            socket.emit('Cannot attack ally unit');
+           
+          }
         } 
-      } else if (game.board.getTileState(loc[0], loc[1]) != EMPTY) {
-        unitmove(game, game.board, player, loc);
-        console.log("move")
-      } 
+
+      } else if (player.actionstate == PLAYER_STATE_SPELL_LOC){
+        console.log('action state spell')
+        var event = {trigger: game.monsters[player.unitSelected], location: loc};
+          var alert = player.spell.onEffect(event);
+          if (alert != ""){
+            socket.emit('alert', alert);
+          } else {
+            alertGlobal(game, event.trigger.name +  " cast " + player.spell.name) 
+            clear(player);
+           
+           }
+			} else if (player.actionstate == PLAYER_STATE_SPELL_TARGET){
+        var event = {effect:player.spell, trigger: game.monsters[player.unitSelected], target: game.monsters[u]};
+        var alert = player.spell.onEffect(event);
+        if (alert != ""){
+            socket.emit('alert', alert);
+        } else {
+          alertGlobal(game, event.trigger.name +  " cast " + player.spell.name) 
+          clear(player)
+          
+        }
+
+      }
     }
 
     socket.on('end turn', function(){
@@ -1168,6 +1343,74 @@ io.on('connection', function(socket){
       update(game);
     });
 
+    socket.on('cast', function(data){
+      var player = getCurrentPlayer(socket.id);
+      if (player.state == GAME_STATE_SELECT){
+        console.log("cast " + data);
+        var spellcode;   
+        switch (data){
+          case 'q':
+            spellcode = 0;
+            break;
+          case 'w':
+            spellcode = 1;
+            break;
+          case 'e':
+            spellcode = 2;
+            break;
+          default:
+            spellcode = -1;
+        }
+        var spell = game.monsters[player.unitSelected].spells[spellcode]
+        if (player.pool.get(spell.cost[0]) < spell.cost[1]){
+          //console.log('not enough crest1');
+          //+ CREST_TEXT(spell.cost[0])
+          socket.emit('alert', "Not enough " + CREST_TEXT[spell.cost[0]] )
+
+        } else {
+
+           player.spell = spell;
+           if (spell.target == 'location'){
+            player.actionstate = PLAYER_STATE_SPELL_LOC;
+          } else if (spell.target == 'enemy' || spell.target == 'ally') {
+            player.actionstate = PLAYER_STATE_SPELL_TARGET;
+          } else {
+            console.log("No target property for " + spell.name)
+          }
+           
+        }
+       
+      }
+    })
+
+    socket.on('action', function(data){
+	  	var game = games[socket.id];
+	  	var player = getCurrentPlayer(socket.id);
+      if (player.state != GAME_STATE_SELECT){
+				console.log('Error: Attempting to execute action when unit is not selected');
+				return;	
+			}
+      switch (data){
+        case 'move':
+          player.actionstate = PLAYER_STATE_MOVE;
+          break;
+        case 'attack':
+          player.actionstate = PLAYER_STATE_ATTACK;
+          break;
+        case 'ability':
+          player.actionstate = PLAYER_STATE_SPELL_TARGET;
+          break;
+        case 'cancel':
+          player.actionstate = PLAYER_STATE_NEUTRAL;
+          player.state = GAME_STATE_SELECT;
+          break
+        default:
+          player.actionstate = PLAYER_STATE_NEUTRAL;
+      }
+      console.log("player state changed to: " + player.actionstate)
+	  update(game)
+    })
+
     socket.on('mouse click', function (){
       var game = games[socket.id]
       var player = getCurrentPlayer(socket.id)
@@ -1180,7 +1423,6 @@ io.on('connection', function(socket){
       } else if (player.state == GAME_STATE_UNIT){
         c_selectunit();
       } 
-
       update(game)
 
     })
@@ -1230,8 +1472,14 @@ io.on('connection', function(socket){
       if (data.length != 3) return;
 
       var result = p1.onRoll(data)
-      sockets[this.id].emit('alert', "Dice Dimension Phase")
-      p1.state = GAME_STATE_SUMMON;
+      if( p1.summon != 0 ) {
+        sockets[this.id].emit('alert', "Dice Dimension Phase")
+        p1.state = GAME_STATE_SUMMON;
+      } else {
+        p1.state = GAME_STATE_UNIT;
+         sockets[this.id].emit('alert', "Action Phase")
+
+      }
 
       //var names = []
       //for (var i=0; i<p1.summon.length; i++){

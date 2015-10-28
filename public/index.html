@@ -9,29 +9,42 @@
 	 <script src="/socket.io/socket.io.js"></script>
 	<div id= "players">player1</div>
  	<div id= "diceroll"></div>
-	 <table >
-	 	<canvas id="games" width="640" height="640" style="border:1px solid #000000;"></canvas>
-	  <tr>
-	    <td><div id= "crest"></div></td>
-	    <td><div id= "stat"></div></td>
-	    <td>
-	    	<table>
+	 <table id="content">
+	 	<tr><td colspan="3">
+	 	<canvas id="games" width="640" height="640" style="border:1px solid #000000;"></canvas></td></tr>
+
+	  <tr>	
+	  	<td id="uipanel"><table>
 	    	<tr><td><button type="button" id= "roll" class="ui">Roll</button></td></tr>
-	   
 	    	<tr><td><button type="button" id= "endturn" class="ui">End</button></td></tr>
 	    	<tr>
 	    		<td><button type="button" id= "yesguard" class="ui">Yes</button></td>
 	    		<td><button type="button" id= "noguard" class="ui">No</button></td>
 	    	</tr>
 	    	<tr>
-	    		<td><button type="button" id= "passive" class="ui">Passive</button></td>
-	    		<td><button type="button" id= "q" class="ui">Q</button></td>
-	    		<td><button type="button" id= "w" class="ui">W</button></td>
-	    		<td><button type="button" id= "e" class="ui">E</button></td>
-	    		<td><button type="button" id= "r" class="ui">R</button></td>
+	    		<td colspan="3"><button type="button" id= "move" class="ui">Move</button>
+	    		<button type="button" id= "attack" class="ui">Attack</button>
+	    		<button type="button" id= "ability" class="ui">Ability</button></td>
 	    	</tr>
-	    	</table>	
+	    	<tr>
+	    		<td colspan="3"><button type="button" id= "passive" class="ui">Passive</button>
+	    		<button type="button" id= "q" class="ui">Q</button>
+	    		<button type="button" id= "w" class="ui">W</button>
+	    		<button type="button" id= "e" class="ui">E</button>
+	    		<button type="button" id= "r" class="ui">R</button></td>
+	    	</tr>
+	    	<tr>
+	    		<td><button type="button" id= "cancel" class="ui">Cancel</button></td>	
+	    	</tr>
+	    	</table></td>
+	    <td>
+	    	<div id= "crest"></div>
+
 	    </td>
+	    <td>
+	    	<div id= "stat"></div>
+	    </td>
+	    
 	  </tr>
 	</table> 
 	<script src="js/client.js"></script>

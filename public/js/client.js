@@ -19,20 +19,30 @@ var endturnButton = document.getElementById("endturn");
 var yesButton = document.getElementById('yesguard');
 var noButton = document.getElementById('noguard');
 
+
+
+var moveButton = document.getElementById('move');
+var attackButton = document.getElementById('attack');
+var abilityButton = document.getElementById('ability');
+var cancelButton = document.getElementById('cancel');
+
 var passiveButton = document.getElementById('passive');
 var qButton = document.getElementById('q');
 var wButton = document.getElementById('w');
 var eButton = document.getElementById('e');
 var rButton = document.getElementById('r');
 
+
 var statPanel = document.getElementById("stat");
 var crestPanel = document.getElementById("crest");
 var dicePanel = document.getElementById("diceroll");
 var playerPanel = document.getElementById("players")
+var content = document.getElementById("content")
 
 //var movementButton = document.getElementById("movement")
 
 var ctx = canvas.getContext("2d");
+content.hidden = true;
 
 
 var squareSize = 30;
@@ -57,6 +67,12 @@ var GAME_STATE_COMBAT = 3;
 var GAME_STATE_SELECT = 4;
 var GAME_STATE_END = 5;
 
+var PLAYER_STATE_NEUTRAL = 0
+var PLAYER_STATE_MOVE = 1;
+var PLAYER_STATE_ATTACK = 2;
+var PLAYER_STATE_SPELL_TARGET = 3;
+var PLAYER_STATE_SPELL_LOC = 4;
+
 //states
 var keyZ = 122;
 var keysDown = {};
@@ -70,7 +86,21 @@ var selectedUnit = EMPTY;
 
 var game;
 
-function disableButtons(a,b,c){
+function disableSpell(d){
+		passiveButton.hidden = d;
+		qButton.hidden = d;
+		wButton.hidden = d;
+		eButton.hidden = d;
+		rButton.hidden = d;
+
+		passiveButton.disabled = d;
+		qButton.disabled = d;
+		wButton.disabled = d;
+		eButton.disabled = d;
+		rButton.disabled = d;
+}
+
+function disableButtons(a,b,c,d){
 		rollButton.disabled = a;
 		yesButton.hidden = b;
 		noButton.hidden = b;
@@ -78,6 +108,17 @@ function disableButtons(a,b,c){
 		//hideSummonButton(b)
 		//summonButton.disabled = b;
 		endturnButton.disabled = c;
+		if (d == null) d = true;
+
+
+		moveButton.hidden = d;
+		attackButton.hidden = d;
+		abilityButton.hidden = d;
+
+		moveButton.disabled = d;
+		attackButton.disabled = d;
+		abilityButton.disabled = d;
+
 }
 
 
@@ -111,6 +152,7 @@ function drawSelection (player){
 
 function drawPath(){
 	//movePathSelection = player.movePath;
+	if (player.actionstate != PLAYER_STATE_MOVE) return;
 	var movePathSelection = player.movePath;
 	//if (movePathSelection.length > 1 && movePathSelection.length-1 <= player.pool.pool[CREST_MOVEMENT]) {			
 	ctx.globalAlpha = 0.5;
@@ -289,7 +331,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 		if (this.focus) return;
 		//console.log(x,y, b.x, b.y, b.wx, b.hy)
 		if (player.state == GAME_STATE_ROLL){
-			changeCursor("pointer")
+			//changeCursor("pointer")
 			this.focus = true;
 		
 			//DicePattern = [];
@@ -304,7 +346,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 		if (!this.focus) return;
 		
 		if (this.toggle) return;
-		changeCursor("default")
+		//changeCursor("default")
 		//changeCursor("pointer")
 		if (player.state == GAME_STATE_ROLL){
 			this.focus = false;	
@@ -380,6 +422,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 			drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
 			var lvl = player.dices[this.id].pattern[0][1]
 			ctx.fillStyle = black;
+			ctx.font = ctx.font = "10px Arial";
 			ctx.fillText(lvl,this.rx+15,this.ry+21);
 		} else {
 			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
@@ -585,9 +628,36 @@ noButton.addEventListener("click", function(){
 })
 
 qButton.addEventListener("click", function(){
-	socket.emit('q');
+	socket.emit('cast', 'q');
+
 })
 
+wButton.addEventListener("click", function(){
+	socket.emit('cast', 'w');
+
+})
+
+abilityButton.addEventListener("click", function(){
+	disableSpell(false);
+
+})
+
+moveButton.addEventListener("click", function(){
+	socket.emit('action', 'move');
+})
+
+attackButton.addEventListener("click", function(){
+	socket.emit('action', 'attack');
+})
+
+abilityButton.addEventListener("click", function(){
+	socket.emit('action', 'ability');
+})
+
+cancelButton.addEventListener("click", function(){
+	socket.emit('action', 'cancel');
+	disableSpell(true);
+})
 
 
 endturnButton.addEventListener("click", function(){
@@ -758,15 +828,36 @@ var drawCircle = function(x,y,w,p) {
 
 	ctx.lineWidth = w;
 	ctx.strokeStyle = '#000000';
-	ctx.stroke();22
+	ctx.stroke();
+}
+
+var drawProps = function() {
+	for (var i=0; i<game.props.length; i++){
+		var p = game.props[i];
+		//p = getCurrentPlayer()
+		if (!p){
+			continue;
+		}
+		ctx.beginPath();
+		ctx.arc(p.x*squareSize+ squareSize/2, p.y*squareSize+ squareSize/2, squareSize/4, 0, 2 * Math.PI, false);
+		if (p.player.num == 0){
+			ctx.fillStyle = "#008080";
+		} else {
+			ctx.fillStyle = "#808000";
+		}
+		ctx.fill();
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = '#000000';
+		ctx.stroke();
+		}
 }
 
 var drawUnits = function() {
 	//console.l(game.monsters.length)
 	for(var i=0; i<game.monsters.length; i++) {
 		//console.log(game.monsters[i]);
-		m = game.monsters[i];
-		w = 1;
+		var m = game.monsters[i];
+		var w = 1;
 		//p = getCurrentPlayer()
 		if (!m){
 			continue;
@@ -847,9 +938,9 @@ registerMoveEvent(
 			//console.log(m);
 			setStatePanelText(m)
 			if (m.player.id != player.id && player.unitSelected != EMPTY){
-				changeCursor("crosshair")
+				//changeCursor("crosshair")
 			} else {
-				changeCursor("default")
+				//changeCursor("default")
 			}
 		//} else if (player && player.unitSelected){
 		//	setStatePanelText(player.unitSelected)
@@ -1004,6 +1095,7 @@ var render = function(){
 	ctx.clearRect(0,0,canvas.width,canvas.height)
 	drawBoard();
 	drawUnits();
+	drawProps();
 	drawButton()
 	
 	drawDicePattern();
@@ -1034,9 +1126,11 @@ function update(){
 
 	if (player.state == GAME_STATE_END){
 		disableButtons(true,true,true)
+		disableSpell(true)
 		for (i=0;i<15;i++) Buttons[i].reset();
 		DiceSelection = [];
 	} else if (player.state == GAME_STATE_ROLL){
+		disableSpell(true)
 		if (DiceSelection.length == 3){
 			disableButtons(false,true,true)
 		} else {
@@ -1045,6 +1139,7 @@ function update(){
 
 	} else if (player.state == GAME_STATE_SUMMON){
 		disableButtons(true,true,false)
+		disableSpell(true)
 		for (i=0;i<15;i++) Buttons[i].reset();
 		for (i=0;i<player.summon.length;i++) {
 			Buttons[player.summon[i]].toggle = true;
@@ -1052,14 +1147,26 @@ function update(){
 		}
 	} else if (player.state == GAME_STATE_UNIT) {
 		disableButtons(true,true,false)
+		disableSpell(true)
 		if (game.turn%2 != player.num){
 			disableButtons(true,true,true)
 		}
+		canvas.style.cursor = "default";
+		var m = getUnitOnCursor(cursorX, cursorY)
+		if (m && m.player.id == player.id){
+			canvas.style.cursor = "pointer";	
+		}
 
-	//} else if (player.tileSelected.length <=0){
-	//	hideSummonButton(true);
-	//	disableButtons(true,true,false)
+
+	} else if (player.state == GAME_STATE_SELECT) {
+		canvas.style.cursor = "default";
+		disableButtons(true,true,false,false)
+		if (game.turn%2 != player.num){
+			disableButtons(true,true,true)
+		}
+	
 	} else if (player.state == GAME_STATE_COMBAT) {
+		disableSpell(true)
 		if (game.combat.unit.player.num != player.num){
 			disableButtons(true,false,true);
 			DialogText = "Use a defense crest?"
@@ -1128,7 +1235,7 @@ var opponent;
 
 
 var init = function (){
-
+	content.hidden =  false;
 	canvas.addEventListener("mousemove", function(e){
 		//if (getGameState() == GAME_STATE_STOP){
 		//	//console.log("paused")

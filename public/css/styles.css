@@ -27,6 +27,16 @@ td {
 	width: 200px;
 }
 
+.ui {
+
+	width: 60px;
+
+}
+
+#uipanel{
+	width: 350px;
+}
+
 #diceroll {
 	position: absolute;
 	z-index: 1;
