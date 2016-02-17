@@ -503,7 +503,8 @@ SPELL_TEEMO1.onEffect = function(event){
   buff.onAttack = function(event){
     event.dmg = 0;
     var game = games[event.attacker.player.id]
-    alertGlobal(game, "Missed!")
+    event.status = "cancel"
+    alertGlobal(game, "Missed! ")
   }
   ApplyBuff(event.trigger, event.target, buff)
   //DamageUnit(event.trigger, event.target, 10);
@@ -536,6 +537,7 @@ function Combat(unit, target){
   this.target = target;
   this.atkmodifier = unit.atk;
   this.defmodifier = 0;
+  this.guarded = false;
 }
 
 function Prop(name, player, point) {
@@ -594,10 +596,15 @@ function Unit(game, player, type, point, level) {
     if (dmg < 0) {
       dmg = 0;
     }
-    var event = {attacker: this, target: target, dmg: dmg }
+    var event = {attacker: this, target: target, dmg: dmg, status: "" }
+    var status = ""
     for (var i=0; i< this.buff.length; i++){
       
       this.buff[i].onAttack(event);
+
+      if (event.status != ""){
+        status += " " + event.status;
+      }
       //if (this.buff[i].name == "Blinding Dart"){
       //  dmg = 0;
       //  alertGlobal(game, "Missed!")
@@ -614,6 +621,19 @@ function Unit(game, player, type, point, level) {
     //setStatePanelText(target);
     //dead
 
+
+    //var opponent = game.players[((this.num == 0) ? 1 : 0)]
+
+    target.player.state = GAME_STATE_UNIT;
+    if (game.combat.guarded){
+      alertGlobal(game, 'BLOCKED: '+target.name + ' took ' + dmg + ' damage!')
+    } else {
+
+      alertGlobal(game, target.name + ' took ' + dmg + ' damage!')
+    }
+    this.player.pool.set(CREST_ATTACK, this.player.pool.get(CREST_ATTACK) - this.atkcost);
+    //updateCrest();
+
     delete combat;
     game.combat = null;
     this.hasAttacked = true;
@@ -621,12 +641,8 @@ function Unit(game, player, type, point, level) {
     this.player.movePath = [];
     this.player.state = GAME_STATE_UNIT;
     this.player.actionstate = PLAYER_STATE_NEUTRAL;
-    //var opponent = game.players[((this.num == 0) ? 1 : 0)]
-    target.player.state = GAME_STATE_UNIT;
-
-    this.player.pool.set(CREST_ATTACK, this.player.pool.get(CREST_ATTACK) - this.atkcost);
-    //updateCrest();
     update(game);
+    
 
   }
 
@@ -1321,6 +1337,7 @@ io.on('connection', function(socket){
         }
         game.combat.target.player.pool.update(CREST_DEFENSE,-1);
         game.combat.defmodifier = game.combat.target.def;
+        game.combat.guarded = true;
       }  
       //} else if (data == 0)
       game.combat.unit.postattack(game.combat.target);

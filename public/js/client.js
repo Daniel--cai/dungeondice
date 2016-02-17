@@ -216,8 +216,8 @@ function drawAlert(){
 		ctx.strokeStyle = red;
 		ctx.lineWidth = 3;
 		ctx.fillStyle = white;
-		ctx.fillRect(200,200,200,80);
-		ctx.strokeRect(200,200,200,80);
+		ctx.fillRect(200,200,250,80);
+		ctx.strokeRect(200,200,250,80);
 		ctx.fillStyle = black;
 		ctx.font = ctx.font = "13px Arial";
 		ctx.fillText(AlertText,225, 225 )
