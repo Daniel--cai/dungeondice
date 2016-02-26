@@ -1,13 +1,99 @@
-var socket = io();
+//var socket = io();
+var socket = new WebSocket(location.origin.replace(/^http/, 'ws'));
+var socketid;
 
-socket.on('new player id', function(players){
-	//text = ""
-	//for (var i=0; i < players.length; i++){
-	//	text += players[i] + "<br\>";
-	//} 
-	playerPanel.innerHTML = players;
-})
+socket.onmessage = function(event){
+	try {
+		var data = JSON.parse(event.data)
+    } catch (e){
+    	console.log("ERROR: parsing JSON failed")
+    	return;
+    }
 
+
+    // playerPanel.innerHTML = players;
+
+
+    if (data.id == 's_roll'){
+
+      if( data.data.length != 0 ) {
+        //sockets[this.id].emit('alert', "Dice Dimension Phase")
+        player.state = GAME_STATE_SUMMON;
+        console.log('summoning')
+      } else {
+      	 console.log('unit')
+        player.state = GAME_STATE_UNIT;
+         //sockets[this.id].emit('alert', "Action Phase")
+
+      }
+  	
+		console.log(data);
+		var string = "";
+		/*
+		for (var i=0; i<data.length; i++){
+			if (data[i][0] != CREST_SUMMON){
+				string += "+" + data[i][1] + CREST_TEXT[data[i][0]] + "<br\>" 
+			}
+		}*/
+		//setDicePanelText(string);
+	}
+
+	if (data.id == 'pool.update'){
+		//console.log('update ' + data.crest + ' + '+ data.point)
+
+		//var string = "";
+		
+		if (data.crest != CREST_SUMMON){
+			console.log(data.point , CREST_TEXT[data.crest])
+		}
+		//setDicePanelText(string);
+
+	}
+
+	if (data.id == 'alert'){
+		//console.log("new laert" + TimeoutAlpha)
+		if (Timeout != null){
+			Timeout.remove();
+		}
+		Timeout = registerTimerEvent(100, alertTimeout);
+		TimeoutAlpha = 1500/100;
+		TimeoutReady = false;
+		AlertText = data;
+		
+	}
+
+	if (data.id == 'id'){
+		socketid = data.data
+	}
+
+	if (data.id == 'updategame') {
+		if (!game){
+			playerPanel.innerHTML = " Player: " + socketid;
+			init();
+
+		}
+		//PLAYER_ID = data.pnum
+		//console.log(data)
+		game = data.data;
+		//console.log(data.pnum)
+		opponent = game.players[1];
+		player = game.players[0];
+		//console.log(game.players[0].id)
+		if (game.players[1].id == socketid) {
+			player = game.players[1]
+			opponent = game.players[0]
+		}
+		
+		update()
+	}
+	
+	if (data.id == 'change state'){
+		console.log(data.data)	
+	}
+
+
+
+}
 
 
 var canvas = document.getElementById("games");
@@ -376,7 +462,8 @@ var Button = function(id, img, x, y,sx,sy,unit){
 		} else if (player.state == GAME_STATE_SUMMON ){
 			if (this.toggle){
 				summonToggle = this;
-				socket.emit('c_summonoption', this.id)
+				console.log('summoinining')
+				socket.send(JSON.stringify({id:'c_summonoption', data:this.id}))
 			}
 		}
 		//if (DiceSelection.length == 3){
@@ -690,9 +777,9 @@ rollButton.addEventListener("click", function(){
     for (var i=0; i<DiceSelection.length; i++){
     	data.push(DiceSelection[i].id)
     }
-    socket.emit('c_roll', data)
+    socket.send(JSON.stringify({id:'c_roll', data:data}))
     /*socket.on('s_roll', function(data){
-    	//console.log(data);
+    	//console.log(dcdc ,mx       ata);
     	updateCrest(data.pool);
     	var string = "";
     	if (data.summon.length > 0){
@@ -931,7 +1018,7 @@ registerMoveEvent(
 registerMoveEvent(
 	function(){return true},
 	function(){
-		socket.emit('mouse move', {X:cursorX, Y:cursorY})
+
 
 		var m = getUnitOnCursor(cursorX,cursorY);
 		if (m){
@@ -947,13 +1034,59 @@ registerMoveEvent(
 		} else {
 			setStatePanelText("")
 		}
+		if (game.turn%2 != player.num) return
+		if (player.state == GAME_STATE_ROLL || player.state == GAME_STATE_END ) return
+		socket.send(JSON.stringify({id :'mouse move', data:{X:cursorX, Y:cursorY}}))
 
 	});
+
+
+
 
 registerClickEvent(
 	function(){return true},
 	function(){
-		socket.emit('mouse click', {X:cursorX, Y:cursorY})
+		if (game.turn%2 != player.num) return
+     
+		socket.send(JSON.stringify({id:'mouse click', X:cursorX, Y:cursorY}))
+
+	  //var game = games[socketid]
+      //var player = getCurrentPlayer(socketid)
+
+    
+      /*
+      var c_tilesplace = function (){
+		  //var game = games[socket.id]
+		  //var p1 = getCurrentPlayer(socket.id)
+		  if (game.makeSelection(p1)){
+		    var point = [p1.cursorX, p1.cursorY];
+		    console.log("make selection");
+		    //console.log()
+		    createUnit(p1,p1.dices[p1.summonchoice].type,point)
+		    p1.dices[p1.summonchoice] = null;
+		    p1.tileSelected = [];
+		    p1.shape = 0;
+		    p1.rotate = 0;
+		    p1.summoned = true;
+		    p1.state = GAME_STATE_UNIT;
+		    socket.emit('alert', 'Action Phase')
+		    //update(game);
+		  }
+	  }
+		
+      if (player.state == GAME_STATE_SUMMON){
+        console.log("tile place")
+        c_tilesplace();
+      } else if (player.state == GAME_STATE_SELECT){
+      	console.log("selecting")
+          c_actionunit(game, player);    
+      } else if (player.state == GAME_STATE_UNIT){
+      	console.log("unit")
+        c_selectunit();
+      } 
+      */
+      //update(game)
+
 	});
 
 
@@ -1185,49 +1318,6 @@ function update(){
 //	console.log("to guarding");
 //})
 
-socket.on('s_roll', function(data){
-	console.log(data);
-	var string = "";
-
-	for (var i=0; i<data.length; i++){
-		if (data[i][0] != CREST_SUMMON){
-			string += "+" + data[i][1] + CREST_TEXT[data[i][0]] + "<br\>" 
-		}
-	}
-	setDicePanelText(string);
-})
-
-socket.on('alert', function(data){
-	//console.log("new laert" + TimeoutAlpha)
-	if (Timeout != null){
-		Timeout.remove();
-	}
-	Timeout = registerTimerEvent(100, alertTimeout);
-	TimeoutAlpha = 1500/100;
-	TimeoutReady = false;
-	AlertText = data;
-	
-})
-
-
-
-socket.on('updategame', function(data){
-	if (!game){
-		playerPanel.innerHTML += " player: " + data.pnum;
-		init();
-	}
-	PLAYER_ID = data.pnum
-	game = data.game;
-	//console.log(data.pnum)
-	opponent = game.players[0];
-	player = game.players[data.pnum];
-	
-	if (data.pnum == 0){
-		opponent = game.players[1];
-	}
-
-	update()
-});
 var PLAYER_ID = -1;
 var player;
 var opponent;
@@ -1236,6 +1326,7 @@ var opponent;
 
 var init = function (){
 	content.hidden =  false;
+	console.log('init')
 	canvas.addEventListener("mousemove", function(e){
 		//if (getGameState() == GAME_STATE_STOP){
 		//	//console.log("paused")
@@ -1298,6 +1389,7 @@ var init = function (){
 var Second = 0;
 
 var drawGame = function(){
+
 	var now = Date.now();
 	var delta = now - then;
 	then = now;
@@ -1320,7 +1412,8 @@ var drawGame = function(){
 		}
 	}
 	if (game){
-		render()
+		//console.log('rending')
+		//render()
 	}
 }
 
