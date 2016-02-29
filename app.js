@@ -31,8 +31,9 @@ var GAME_STATE_END = 5;
 var PLAYER_STATE_NEUTRAL = 0;
 var PLAYER_STATE_MOVE = 1;
 var PLAYER_STATE_ATTACK = 2;
-var PLAYER_STATE_SPELL_TARGET = 3;
-var PLAYER_STATE_SPELL_LOC = 4;
+var PLAYER_STATE_SPELL_CAST = 3
+var PLAYER_STATE_SPELL_TARGET = 4;
+var PLAYER_STATE_SPELL_LOC = 5;
 
 
 
@@ -85,7 +86,7 @@ var EMPTY = -1;
 var PLAYER_1 = 0;
 var PLAYER_2 = 1;
 
-var Board = function (){
+function Board(){
   this.tiles = [];
   this.units = [];
   this.boardSizeX = 13;
@@ -107,9 +108,11 @@ var Board = function (){
   
   this.tiles[0][6] = PLAYER_2;
   this.tiles[18][6] = PLAYER_1;
-//this.this.getTileState
+  //this.tiles[0][6] = PLAYER_2;
+  this.tiles[17][5] = PLAYER_1;
+
   this.getTileState = function (x,y){
-  //console.log(x, y)
+
     if (boundCursor(x,y)){
       return this.tiles[y][x];
     } else {
@@ -128,6 +131,7 @@ var Board = function (){
   this.getUnitAtLoc = function (x,y){
   //console.log("unit at " + x +" " + y);
     //console.log(this.units)
+    if (!boundCursor(x,y)) return -1
     return this.units[y][x];
   }
 
@@ -224,6 +228,7 @@ var Board = function (){
         }  
       }
     }
+    //console.log(p1.movePath)
     return result;
   }
 
@@ -360,45 +365,46 @@ var CREST_SUMMON = 5;
 var CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
 
 
+var UNIT_IDS = [];
 
-var id0 = {
+UNIT_IDS[0] = {
   name: 'Teemo',
   hp: 30,
   atk: 10,
   def: 10,
 }
 
-var id1 = {
+UNIT_IDS[1] = {
   name: 'Soraka',
   hp: 20,
   atk: 10,
   def: 20,
 }
 
-var id2 = {
+UNIT_IDS[2] = {
   name: 'Poppy',
   hp: 40,
   atk: 10,
   def: 10,
 }
 
-var id3 = {
+UNIT_IDS[3]= {
   name: 'Garen',
   hp: 30,
   atk: 20,
   def: 40,
 }
 
-var UNIT_IDS = [id0, id1, id2];
 
-var Dice_Teemo = new Dice(id0, [[CREST_SUMMON,2],
+
+var Dice_Teemo = new Dice(UNIT_IDS[0], [[CREST_SUMMON,2],
                 [CREST_SUMMON,2],
                 [CREST_SUMMON,2],
                 [CREST_SUMMON,2],
                 [CREST_MAGIC,3],
                 [CREST_MOVEMENT,1]])
 
-var Dice_Soraka = new Dice(id1, [[CREST_SUMMON,1],
+var Dice_Soraka = new Dice(UNIT_IDS[1], [[CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
                  [CREST_SUMMON,1],
@@ -406,14 +412,14 @@ var Dice_Soraka = new Dice(id1, [[CREST_SUMMON,1],
                  [CREST_MAGIC,3]]);
 
 
-var Dice_Poppy = new Dice(id2, [[CREST_SUMMON,3],
+var Dice_Poppy = new Dice(UNIT_IDS[2], [[CREST_SUMMON,3],
                  [CREST_SUMMON,3],
                  [CREST_SUMMON,3],
                  [CREST_SUMMON,3],
                  [CREST_TRAP,3],
                  [CREST_ATTACK,1]]);
 
-var Dice_Garen = new Dice(id3, [[CREST_SUMMON,3],
+var Dice_Garen = new Dice(UNIT_IDS[3], [[CREST_SUMMON,3],
                  [CREST_SUMMON,3],
                  [CREST_DEFENSE,3],
                  [CREST_MOVEMENT,1],
@@ -435,15 +441,15 @@ var black = "#000000"
 var SpellID = 0;
 var SpellList = []
 
-function Spell(name, cost, target){
+function Spell(name, cost,target){
   this.name = name;
   this.cost = cost;
   this.id =  SpellID;
   this.cooldown = 1;
-  this.target = target
-
+  this.target = target;
   this.onAttack = null;
   SpellID++;
+  return this;
 }
 
 
@@ -462,7 +468,9 @@ function Buff(name, duration){
   this.onFinish = function(){console.log("onFinish not implemented for " + this.name)};
   this.onAttack = function(){console.log("onAttack not implemented for " + this.name)};
   this.onDefend = function(){console.log("onDefend not implemented for " + this.name)};
-  this.onMove = function(){console.log("onMove not implemented for " + this.name)};;
+  this.onMove = function(){console.log("onMove not implemented for " + this.name)};
+  this.onTurn = function(){console.log("onTurn not implemented for " + this.name)};
+  return this;
 }
 
 var BUFF_stun = new Buff("Stunned", 1);
@@ -470,22 +478,25 @@ var BUFF_silence = new Buff("Silenced", 1);
 var BUFF_root = new Buff("Root", 1);
 var BUFF_knock_up = new Buff("Knock Up", 1);
 
-var SPELL_TEEMO1 = new Spell("Blinding Dart", [CREST_ATTACK, 2], "enemy")
+var SPELL_TEEMO1 = new Spell("Blinding Dart", [CREST_ATTACK, 2],true)
 
-var SPELL_TEEMO2 = new Spell("Noxious Trap", [CREST_MAGIC, 2], "location")
+var SPELL_TEEMO2 = new Spell("Noxious Trap", [CREST_MAGIC, 2],true)
 
 
 //SPELL_TEEMO1.target = [ENEMY];
 //var BUFF_TEEMO1 = new Buff("Blinding Dart", 1);
 
 function ApplyBuff(caster, target, buff){
+  console.log(caster)
+  console.log(target) 
+  console.log(buff)
   for (var i = 0; i<target.buff.length; i++){
     if (target.buff[i].name == buff.name){
       return;
     }
   }
   target.buff.push(buff);
-  buff.owner = caster;
+  buff.owner = caster.id;
 }
 
 function DamageUnit(trigger, target, damage){
@@ -502,27 +513,39 @@ function DamageLoc (trigger, targetlocation){}
 
 
 SPELL_TEEMO1.onEffect = function(event){
-  //console.log(event)
+  var game = games[event.trigger.player.id]
+  var id = game.board.getUnitAtLoc(event.location[0],event.location[1]);
+  if (id == EMPTY) return "Must target unit";
+
+
   var buff = new Buff("Blinding Dart", 1);
+  //console.log(event)
   buff.onAttack = function(event){
+    //console.log(event)
     event.dmg = 0;
     var game = games[event.attacker.player.id]
+    console.log('on effect', game.players[0])
     event.status = "cancel"
     alertGlobal(game, "Missed! ")
   }
-  ApplyBuff(event.trigger, event.target, buff)
-  //DamageUnit(event.trigger, event.target, 10);
-
+  
+  var target = game.monsters[game.board.getUnitAtLoc(event.location[0],event.location[1])]
+  ApplyBuff(event.trigger, target, buff)
+  DamageUnit(event.trigger, target, 10);
+  
 
   return "";
 }
 
 SPELL_TEEMO2.onEffect = function(event){
-  var mushroom = new Prop("Toxic Mushroom", event.trigger.player, event.location);
+  var mushroom = new Prop("Toxic Mushroom", event.trigger.player, event.location, event.trigger);
   mushroom.onCollision = function(event){
     var game = games[event.trigger.player.id]
-    alertGlobal(game, "Toxic Mushroom!")
-    
+    //console.log(event.trigger.type.name)
+    //console.log(event.trigger.player.id, game)
+    alertGlobal(game, this.unit.type.name + "'s Toxic Mushroom dealt 10 damage to "+ event.trigger.type.name)
+    DamageUnit(this.unit, event.trigger, 10);
+    this.clear = true;
   }  
   //console.log(event)
   //var buff = new Buff("Blinding Dart", 1);
@@ -544,11 +567,14 @@ function Combat(unit, target){
   this.guarded = false;
 }
 
-function Prop(name, player, point) {
+function Prop(name, player, point,unit) {
   this.x = point[0];
   this.y = point[1];
   this.player = player;
   this.name = name;
+  this.unit = unit ? unit : EMPTY;
+  console.log('prop is ' +this.unit)
+  this.clear = false;
   this.onCollision = function(){console.log(name + ".onCollision not implemented")};
   games[player.id].props.push(this)
   return this;
@@ -581,7 +607,8 @@ function Unit(game, player, type, point, level) {
   
   this.guard = function(target){
     //socket = sockets[player.id];
-    game = games[player.id]
+    //game = games[player.id]
+    console.log('guarding', game.players[0].id)
     game.combat = new Combat(this, target);
     var opponent = game.players[((player.num == 0) ? 1 : 0)]
     opponent.state = GAME_STATE_COMBAT;
@@ -594,7 +621,7 @@ function Unit(game, player, type, point, level) {
 
   this.postattack = function(target){
     console.log(target.hp)
-    game = games[this.player.id]
+    //game = games[this.player.id]
     combat = game.combat;
     var dmg = combat.atkmodifier - combat.defmodifier;
     if (dmg < 0) {
@@ -602,49 +629,32 @@ function Unit(game, player, type, point, level) {
     }
     var event = {attacker: this, target: target, dmg: dmg, status: "" }
     var status = ""
-    for (var i=0; i< this.buff.length; i++){
-      
+    for (var i=0; i< this.buff.length; i++){ 
       this.buff[i].onAttack(event);
-
       if (event.status != ""){
-        status += " " + event.status;
+        status += event.status;
       }
-      //if (this.buff[i].name == "Blinding Dart"){
-      //  dmg = 0;
-      //  alertGlobal(game, "Missed!")
-      //}
     }
-
-    if (DamageUnit(event.attacker, event.target, event.dmg)){
-      console.log(combat.atkmodifier + " mod " + combat.defmodifier)
-      console.log("after attack " +target.hp)
-    }
-    //target.hp = target.hp - dmg;
-    //console.log(combat.atkmodifier + " mod " + combat.defmodifier)
-    //console.log("after attack " +target.hp)
-    //setStatePanelText(target);
-    //dead
-
-
-    //var opponent = game.players[((this.num == 0) ? 1 : 0)]
-
-    target.player.state = GAME_STATE_UNIT;
-    if (game.combat.guarded){
-      alertGlobal(game, 'BLOCKED: '+target.name + ' took ' + dmg + ' damage!')
-    } else {
-
-      alertGlobal(game, target.name + ' took ' + dmg + ' damage!')
-    }
+    console.log(status)
+    if (status == ""){
+      if (DamageUnit(event.attacker, event.target, event.dmg)){
+        console.log(combat.atkmodifier + " mod " + combat.defmodifier)
+        console.log("after attack " +target.hp)
+      }
+      
+      if (game.combat.guarded){
+        alertGlobal(game, 'BLOCKED: '+target.name + ' took ' + dmg + ' damage!')
+      } else {
+        alertGlobal(game, target.name + ' took ' + dmg + ' damage!')
+      }
+      
+      //updateCrest();
+    } 
     this.player.pool.set(CREST_ATTACK, this.player.pool.get(CREST_ATTACK) - this.atkcost);
-    //updateCrest();
 
-    delete combat;
-    game.combat = null;
-    this.hasAttacked = true;
-    this.player.unitSelected = EMPTY;
-    this.player.movePath = [];
-    this.player.state = GAME_STATE_UNIT;
-    this.player.actionstate = PLAYER_STATE_NEUTRAL;
+    this.player.changeState(GAME_STATE_UNIT)
+    target.player.changeState(GAME_STATE_UNIT);
+    this.player.changeActionState(PLAYER_STATE_NEUTRAL)
     update(game);
     
 
@@ -660,33 +670,29 @@ function Unit(game, player, type, point, level) {
    var d = manhattanDistance(this, target);
     if (playerpool.get(CREST_ATTACK) < this.atkcost){
       console.log("Not enough attack crest")
-
-
       return false;
     }
 
 
     if (d > this.atkrange){
+      this.player.alert('Out of range')
       console.log("Out of range")
 
-      var socket = sockets[this.player.id]
-      socket.emit('alert', "Out of range");
+      //var socket = sockets[this.player.id]
+      //socket.emit('alert', "Out of range");
       return false
     }
     if (this.hasAttacked) {
       console.log("Already attack")
+      this.player.alert('Already attacked')
       game = games[this.player.id]
      
-      var socket = sockets[this.player.id]
-      socket.emit('alert', "Already attacked");
+      //var socket = sockets[this.player.id]
+      //socket.emit('alert', "Already attacked");
       return false
     }
   
  
-    
-
-
-
     //this.postattack(target);
     
     if (target.player.pool.get(CREST_DEFENSE) > 0){
@@ -740,9 +746,9 @@ function getGameState(){
 
 //pool states
 
-function Pool(id){
+function Pool(){
   this.pool = [5,5,5,5,5]
-  this.id = id;
+  //this.id = id;
 
   this.set = function (crest, point){
     this.pool[crest] = point;
@@ -753,7 +759,8 @@ function Pool(id){
 
   this.update = function(crest, point){
     this.pool[crest] += point 
-    sockets[id].send(JSON.stringify({id:'pool.update', crest:crest, point:point}))
+
+    sockets[this.id].send(JSON.stringify({id:'pool.update', crest:crest, point:point}))
     //player.pool.set(crest, player.pool.get(crest) + point);
   }
 
@@ -878,9 +885,11 @@ function Player(id){
 
   this.id = id;
   this.num;
-  this.pool = new Pool(id);
+  this.pool = new Pool();
+  this.pool.id = id;
 
   this.state = PLAYER_STATE_NEUTRAL;
+  this.actionstate = PLAYER_STATE_NEUTRAL;
   this.summon = [];
   this.summonlevel = 0;
   this.summonchoice = EMPTY;
@@ -904,43 +913,55 @@ function Player(id){
 
   this.spell = EMPTY;
 
-  this.endTurn = function (game){
-
-    sockets[this.id].emit('alert', "End Phase");
-    this.state = GAME_STATE_END;
-    var opponent = game.players[((this.num == 0) ? 1 : 0)]
-    opponent.beginTurn(game);
-
-    this.tileSelected = []
-    this.unitSelected = EMPTY;
-    this.movePath = []
-
-
-  }
-
-  this.beginTurn = function (game){
-
-    //setGameState(GAME_STATE_IDLE);
-    console.log("begin")
-    this.state = GAME_STATE_ROLL;
-    sockets[this.id].emit('alert', "Dice Roll Phase");
-    this.summoned = false;
-    this.rolled = false;
-    this.summon = [];
-    this.summonlevel = 0;
-    this.shape = 0;
-    this.rotate = 0;
-    this.valid = false;
-    this.spell = EMPTY
-    this.actionstate = PLAYER_STATE_NEUTRAL;
-
-    //reset data
-    for (var i=0; i<game.monsters.length;i++){
-      if (game.monsters[i].player.num == this.num){
-        game.monsters[i].hasAttacked = false;
-        game.monsters[i].canAttacked = true;
+  this.changeState = function(state){
+    var game = games[this.id]
+    if (this.state == GAME_STATE_COMBAT) {
+      delete game.combat;
+      game.combat = null;
+      if (this.unitSelected != EMPTY){
+        game.monsters[this.unitSelected].hasAttacked = true
+        this.unitSelected = EMPTY;
+        this.movePath = [];
       }
     }
+    this.state = state;
+
+    if (state == GAME_STATE_END){
+      this.tileSelected = []
+      this.unitSelected = EMPTY;
+      this.movePath = []
+
+      this.summoned = false;
+      this.rolled = false;
+      this.summon = [];
+      this.summonlevel = 0;
+      this.shape = 0;
+      this.rotate = 0;
+      this.valid = false;
+      this.spell = EMPTY
+      this.actionstate = PLAYER_STATE_NEUTRAL;
+
+      for (var i=0; i<game.monsters.length;i++){
+        if (game.monsters[i].player.num == this.num){
+          game.monsters[i].hasAttacked = false;
+          game.monsters[i].canAttacked = true;
+        }
+      }
+
+      //game.players[((this.num == 0) ? 1 : 0)].changeState(GAME_STATE_ROLL);
+      game.players[((this.num == 0) ? 1 : 0)].changeState(GAME_STATE_UNIT);
+    }
+
+    sockets[this.id].send(JSON.stringify({id:'change state', data:state}))
+  }
+
+  this.changeActionState = function(state){
+    this.actionstate = state;
+  }
+
+  this.endTurn = function (game){
+    sockets[this.id].send(JSON.stringify({data:'alert', data:"End Phase"}));
+    this.changeState(GAME_STATE_END);
   }
 
   this.onRoll = function(data){
@@ -983,14 +1004,9 @@ function Player(id){
     return result;    
   }
 
-  this.changeState = function(state){
-    this.state = state;
-    socket.send(JSON.stringify({id:'change state', data:state}))
-
+  this.alert = function(data){
+     sockets[this.id].send(JSON.stringify({id:'alert', data:data}));
   }
-
-
-
 
   return this;
 }
@@ -1009,10 +1025,24 @@ var update = function(game){
     //console.log(p1.id)
     //console.log(p2.id)
     //console.log('TODO: broadcast');
+    if ((!sockets[p1.id] || !sockets[p2.id])) return;
+    if ((!sockets[p1.id].readyState || !sockets[p2.id].readyState)) {
+      console.log('Ooops something went wrong with the socket.')
+      return;
+    }
+
+    //cleanup
+    for (var i=0; i< game.props.length; i++){
+      var p = game.props[i]
+      if (p.clear){
+        game.props.splice(i,1)
+        delete p;
+      }
+    }
+    //==
     sockets[p1.id].send(JSON.stringify({id:'updategame', data:game}))
     sockets[p2.id].send(JSON.stringify({id:'updategame', data:game}))
-    //io.to(p1.id).emit('updategame', {pnum: p1.num,game :game});
-    //io.to(p2.id).emit('updategame', {pnum: p2.num,game :game});
+
 }
 
 function alertGlobal(game, alert){
@@ -1023,8 +1053,14 @@ function alertGlobal(game, alert){
     }
     //console.log(p1.id)
     //console.log(p2.id)
-    io.to(p1.id).emit('alert', alert );
-    io.to(p2.id).emit('alert', alert );
+    sockets[p1.id].send(JSON.stringify({id:'alert', data:alert}))
+    sockets[p2.id].send(JSON.stringify({id:'alert', data:alert}))
+}
+
+function alertPlayer(alert){
+    var p1 = game.players[0];
+    var p2 = game.players[1];
+    sockets[p1.id].send(JSON.stringify({id:'alert', data:alert}))
 }
 
 
@@ -1040,7 +1076,8 @@ wss.on('connection', function(socket){
     var p1 = new Player(id);
     playersockets.push(p1);
     //console.log(playersockets);
-    sockets[socket.id] = socket;
+    
+    //sockets[socket.id] = socket;
 
     var game = opengames.pop();
 
@@ -1048,7 +1085,8 @@ wss.on('connection', function(socket){
       game = new Game();
       opengames.push(game);
       num = 0;
-      games[socket.id] = game
+      games[id] = game
+      //console.log(games[id])
       game.players.push(p1);
       p1.num = 0;
       console.log("created new game")
@@ -1057,16 +1095,31 @@ wss.on('connection', function(socket){
       p1.num = 1;
       
       game.players.push(p1);
-      games[socket.id] = game;
+      games[id] = game;
       game.init();
-      game.players[0].beginTurn(game);
+      //game.players[0].beginTurn(game);
 
       var temp = [4,16];
-      //new Unit(game, game.players[0], id1, temp);
+      var t = new Unit(game, game.players[0], UNIT_IDS[1], temp);
       var temp = [5,16];
-      //new Unit(game, game.players[1], id1, temp);
+      new Unit(game, game.players[1], UNIT_IDS[0], temp);
       var temp = [6,16];
       //new Prop("Toxic Mushroom", p1, temp);
+      game.players[0].changeState(GAME_STATE_UNIT)
+
+        var buff = new Buff("Blinding Dart", 1);
+        buff.onAttack = function(event){
+          //console.log(event)
+          event.dmg = 0;
+          var game = games[event.attacker.player.id]
+          console.log('on effect', game.players[0].id)
+          event.status = "cancel"
+          alertGlobal(game, "Missed! ")
+        }
+        ApplyBuff(t, t, buff)
+
+
+
       update(game);
       console.log(game.players[0].id)
       console.log("connecting with...");
@@ -1101,9 +1154,6 @@ wss.on('connection', function(socket){
       return p1;
     }
 
-
-
-
     var c_tilesconfig = function(data){
       var game = games[socket.id]
       var p1 = getCurrentPlayer(socket.id)
@@ -1119,10 +1169,6 @@ wss.on('connection', function(socket){
     socket.on('c_tilesconfig', function(data){
       c_tilesconfig(data)
     });
-
-
-
-   
 
     var unitmove = function(game, board, player, loc){
 
@@ -1162,7 +1208,6 @@ wss.on('connection', function(socket){
     var attack = function(player, target){ 
       if (game.monsters[player.unitSelected].attack(target)){
         console.log("attack!")
-
       }
     }
 
@@ -1175,7 +1220,9 @@ wss.on('connection', function(socket){
           console.log("reselect");
           p1.unitSelected = target.id;
           var pathoptions = board.findPossiblePath([p1.cursorX, p1.cursorY],p1.pool.get(CREST_MOVEMENT))
+
           p1.movePath = pathoptions;
+          console.log(p1.movePath)
         }
     }
 
@@ -1192,7 +1239,7 @@ wss.on('connection', function(socket){
     var c_actionunit = function(){
       //var game = games[socket.id]
       //var player = getCurrentPlayer(socket.id)
-      console.log(p1.id)
+
       var m = game.monsters[p1.unitSelected]
       var u = game.board.getUnitAtLoc(p1.cursorX, p1.cursorY);
       //console.log("click")
@@ -1207,43 +1254,60 @@ wss.on('connection', function(socket){
 			} else if (p1.actionstate == PLAYER_STATE_MOVE){
   			if (game.board.getTileState(loc[0], loc[1]) != EMPTY){
             if (!unitmove(game, game.board, p1, loc)){
-              socket.emit('alert', 'Invalid movement');
+              console.log("invalid move");
+              //socket.send(JSON.stringify({data:'alert', data:"Invalid movement"}));
+
             }
-            //console.log("move");
+           
           
         }
 
 			} else if (p1.actionstate == PLAYER_STATE_ATTACK){
-        console.log('preparing to attack')
+      
         
         if (u != EMPTY){
+            console.log('preparing to attack')
           var target = game.monsters[u];
-          if (target.player != p1){
+          if (target.player.num != p1.num){
       
-            attack(player, target);
+            attack(p1, target);
             
-          } else if (target.player == p1){
-            socket.emit('Cannot attack ally unit');
+          } else {//if (target.player.num == p1.num){
+            socket.send(JSON.stringify({id:'alert', data:'Cannot attack allies'}));
            
           }
         } 
 
-      } else if (p1.actionstate == PLAYER_STATE_SPELL_LOC){
-        console.log('action state spell')
+      } else if (p1.actionstate == PLAYER_STATE_SPELL_CAST){
+        console.log('player spell cast targeted')
         var event = {trigger: game.monsters[p1.unitSelected], location: loc};
+        var alert = p1.spell.onEffect(event);
+        if (alert != ""){
+           socket.send(JSON.stringify({id:'alert', data:alert}));
+        } else {
+          alertGlobal(game, event.trigger.name +  " cast " + p1.spell.name) 
+          clear(p1);
+        }
+
+      } else if (p1.actionstate == PLAYER_STATE_SPELL_LOC){
+        console.log('player spell location')
+        var event = {game: game, trigger: game.monsters[p1.unitSelected], location: loc};
           var alert = p1.spell.onEffect(event);
           if (alert != ""){
-            socket.emit('alert', alert);
+             socket.send(JSON.stringify({id:'alert', data:alert}));
           } else {
             alertGlobal(game, event.trigger.name +  " cast " + p1.spell.name) 
             clear(p1);
            
            }
 			} else if (p1.actionstate == PLAYER_STATE_SPELL_TARGET){
-        var event = {effect:p1.spell, trigger: game.monsters[p1.unitSelected], target: game.monsters[u]};
+        console.log('target')
+        if (u == EMPTY) return;
+        var event = {game: game, effect:p1.spell, trigger: game.monsters[p1.unitSelected], target: game.monsters[u]};
+          console.log(p1.spell)
         var alert = p1.spell.onEffect(event);
         if (alert != ""){
-            socket.emit('alert', alert);
+            socket.send(JSON.stringify({id:'alert', data:alert}));
         } else {
           alertGlobal(game, event.trigger.name +  " cast " + p1.spell.name) 
           clear(p1)
@@ -1253,157 +1317,29 @@ wss.on('connection', function(socket){
       }
     }
 
-    socket.on('end turn', function(){
-
-      var game = games[socket.id]
-      var player = getCurrentPlayer(socket.id)
-      if (!game.isPlaying(player)) return
-      player.endTurn(game);
-      game.turn++;
-      //console.log('end turn')
-      
-      update(game)
-    });
-
-    socket.on('guard response', function(data){
-      var game = games[socket.id];
-      if (data == 1){
-        
-        if (!game.combat) {
-          console.log("Attempting to respond to null guard  event")
-          return
-        }
-        game.combat.target.player.pool.update(CREST_DEFENSE,-1);
-        game.combat.defmodifier = game.combat.target.def;
-        game.combat.guarded = true;
-      }  
-      //} else if (data == 0)
-      game.combat.unit.postattack(game.combat.target);
-    })
 
 
 
-    socket.on('cast', function(data){
-      var player = getCurrentPlayer(socket.id);
-      if (player.state == GAME_STATE_SELECT){
-        console.log("cast " + data);
-        var spellcode;   
-        switch (data){
-          case 'q':
-            spellcode = 0;
-            break;
-          case 'w':
-            spellcode = 1;
-            break;
-          case 'e':
-            spellcode = 2;
-            break;
-          default:
-            spellcode = -1;
-        }
-        var spell = game.monsters[player.unitSelected].spells[spellcode]
-        if (player.pool.get(spell.cost[0]) < spell.cost[1]){
-          //console.log('not enough crest1');
-          //+ CREST_TEXT(spell.cost[0])
-          socket.emit('alert', "Not enough " + CREST_TEXT[spell.cost[0]] )
 
-        } else {
-
-           player.spell = spell;
-           if (spell.target == 'location'){
-            player.actionstate = PLAYER_STATE_SPELL_LOC;
-          } else if (spell.target == 'enemy' || spell.target == 'ally') {
-            player.actionstate = PLAYER_STATE_SPELL_TARGET;
-          } else {
-            console.log("No target property for " + spell.name)
-          }
-           
-        }
-       
-      }
-    })
-
-    socket.on('action', function(data){
-	  	var game = games[socket.id];
-	  	var player = getCurrentPlayer(socket.id);
-      if (player.state != GAME_STATE_SELECT){
-				console.log('Error: Attempting to execute action when unit is not selected');
-				return;	
-			}
-      switch (data){
-        case 'move':
-          player.actionstate = PLAYER_STATE_MOVE;
-          break;
-        case 'attack':
-          player.actionstate = PLAYER_STATE_ATTACK;
-          break;
-        case 'ability':
-          player.actionstate = PLAYER_STATE_SPELL_TARGET;
-          break;
-        case 'cancel':
-          player.actionstate = PLAYER_STATE_NEUTRAL;
-          player.state = GAME_STATE_SELECT;
-          break
-        default:
-          player.actionstate = PLAYER_STATE_NEUTRAL;
-      }
-      console.log("player state changed to: " + player.actionstate)
-	  update(game)
-    })
-
-
-    socket.on('rotate shape', function(){
-      var game = games[socket.id];
-      var p1 = getCurrentPlayer(socket.id);
-      if (!game.isPlaying(p1)) return
-      if (p1.tileSelected.length == 0) return;
-      p1.rotate++;
-      if (p1.rotate == 4){
-        p1.rotate = 0; 
-      }
-      p1.tileSelected = [];
-      var cshape = rotateShape(p1.shape,p1.rotate);
-      for (var i=0; i<cshape.length; i++){
-        p1.tileSelected.push([cshape[i][0]+p1.cursorX, cshape[i][1]+p1.cursorY])
-      }
-      update(game)
-    })
-
-    socket.on('change shape', function(){
-      var game = games[socket.id];
-      var p1 = getCurrentPlayer(socket.id);
-      if (!game.isPlaying(p1)) return
-      if (p1.tileSelected.length == 0) return;
-      p1.shape++;
-      if (p1.shape == shapes.length){
-        p1.shape = 0;    
-      }
-      p1.tileSelected = [];
-      var cshape = rotateShape(p1.shape,p1.rotate);
-      for (var i=0; i<cshape.length; i++){
-        p1.tileSelected.push([cshape[i][0]+p1.cursorX, cshape[i][1]+p1.cursorY])
-      }
-      update(game)
-    })
-
+   
     socket.onmessage = function(msg){
+
       try {
         var parsemsg = JSON.parse(msg.data)
       } catch (e){
         console.log("invalid json")
       }
-
       //var g = Games[id]
       //var id = data.id;
       var data = parsemsg.data;
       var eventid  = parsemsg.id
-      
-      if (!game.isPlaying(p1)) return
+      //console.log('event is ',eventid )
+      if (!game.isPlaying(p1) && eventid != 'guard response') return
 
       if (eventid == 'c_roll'){
         //var game = games[socket.id]
       //var p1 = getCurrentPlayer(socket.id)
-        console.log('current player turn ' + p1.num + ' game turn:' + game.turn%2 + " "+ id)
+        //console.log('current player turn ' + p1.num + ' game turn:' + game.turn%2 + " "+ id)
          
         
         //var gain = p1.pool.pool.slice();
@@ -1419,11 +1355,12 @@ wss.on('connection', function(socket){
 
         
         if( p1.summon != 0 ) {
-          sockets[this.id].emit('alert', "Dice Dimension Phase")
+          socket.send(JSON.stringify ({id:'alert', data:"Dice Dimension Phase"}))
+
           p1.state = GAME_STATE_SUMMON;
         } else {
           p1.state = GAME_STATE_UNIT;
-           sockets[this.id].emit('alert', "Action Phase")
+          socket.send(JSON.stringify ({id:'alert', data:"Action Phase"}))
 
         }
       
@@ -1446,36 +1383,28 @@ wss.on('connection', function(socket){
         }
     
         update(game)
-        //socket.emit('updategame', {pnum: p1.num,game:game});
+
 
       }
 
 
-    var c_tilemove = function (cursor){
-      //var game = games[socket.id]
-      //var p1 = getCurrentPlayer(socket.id)
-      //console.log('moving tile',p1.id)
-      //console.log(socket.id)
-      p1.cursorX = cursor.X;
-      p1.cursorY = cursor.Y;
-      //console.log(cursor.X,cursor.Y)
-      p1.tileSelected = [];
-      var cshape = rotateShape(p1.shape,p1.rotate);
-      for (var i=0; i<cshape.length; i++){
-        p1.tileSelected.push([cshape[i][0]+cursor.X, cshape[i][1]+cursor.Y])
+      var c_tilemove = function (){
+        p1.tileSelected = [];
+        var cshape = rotateShape(p1.shape,p1.rotate);
+        for (var i=0; i<cshape.length; i++){
+          p1.tileSelected.push([cshape[i][0]+p1.cursorX, cshape[i][1]+p1.cursorY])
+        }
+        p1.valid = game.board.validPlacement(p1)
+        //console.log(p1.tileSelected) 
       }
-      p1.valid = game.board.validPlacement(p1)
-      //console.log(p1.tileSelected)
-      update(game); 
-    }
 
-      var c_unitpathmove = function (cursor){
+      var c_unitpathmove = function (){
         //var p1 = getCurrentPlayer(socket.id)
         if (p1.unitSelected == EMPTY){
           console.log('925:moving path when no unit is selected')
           return
         }
-        var game = games[socket.id]
+        //var game = games[socket.id]
         var m = game.monsters[p1.unitSelected]
         //p1.movePath = game.board.findPossiblePath({x:m.x, y:m.y},p1.pool.get(CREST_MOVEMENT));
         //console.log([m.x, m.y],[cursor.X,cursor.Y])
@@ -1492,12 +1421,12 @@ wss.on('connection', function(socket){
 
 
       if (eventid == 'mouse move') {
-        p1.cursorX = data.X;
-        p1.cursorY = data.Y;
+        p1.cursorX = data.X*1;
+        p1.cursorY = data.Y*1;
         //console.log('playrerx',p1.cursorX)
 
         if (p1.tileSelected.length > 0){
-          c_tilemove(data)
+          c_tilemove()
         } else if (p1.state == GAME_STATE_SELECT){
           c_unitpathmove(data);
         }
@@ -1519,45 +1448,45 @@ wss.on('connection', function(socket){
           p1.rotate = 0;
           p1.summoned = true;
           p1.state = GAME_STATE_UNIT;
-          socket.emit('alert', 'Action Phase')
+          socket.send(JSON.stringify({data:'alert', data:"Action Phase"}));
           update(game);
         }
-    }
-
-
-    var c_selectunit = function (){
-      //var game = games[socket.id]
-      //var p1 = getCurrentPlayer(socket.id)
-      var m = game.monsters[game.board.getUnitAtLoc(p1.cursorX, p1.cursorY)]
-
-      //console.log(game.board.getUnitAtLoc(p[0], p[1]));
-      if (m){
-        if (m.player == p1 ){
-          if (m.id == p1.unitSelected){
-            p1.unitSelected = EMPTY;
-            console.log("deselect");
-            p1.movePath = []
-            p1.state = GAME_STATE_UNIT;
-          } else {
-            p1.unitSelected = m.id;
-            p1.movePath = game.board.findPossiblePath([p1.cursorX, p1.cursorY],p1.pool.get(CREST_MOVEMENT))
-            console.log("selecetd unit m0");
-            p1.state = GAME_STATE_SELECT;
-          }
-        } 
-        update(game); 
-      } else { 
-        console.log("no unit on tile")
       }
-      
-    }
+
+
+      var c_selectunit = function (){
+        //var game = games[socket.id]
+        //var p1 = getCurrentPlayer(socket.id)
+        var m = game.monsters[game.board.getUnitAtLoc(p1.cursorX, p1.cursorY)]
+
+        //console.log(game.board.getUnitAtLoc(p[0], p[1]));
+        if (m){
+          if (m.player == p1 ){
+            if (m.id == p1.unitSelected){
+              p1.unitSelected = EMPTY;
+              console.log("deselect");
+              p1.movePath = []
+              p1.state = GAME_STATE_UNIT;
+            } else {
+              p1.unitSelected = m.id;
+              p1.movePath = game.board.findPossiblePath([p1.cursorX, p1.cursorY],p1.pool.get(CREST_MOVEMENT))
+              console.log("selecetd unit m0");
+              p1.state = GAME_STATE_SELECT;
+            }
+          } 
+          update(game); 
+        } else { 
+          console.log("no unit on tile")
+        }
+        
+      }
 
       if(eventid == 'mouse click'){
         //var game = games[socket.id]
         //var player = getCurrentPlayer(socket.id)
         //if (!game.isPlaying(player)) return
         if (p1.state == GAME_STATE_SUMMON){
-          console.log("tile place")
+          //console.log("tile place")
           c_tilesplace();
         } else if (p1.state == GAME_STATE_SELECT){
           //console.log("select")
@@ -1570,8 +1499,140 @@ wss.on('connection', function(socket){
 
       }
 
+      if (eventid == 'action'){
+        //var game = games[socket.id];
+        //var player = getCurrentPlayer(socket.id);
+        if (p1.state != GAME_STATE_SELECT){
+          console.log('Error: Attempting to execute action when unit is not selected');
+          return; 
+        }
+        switch (data){
+          case 'move':
+            p1.actionstate = PLAYER_STATE_MOVE;
+            break;
+          case 'attack':
+            p1.actionstate = PLAYER_STATE_ATTACK;
+            break;
+          case 'ability':
+            p1.actionstate = PLAYER_STATE_SPELL_CAST;
+            break;
+          case 'cancel':
+            p1.actionstate = PLAYER_STATE_NEUTRAL;
+            p1.state = GAME_STATE_SELECT;
+            break
+          default:
+            p1.actionstate = PLAYER_STATE_NEUTRAL;
+        }
+        console.log("player state changed to: " + p1.actionstate)
+        update(game)
+      }
+
+      if (eventid == 'change shape'){
+        //var game = games[socket.id];
+        //var p1 = getCurrentPlayer(socket.id);
+        //if (!game.isPlaying(p1)) return
+        if (p1.state != GAME_STATE_SUMMON) return;
+        p1.shape++;
+        if (p1.shape == shapes.length){
+          p1.shape = 0;    
+        }
+        c_tilemove()
+        update(game)
+      }
+      if (eventid == 'rotate shape'){
+        //var game = games[socket.id];
+        //var p1 = getCurrentPlayer(socket.id);
+        //if (!game.isPlaying(p1)) return
+        if (p1.state != GAME_STATE_SUMMON) return;
+        p1.rotate = (p1.rotate +1)%4;
+        c_tilemove()
+        update(game)
+      }
+
+
+      if(eventid == 'end turn'){
+
+        //var game = games[socket.id]
+        //var player = getCurrentPlayer(socket.id)
+        //if (!game.isPlaying(player)) return
+        p1.endTurn(game);
+        game.turn++;
+        //console.log('end turn')
+        
+        update(game)
+      };
+
+      //==
+      if (eventid == 'cast'){
+      //var player = getCurrentPlayer(socket.id);
+        if (p1.state == GAME_STATE_SELECT){
+          console.log("cast " + data);
+          var spellcode;   
+          switch (data){
+            case 'q':
+              spellcode = 0;
+              break;
+            case 'w':
+              spellcode = 1;
+              break;
+            case 'e':
+              spellcode = 2;
+              break;
+            default:
+              spellcode = -1;
+          }
+          var spell = game.monsters[p1.unitSelected].spells[spellcode]
+          if (p1.pool.get(spell.cost[0]) < spell.cost[1]){
+            //console.log('not enough crest1');
+            //+ CREST_TEXT(spell.cost[0])
+            socket.send(JSON.stringify({data:'alert', data:"Not enough " + CREST_TEXT[spell.cost[0]]}));
+          } else {
+            p1.spell = spell;
+            if (spell.target){
+              p1.actionstate = PLAYER_STATE_SPELL_CAST
+            } else {
+              spell.onEffect({trigger:game.monsters[p1.unitSelected]})
+            }
+
+            
+             /*
+             if (spell.target == 'location'){
+              p1.actionstate = PLAYER_STATE_SPELL_LOC;
+              } else if (spell.target == 'enemy' || spell.target == 'ally') {
+                p1.actionstate = PLAYER_STATE_SPELL_TARGET;
+              } else {
+                console.log("No target property for " + spell.name)
+              }
+              */
+             
+          }
+ 
+         
+        }
+      }
+
+      if(eventid == 'guard response'){
+        //var game = games[socket.id];
+        console.log('response to guard')
+        if (data == 1){
+          
+          if (!game.combat) {
+            console.log("Attempting to respond to null guard  event")
+            return
+          }
+          game.combat.target.player.pool.update(CREST_DEFENSE,-1);
+          game.combat.defmodifier = game.combat.target.def;
+          game.combat.guarded = true;
+        }  
+        //} else if (data == 0)
+        game.combat.unit.postattack(game.combat.target);
+      }
+
+      //======
     }
-    socket.on('disconnect', function(){
+    
+
+    socket.on('close', function(){
           console.log('user disconnected');
     });
 });

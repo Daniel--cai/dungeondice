@@ -58,7 +58,7 @@ socket.onmessage = function(event){
 		Timeout = registerTimerEvent(100, alertTimeout);
 		TimeoutAlpha = 1500/100;
 		TimeoutReady = false;
-		AlertText = data;
+		AlertText = data.data;
 		
 	}
 
@@ -88,7 +88,7 @@ socket.onmessage = function(event){
 	}
 	
 	if (data.id == 'change state'){
-		console.log(data.data)	
+		console.log('player state is now ', data.data)	
 	}
 
 
@@ -240,6 +240,7 @@ function drawPath(){
 	//movePathSelection = player.movePath;
 	if (player.actionstate != PLAYER_STATE_MOVE) return;
 	var movePathSelection = player.movePath;
+
 	//if (movePathSelection.length > 1 && movePathSelection.length-1 <= player.pool.pool[CREST_MOVEMENT]) {			
 	ctx.globalAlpha = 0.5;
 	for (var i=0; i<movePathSelection.length; i++){	
@@ -248,6 +249,7 @@ function drawPath(){
 		ctx.strokeStyle = "#303030";
 		ctx.lineWidth = 1;
 		drawSquare(movePathSelection[i][0]*squareSize, movePathSelection[i][1]*squareSize )
+
 	}
 	ctx.globalAlpha = 1.0;	
 
@@ -614,11 +616,13 @@ function Pool(){
 addEventListener("keypress", function(e){
 		//keysDown[e.keyCode] = true;
 		//console.log(e.charCode);
+		if (player.state != GAME_STATE_SUMMON) return;
 		if (e.charCode == 122){
-			socket.emit('rotate shape');
+			socket.send(JSON.stringify({id:'rotate shape'}));
 		} else if (e.charCode == 99){
-			socket.emit('change shape');
+			socket.send(JSON.stringify({id:'change shape'}));
 		}
+		//console.log('keypress')
 }, false);
 
 
@@ -693,34 +697,35 @@ function updateCrest(pool){
 						"<b>Trap</b>: " + pool[CREST_TRAP] +"<br>";
 
 }
-/*
-summonButton.addEventListener("click", function(){
-	console.log("summon");	
-	//this.state = PLAYER_STATE_SUMMON;
-	//setGameState(TILE_PLACEMENT);
-	//rollButton.disabled = true;
-	//summonButton.disabled = true;
-	//endturnButton.disabled = true;
-	hideSummonButton(false);
-});
-*/
 
 
+function actionButtonEffect(button) {
+	socket.send(JSON.stringify({ id:'action', data:button}));
+	disableSpell(button != 'ability')
+}
+
+function spellButtonEffect(button){
+	socket.send(JSON.stringify({ id:'cast', data:button}));
+}
+
+function responseButton(button){
+	socket.send(JSON.stringify({ id:'guard response', data:button}));
+}
 yesButton.addEventListener("click", function(){
-	socket.emit('guard response', 1);
+	responseButton(1)
 })
 
 noButton.addEventListener("click", function(){
-	socket.emit('guard response', 0);
+	responseButton(0)
 })
 
 qButton.addEventListener("click", function(){
-	socket.emit('cast', 'q');
+	spellButtonEffect('q')
 
 })
 
 wButton.addEventListener("click", function(){
-	socket.emit('cast', 'w');
+	spellButtonEffect('w')
 
 })
 
@@ -730,25 +735,28 @@ abilityButton.addEventListener("click", function(){
 })
 
 moveButton.addEventListener("click", function(){
-	socket.emit('action', 'move');
+	actionButtonEffect('move')
+
 })
 
 attackButton.addEventListener("click", function(){
-	socket.emit('action', 'attack');
+	actionButtonEffect('attack')
+	socket.send(JSON.stringify({ id:'action', data:'attack'}));
 })
 
 abilityButton.addEventListener("click", function(){
-	socket.emit('action', 'ability');
+	actionButtonEffect('ability')
+	socket.send(JSON.stringify({ id:'action', data:'ability'}));
 })
 
 cancelButton.addEventListener("click", function(){
-	socket.emit('action', 'cancel');
+	socket.send(JSON.stringify({ id:'action', data:'cancel'}));
 	disableSpell(true);
 })
 
 
 endturnButton.addEventListener("click", function(){
-	socket.emit('end turn');
+	socket.send(JSON.stringify({id:'end turn'}));
 
 	//PLAYER_ID.endTurn();
 })
@@ -888,18 +896,35 @@ var drawBoard = function(){
 	//ctx.shadowBlur = 5;
 	//ctx.shadowColor = "grey";
 	//board[6][7] =  1;
-	for (var i=0; i< boardSizeX; i++){
-		for (var j=0;j<boardSizeY; j++){
+	/*
+	var verticalFlip = player.num == 0;
+	var dx = dy = 0;
+	for (var i= verticalFlip ? 0 : boardSizeX-1; verticalFlip ? i< boardSizeX : i>=0 ; verticalFlip ? i++:i--){
+		for (var j= verticalFlip ? 0 : boardSizeY-1; verticalFlip ? j< boardSizeY : j>=0 ; verticalFlip ? j++:j--){
+	*/
+	for (var i = 0; i< boardSizeX; i++ ){
+		for (var j = 0; j< boardSizeY; j++ ){
+			ctx.fillStyle = "#303030";
+			ctx.strokeStyle = white
+			drawSquare(i*squareSize,j*squareSize);
+		}
+	}
+
+	for (var i = 0; i< boardSizeX; i++ ){
+		for (var j = 0; j< boardSizeY; j++ ){
 			if (getBoardState(i,j)== PLAYER_1){
 				ctx.fillStyle = purple;
+				ctx.strokeStyle = purple
 			} else if (getBoardState(i,j) == PLAYER_2){
 				ctx.fillStyle = blue;	
-			} else if (getBoardState(i,j) == EMPTY ){
-				ctx.fillStyle = "#303030";
+				ctx.strokeStyle = blue
+			} else {
+				continue;
 			}
 			drawSquare(i*squareSize,j*squareSize);
 		}
 	}
+
 
 }
 
@@ -1036,7 +1061,8 @@ registerMoveEvent(
 		}
 		if (game.turn%2 != player.num) return
 		if (player.state == GAME_STATE_ROLL || player.state == GAME_STATE_END ) return
-		socket.send(JSON.stringify({id :'mouse move', data:{X:cursorX, Y:cursorY}}))
+		if (boundCursor(cursorX,cursorY))
+			socket.send(JSON.stringify({id :'mouse move', data:{X:cursorX, Y:cursorY}}))
 
 	});
 
@@ -1226,6 +1252,7 @@ function drawCrest(crest, x,y, sx, sy){
 var render = function(){
 	//console.log("rendering")
 	ctx.clearRect(0,0,canvas.width,canvas.height)
+	
 	drawBoard();
 	drawUnits();
 	drawProps();
@@ -1240,10 +1267,14 @@ var render = function(){
 	//drawCrest(CREST_TRAP, 500, 500)
 }
 
+function debug(){
+
+}
 
 function update(){
 	//console.log(player.tileSelected);
 	updateCrest(player.pool.pool);
+	debug()
 	var m = getUnitOnCursor(cursorX,cursorY);
 	DialogText = ""
 	if (m){
@@ -1373,7 +1404,6 @@ var init = function (){
 				//render();
 			}
 		}
-		
 		//SelectEvent.enabled = true;
 		//if (getGameState() == GAME_STATE_STOP){
 		//	console.log("paused");
