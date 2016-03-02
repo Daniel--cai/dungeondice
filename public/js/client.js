@@ -2,6 +2,13 @@
 var socket = new WebSocket(location.origin.replace(/^http/, 'ws'));
 var socketid;
 
+PLAYER_STATE_NEUTRAL = 0;
+PLAYER_STATE_MOVE = 1;
+PLAYER_STATE_ATTACK = 2;
+PLAYER_STATE_SPELL_TARGET = 3;
+
+
+
 socket.onmessage = function(event){
 	try {
 		var data = JSON.parse(event.data)
@@ -15,18 +22,15 @@ socket.onmessage = function(event){
 
 
     if (data.id == 's_roll'){
-
       if( data.data.length != 0 ) {
         //sockets[this.id].emit('alert', "Dice Dimension Phase")
-        player.state = GAME_STATE_SUMMON;
+        //player.state = util.GAME_STATE_SUMMON;
         console.log('summoning')
       } else {
-      	 console.log('unit')
-        player.state = GAME_STATE_UNIT;
+      	console.log('unit')
+        //player.state = util.GAME_STATE_UNIT;
          //sockets[this.id].emit('alert', "Action Phase")
-
       }
-  	
 		console.log(data);
 		var string = "";
 		/*
@@ -38,18 +42,6 @@ socket.onmessage = function(event){
 		//setDicePanelText(string);
 	}
 
-	if (data.id == 'pool.update'){
-		//console.log('update ' + data.crest + ' + '+ data.point)
-
-		//var string = "";
-		
-		if (data.crest != CREST_SUMMON){
-			console.log(data.point , CREST_TEXT[data.crest])
-		}
-		//setDicePanelText(string);
-
-	}
-
 	if (data.id == 'alert'){
 		//console.log("new laert" + TimeoutAlpha)
 		if (Timeout != null){
@@ -59,23 +51,95 @@ socket.onmessage = function(event){
 		TimeoutAlpha = 1500/100;
 		TimeoutReady = false;
 		AlertText = data.data;
-		
 	}
 
 	if (data.id == 'id'){
 		socketid = data.data
 	}
 
-	if (data.id == 'updategame') {
-		if (!game){
-			playerPanel.innerHTML = " Player: " + socketid;
-			init();
+	if (data.id == 'combat'){
+		game.combat = data.data
+		console.log(data.data.unit.type.name, 'attacking', data.data.target.type.name)
+	}
 
+	if (data.id == 'guard'){
+		console.log('block damage?')
+		yesButton.hidden = false;
+		noButton.hidden = false;
+	}
+
+	if (data.id == 'postattack'){
+		
+	}
+
+	if (data.id == 'update'){
+		console.log('updating', data.type)
+		if (data.type == 'unit location'){
+			if (data.data.unit != util.EMPTY){
+		      game.monsters[data.data.unit].x = data.data.loc[0]
+		      game.monsters[data.data.unit].y = data.data.loc[1]
+		    }
+			game.board.units[data.data.loc[1]][data.data.loc[0]] = data.data.unit;
+			
 		}
-		//PLAYER_ID = data.pnum
-		//console.log(data)
+
+		var p1 = data.num != util.EMPTY ? game.players[data.num] : null;
+		if (data.type == 'tile'){	
+			p1.tileSelected = data.data.shape;
+			p1.valid = data.data.valid;
+			
+		} else if( data.type == 'pool' ){	
+			if(p1.num == player.num)
+			console.log(data.data.point , CREST_TEXT[data.data.crest])
+			p1.pool[data.data.crest] += data.data.point	
+	
+		}	
+
+		if (data.type == 'select unit'){
+			p1.unitSelected = data.data
+		}
+
+		if (data.type == 'create unit'){
+      		game.monsters.push(data.data);
+		}
+
+		if (data.type == 'change state'){ 
+		    var state = data.data;
+		    p1.state = state;
+		    p1.unitSelected = util.EMPTY;
+		    p1.movePath = []
+		    p1.tileSelected = []
+		    if (state == util.GAME_STATE_END){
+		      p1.summoned = false;
+		      p1.rolled = false;
+		      p1.summon = [];
+		      p1.summonlevel = 0;
+		      p1.shape = 0;
+		      p1.rotate = 0;
+		      p1.valid = false;
+		      p1.spell = util.EMPTY
+
+		      for (var i=0; i<game.monsters.length;i++){
+		        if (!game.monsters[i].exist) continue;
+		        if (game.monsters[i].player.num == this.num){
+		          game.monsters[i].hasAttacked = false;
+		          game.monsters[i].canAttacked = true;
+		        }
+		      }
+
+			}
+			update()
+		}
+
+		render()
+	}
+
+	if (data.id == 'new game') {
+		console.log('data')	
 		game = data.data;
-		//console.log(data.pnum)
+
+		playerPanel.innerHTML = " Player: " + socketid;
+		init();
 		opponent = game.players[1];
 		player = game.players[0];
 		//console.log(game.players[0].id)
@@ -83,18 +147,14 @@ socket.onmessage = function(event){
 			player = game.players[1]
 			opponent = game.players[0]
 		}
-		
 		update()
+		render();
 	}
 	
-	if (data.id == 'change state'){
-		console.log('player state is now ', data.data)	
-	}
 
 
 
 }
-
 
 var canvas = document.getElementById("games");
 //var switchButton = document.getElementById("switch");
@@ -104,8 +164,6 @@ var rollButton = document.getElementById("roll");
 var endturnButton = document.getElementById("endturn");
 var yesButton = document.getElementById('yesguard');
 var noButton = document.getElementById('noguard');
-
-
 
 var moveButton = document.getElementById('move');
 var attackButton = document.getElementById('attack');
@@ -125,6 +183,9 @@ var dicePanel = document.getElementById("diceroll");
 var playerPanel = document.getElementById("players")
 var content = document.getElementById("content")
 
+var actionState = util.PLAYER_STATE_NEUTRAL
+var spellState = -1;
+var movePath = []
 //var movementButton = document.getElementById("movement")
 
 var ctx = canvas.getContext("2d");
@@ -132,32 +193,16 @@ content.hidden = true;
 
 
 var squareSize = 30;
-var boardSizeX = 13;
-var boardSizeY= 19;
+//var util.boardSizeX = 13;
 canvas.width = 580;
 canvas.height =580;
 //state codes
 
 //board states
 
-var EMPTY = -1;
-var PLAYER_1 = 0;
-var PLAYER_2 = 1;
-
-//game states
-
-var GAME_STATE_ROLL = 0;
-var GAME_STATE_SUMMON = 1;
-var GAME_STATE_UNIT = 2;
-var GAME_STATE_COMBAT = 3;
-var GAME_STATE_SELECT = 4;
-var GAME_STATE_END = 5;
-
-var PLAYER_STATE_NEUTRAL = 0
-var PLAYER_STATE_MOVE = 1;
-var PLAYER_STATE_ATTACK = 2;
-var PLAYER_STATE_SPELL_TARGET = 3;
-var PLAYER_STATE_SPELL_LOC = 4;
+//var util.EMPTY = -1;
+//var util.PLAYER_1 = 0;
+//var util.util.PLAYER_2= 1;
 
 //states
 var keyZ = 122;
@@ -167,7 +212,7 @@ var flip = false;
 var shape = 0;
 var validpos = true;
 var monsters = [];
-var selectedUnit = EMPTY;
+var selectedUnit = util.EMPTY;
 
 
 var game;
@@ -178,12 +223,12 @@ function disableSpell(d){
 		wButton.hidden = d;
 		eButton.hidden = d;
 		rButton.hidden = d;
-
 		passiveButton.disabled = d;
 		qButton.disabled = d;
 		wButton.disabled = d;
 		eButton.disabled = d;
 		rButton.disabled = d;
+		spellState = -1;
 }
 
 function disableButtons(a,b,c,d){
@@ -218,9 +263,9 @@ function drawSelection (player){
 	for (var i = 0; i<6; i++){
 		if (i == 0){
 			ctx.fillStyle = black;
-		} else if (player.num == PLAYER_1){
+		} else if (player.num == util.PLAYER_1){
 			ctx.fillStyle = purple;
-		} else if (player.num == PLAYER_2){
+		} else if (player.num == util.PLAYER_2){
 			ctx.fillStyle = blue;	
 		}
 		//console.log(game.board)
@@ -238,8 +283,9 @@ function drawSelection (player){
 
 function drawPath(){
 	//movePathSelection = player.movePath;
-	if (player.actionstate != PLAYER_STATE_MOVE) return;
-	var movePathSelection = player.movePath;
+	if (player.state != exports.GAME_STATE_SELECT) return;
+	var movePathSelection = movePath;
+	//console.log(movePathSelection)
 
 	//if (movePathSelection.length > 1 && movePathSelection.length-1 <= player.pool.pool[CREST_MOVEMENT]) {			
 	ctx.globalAlpha = 0.5;
@@ -356,7 +402,7 @@ var Event_Button_Focus = function(x,y){
 		var b = Buttons[i];
 		if (b.hidden) continue;
 		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
-			if (player.state == GAME_STATE_ROLL){
+			if (player.state == util.GAME_STATE_ROLL){
 				b.onFocus(x,y);
 				
 			}
@@ -366,7 +412,7 @@ var Event_Button_Focus = function(x,y){
 			setStatePanelText(m)
 		} else {
 	
-			if (player.state == GAME_STATE_ROLL){
+			if (player.state == util.GAME_STATE_ROLL){
 				b.onUnfocus(x,y);
 				
 			}
@@ -380,7 +426,7 @@ var Event_Button_Focus = function(x,y){
 
 
 var Event_Button_Click = function(x,y){
-	if (player.state == GAME_STATE_ROLL || GAME_STATE_SUMMON){
+	if (player.state == util.GAME_STATE_ROLL || util.GAME_STATE_SUMMON){
 		for (var i=0;i<Buttons.length; i++){
 			var b = Buttons[i];
 			if (b.hidden) continue;
@@ -418,7 +464,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 
 		if (this.focus) return;
 		//console.log(x,y, b.x, b.y, b.wx, b.hy)
-		if (player.state == GAME_STATE_ROLL){
+		if (player.state == util.GAME_STATE_ROLL){
 			//changeCursor("pointer")
 			this.focus = true;
 		
@@ -436,7 +482,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 		if (this.toggle) return;
 		//changeCursor("default")
 		//changeCursor("pointer")
-		if (player.state == GAME_STATE_ROLL){
+		if (player.state == util.GAME_STATE_ROLL){
 			this.focus = false;	
 			
 			//DicePattern = [];
@@ -445,7 +491,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 	}
 	this.onClick = function(x,y){
 	
-		if (player.state == GAME_STATE_ROLL){
+		if (player.state == util.GAME_STATE_ROLL){
 	
 			if (this.toggle){
 				this.toggle = false;
@@ -461,7 +507,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 				}	
 			}
 
-		} else if (player.state == GAME_STATE_SUMMON ){
+		} else if (player.state == util.GAME_STATE_SUMMON ){
 			if (this.toggle){
 				summonToggle = this;
 				console.log('summoinining')
@@ -485,9 +531,9 @@ var Button = function(id, img, x, y,sx,sy,unit){
 
 	this.render = function(){
 		ctx.globalAlpha = 0.25;
-		if (player.state == GAME_STATE_ROLL || player.state == GAME_STATE_SUMMON){
+		if (player.state == util.GAME_STATE_ROLL || player.state == util.GAME_STATE_SUMMON){
 			var mod = 0;
-			if (player.state == GAME_STATE_ROLL){
+			if (player.state == util.GAME_STATE_ROLL){
 				ctx.globalAlpha = 1;
 			}
 
@@ -497,9 +543,9 @@ var Button = function(id, img, x, y,sx,sy,unit){
 
 			if (this.toggle){
 				ctx.globalAlpha = 1;
-				if (player.state == GAME_STATE_ROLL){
+				if (player.state == util.GAME_STATE_ROLL){
 					ctx.fillStyle = black;
-				} else if (player.state == GAME_STATE_SUMMON){
+				} else if (player.state == util.GAME_STATE_SUMMON){
 					if (summonToggle == this){
 						ctx.fillStyle = black;
 					} else {
@@ -586,7 +632,7 @@ function validPlacement(player){
 		//console.log(selection)
 		x = selection[i][0];
 		y = selection[i][1];
-		if (!boundCursor(x,y) || getBoardState(x,y) != EMPTY){
+		if (!boundCursor(x,y) || getBoardState(x,y) != util.EMPTY){
 			return false;
 		}
 		//adjacent
@@ -601,22 +647,11 @@ function validPlacement(player){
 }
 */
 
-//pool states
-function Pool(){
-	this.pool = [0,0,0,0,0]
-	this.set = function (crest, point){
-		this.pool[crest] = point;
-	}
-	this.get = function(crest){
-		return this.pool[crest]
-	}
-}
-
 
 addEventListener("keypress", function(e){
 		//keysDown[e.keyCode] = true;
 		//console.log(e.charCode);
-		if (player.state != GAME_STATE_SUMMON) return;
+		if (player.state != util.GAME_STATE_SUMMON) return;
 		if (e.charCode == 122){
 			socket.send(JSON.stringify({id:'rotate shape'}));
 		} else if (e.charCode == 99){
@@ -637,7 +672,7 @@ pageY = 0;
 var summonNames = [];
 
 var boundCursor = function(x, y){
-	if (x>= boardSizeX || y >= boardSizeY ||x < 0 || y < 0){
+	if (x>= util.boardSizeX || y >= util.boardSizeY ||x < 0 || y < 0){
     	return false
     }
     return true;
@@ -646,7 +681,7 @@ var boundCursor = function(x, y){
 
 
 var isUnitOnCursor = function(x, y){
-	return boundCursor(x,y) && getUnitAtLocation([x,y]) != EMPTY
+	return boundCursor(x,y) && getUnitAtLocation([x,y]) != util.EMPTY
 }
 
 var getUnitOnCursor = function(x,y){
@@ -684,7 +719,7 @@ function getBoardState(x,y){
 	if (boundCursor(x,y) && game){
 		return game.board.tiles[y][x];
 	} else {
-		return EMPTY;
+		return util.EMPTY;
 	}
 }
 
@@ -700,12 +735,16 @@ function updateCrest(pool){
 
 
 function actionButtonEffect(button) {
-	socket.send(JSON.stringify({ id:'action', data:button}));
+	//socket.send(JSON.stringify({ id:'action', data:button}));
 	disableSpell(button != 'ability')
 }
 
 function spellButtonEffect(button){
-	socket.send(JSON.stringify({ id:'cast', data:button}));
+	if (!game.monsters[player.unitSelected].spells[button].target){
+		socket.send(JSON.stringify({ id:'cast', data:button}));
+	} else {
+		spellState = button;
+	}
 }
 
 function responseButton(button){
@@ -720,12 +759,12 @@ noButton.addEventListener("click", function(){
 })
 
 qButton.addEventListener("click", function(){
-	spellButtonEffect('q')
+	spellButtonEffect(0)
 
 })
 
 wButton.addEventListener("click", function(){
-	spellButtonEffect('w')
+	spellButtonEffect(1)
 
 })
 
@@ -741,38 +780,24 @@ moveButton.addEventListener("click", function(){
 
 attackButton.addEventListener("click", function(){
 	actionButtonEffect('attack')
-	socket.send(JSON.stringify({ id:'action', data:'attack'}));
+	//socket.send(JSON.stringify({ id:'action', data:'attack'}));
 })
 
 abilityButton.addEventListener("click", function(){
 	actionButtonEffect('ability')
-	socket.send(JSON.stringify({ id:'action', data:'ability'}));
+	//socket.send(JSON.stringify({ id:'action', data:'ability'}));
 })
 
 cancelButton.addEventListener("click", function(){
-	socket.send(JSON.stringify({ id:'action', data:'cancel'}));
+	//socket.send(JSON.stringify({ id:'action', data:'cancel'}));
 	disableSpell(true);
 })
 
 
 endturnButton.addEventListener("click", function(){
 	socket.send(JSON.stringify({id:'end turn'}));
-
 	//PLAYER_ID.endTurn();
 })
-/*
-switchButton.addEventListener("click", function(){
-
-	if (PLAYER_ID.isPlaying()){
-		PLAYER_ID.endTurn();
-		
-	} else {
-		nextPlayer();	
-		PLAYER_ID.beginTurn();
-	}
-	console.log("Current turn:" + currentPlayer.id);
-})
-*/
 
 rollButton.addEventListener("click", function(){
 	//this.state = PLAYER_STATE_ROLL;
@@ -786,25 +811,6 @@ rollButton.addEventListener("click", function(){
     	data.push(DiceSelection[i].id)
     }
     socket.send(JSON.stringify({id:'c_roll', data:data}))
-    /*socket.on('s_roll', function(data){
-    	//console.log(dcdc ,mx       ata);
-    	updateCrest(data.pool);
-    	var string = "";
-    	if (data.summon.length > 0){
-    		//console.log(data.summon)
-    		string += "Summoning level: " + data.level + "<br\>";
-      		summonNames = data.summon; 
-      		
-      		//this.summon = summon[summonlevel];
-    	}
-    	//for (var i=0; i<data.gain.length; i++){
-    	//	if (data.gain[i]){
-    	//		string += "+" + data.gain[i] + CREST_TEXT[i] + "<br\>" 
-    	//	}
-    	//}
-    	//disableButtons(true,false,false)
-		setDicePanelText(string);
-    })*/
 })
 
 function hideButton(button, boolean, point){
@@ -825,36 +831,6 @@ function hideButton(button, boolean, point){
 	}
 
 }
-
-//new unit(id1, 6, 6, PLAYER_2);
-/*
-function createUnit(id, x, y, player){
-	new unit(id, x, y, player.id);
-	//var unit2 = new unit(id1, 2, 2, PLAYER_2);
-}
-
-var moveUnit = function (id, x, y ){
-	m = id;
-	if (!id){
-		console.log("Warning. Moving null unit.")
-		return
-	}
-	l = findPath([m.x, m.y], [x,y]).length;
-	if (l>1 && player1.pool.get(CREST_MOVEMENT) >= l-1){
-		//setUnitAtLocation(EMPTY, [m.x, m.y]);
-		//units[m.x][m.y]=EMPTY;
-		m.x = x;
-		m.y = y;
-		//setUnitAtLocation(m.id, [x,y])
-		//units[x][y]=id;
-		PLAYER_ID.pool.set(CREST_MOVEMENT, PLAYER_ID.pool.get(CREST_MOVEMENT) - l+1);
-		//updateCrest()
-	}
-
-}
-*/
-
-
 
 var drawSquare = function(x,y){
 	ctx.fillRect(x,y,squareSize,squareSize);
@@ -899,23 +875,23 @@ var drawBoard = function(){
 	/*
 	var verticalFlip = player.num == 0;
 	var dx = dy = 0;
-	for (var i= verticalFlip ? 0 : boardSizeX-1; verticalFlip ? i< boardSizeX : i>=0 ; verticalFlip ? i++:i--){
-		for (var j= verticalFlip ? 0 : boardSizeY-1; verticalFlip ? j< boardSizeY : j>=0 ; verticalFlip ? j++:j--){
+	for (var i= verticalFlip ? 0 : util.boardSizeX-1; verticalFlip ? i< util.boardSizeX : i>=0 ; verticalFlip ? i++:i--){
+		for (var j= verticalFlip ? 0 : util.boardSizeY-1; verticalFlip ? j< util.boardSizeY : j>=0 ; verticalFlip ? j++:j--){
 	*/
-	for (var i = 0; i< boardSizeX; i++ ){
-		for (var j = 0; j< boardSizeY; j++ ){
+	for (var i = 0; i< util.boardSizeX; i++ ){
+		for (var j = 0; j< util.boardSizeY; j++ ){
 			ctx.fillStyle = "#303030";
 			ctx.strokeStyle = white
 			drawSquare(i*squareSize,j*squareSize);
 		}
 	}
 
-	for (var i = 0; i< boardSizeX; i++ ){
-		for (var j = 0; j< boardSizeY; j++ ){
-			if (getBoardState(i,j)== PLAYER_1){
+	for (var i = 0; i< util.boardSizeX; i++ ){
+		for (var j = 0; j< util.boardSizeY; j++ ){
+			if (getBoardState(i,j)== util.PLAYER_1){
 				ctx.fillStyle = purple;
 				ctx.strokeStyle = purple
-			} else if (getBoardState(i,j) == PLAYER_2){
+			} else if (getBoardState(i,j) == util.PLAYER_2){
 				ctx.fillStyle = blue;	
 				ctx.strokeStyle = blue
 			} else {
@@ -971,7 +947,7 @@ var drawUnits = function() {
 		var m = game.monsters[i];
 		var w = 1;
 		//p = getCurrentPlayer()
-		if (!m){
+		if (!m.exist){
 			continue;
 		}
 		if (player.unitSelected == m.id){
@@ -999,9 +975,8 @@ var eventTriggerKey = 0;
 
 var EVENT_LIST = [];
 
-function Event(trigger, condition, action){
+function Event(trigger, action){
 	this.trigger = trigger;
-	this.condition = condition;
 	this.action = action; 
 	this.enabled = true;
 	this.interval = 0;
@@ -1016,12 +991,12 @@ function Event(trigger, condition, action){
 }
 
 
-function registerClickEvent(condition, action){
-	return new Event(TRIGGER_MOUSE_CLICK, condition, action)
+function registerClickEvent(action){
+	return new Event(TRIGGER_MOUSE_CLICK,action)
 }
 
 function registerMoveEvent(condition, action){
-	return new Event(TRIGGER_MOUSE_MOVE, condition, action)
+	return new Event(TRIGGER_MOUSE_MOVE,action)
 }
 
 function registerPressEvent(condition, action){
@@ -1049,7 +1024,7 @@ registerMoveEvent(
 		if (m){
 			//console.log(m);
 			setStatePanelText(m)
-			if (m.player.id != player.id && player.unitSelected != EMPTY){
+			if (m.player.id != player.id && player.unitSelected != util.EMPTY){
 				//changeCursor("crosshair")
 			} else {
 				//changeCursor("default")
@@ -1059,8 +1034,9 @@ registerMoveEvent(
 		} else {
 			setStatePanelText("")
 		}
+
 		if (game.turn%2 != player.num) return
-		if (player.state == GAME_STATE_ROLL || player.state == GAME_STATE_END ) return
+		if (player.state != util.GAME_STATE_SUMMON) return
 		if (boundCursor(cursorX,cursorY))
 			socket.send(JSON.stringify({id :'mouse move', data:{X:cursorX, Y:cursorY}}))
 
@@ -1069,13 +1045,30 @@ registerMoveEvent(
 
 
 
-registerClickEvent(
-	function(){return true},
+new Event(TRIGGER_MOUSE_CLICK,
 	function(){
 		if (game.turn%2 != player.num) return
-     
-		socket.send(JSON.stringify({id:'mouse click', X:cursorX, Y:cursorY}))
-
+		var u = util.getUnitAtLocation(game.board,cursorX,cursorY)
+	
+		if (player.state == util.GAME_STATE_UNIT){
+			if (u == util.EMPTY) return;
+     		socket.send(JSON.stringify({id:'mouse click', data:{state: 'select', loc:[cursorX, cursorY]}}))
+     		var m = game.monsters[u]
+			movePath = util.findPossiblePath(game.board,[m.x, m.y],exports.getCrestPool(player,CREST_MOVEMENT))
+     	} else if (player.state == util.GAME_STATE_SELECT){
+ 
+     		if (u == util.EMPTY){
+     			socket.send(JSON.stringify({id:'mouse click', data:{state:'move', loc:[cursorX, cursorY]}}))
+     		} else if (u == player.unitSelected){
+  				socket.send(JSON.stringify({id:'mouse click', data:{state: 'select', loc:[cursorX, cursorY]}})) 			
+     		} else {
+     			socket.send(JSON.stringify({id:'mouse click', data:{state: 'attack', loc:[cursorX, cursorY]}})) 	
+     		}
+     	} else if (player.state == util.GAME_STATE_SUMMON){
+     		socket.send(JSON.stringify({id:'tile place',data:{loc:[cursorX, cursorY]} })) 	
+     	}
+		
+		render();
 	  //var game = games[socketid]
       //var player = getCurrentPlayer(socketid)
 
@@ -1094,19 +1087,19 @@ registerClickEvent(
 		    p1.shape = 0;
 		    p1.rotate = 0;
 		    p1.summoned = true;
-		    p1.state = GAME_STATE_UNIT;
+		    p1.state = util.GAME_STATE_UNIT;
 		    socket.emit('alert', 'Action Phase')
 		    //update(game);
 		  }
 	  }
 		
-      if (player.state == GAME_STATE_SUMMON){
+      if (player.state == util.GAME_STATE_SUMMON){
         console.log("tile place")
         c_tilesplace();
-      } else if (player.state == GAME_STATE_SELECT){
+      } else if (player.state == util.GAME_STATE_SELECT){
       	console.log("selecting")
           c_actionunit(game, player);    
-      } else if (player.state == GAME_STATE_UNIT){
+      } else if (player.state == util.GAME_STATE_UNIT){
       	console.log("unit")
         c_selectunit();
       } 
@@ -1130,14 +1123,14 @@ function findPath(pathStart, pathEnd) {
 		this.x = point.x;
 		this.y = point.y;
 				this.parent = parent;
-		this.value = point.x + point.y * boardSizeY;
+		this.value = point.x + point.y * util.boardSizeY;
 		this.f = 0;
 		this.g = 0;
 		return this;
 	}
 
 	function validWalk(x, y){
-		return boundCursor(x,y) && !isUnitOnCursor(x,y) && getBoardState(x,y) != EMPTY;
+		return boundCursor(x,y) && !isUnitOnCursor(x,y) && getBoardState(x,y) != util.EMPTY;
 	}
 
 	function neighbours(x, y ){
@@ -1157,7 +1150,7 @@ function findPath(pathStart, pathEnd) {
 	function calculatePath(){
 		var pathstart = new Node(null, {x:pathStart[0], y:pathStart[1]});
 		var pathend = new Node(null, {x:pathEnd[0], y:pathEnd[1]});
-		var astar = new Array(boardSizeX*boardSizeY);
+		var astar = new Array(util.boardSizeX*util.boardSizeY);
 		var open = [pathstart];
 		var closed = [];
 		var result = [];
@@ -1168,7 +1161,7 @@ function findPath(pathStart, pathEnd) {
 
 		while (length = open.length){
 
-			max = boardSizeX*boardSizeY;
+			max = util.boardSizeX*util.boardSizeY;
 			min = -1;
 			for(var i=0;i<length;i++){
 				if (open[i].f < max){
@@ -1264,21 +1257,15 @@ var render = function(){
 	drawPath();
 	drawAlert();
 	drawDialog();
-	//drawCrest(CREST_TRAP, 500, 500)
-}
-
-function debug(){
-
+	updateCrest(player.pool);
 }
 
 function update(){
 	//console.log(player.tileSelected);
-	updateCrest(player.pool.pool);
-	debug()
+	
 	var m = getUnitOnCursor(cursorX,cursorY);
 	DialogText = ""
 	if (m){
-		//console.log(m.name +" "+m.hp)
 		setStatePanelText(m)
 	}
 
@@ -1288,12 +1275,12 @@ function update(){
 		}
 	}
 
-	if (player.state == GAME_STATE_END){
+	if (player.state == util.GAME_STATE_END){
 		disableButtons(true,true,true)
 		disableSpell(true)
 		for (i=0;i<15;i++) Buttons[i].reset();
 		DiceSelection = [];
-	} else if (player.state == GAME_STATE_ROLL){
+	} else if (player.state == util.GAME_STATE_ROLL){
 		disableSpell(true)
 		if (DiceSelection.length == 3){
 			disableButtons(false,true,true)
@@ -1301,7 +1288,7 @@ function update(){
 			disableButtons(true,true,true)
 		}
 
-	} else if (player.state == GAME_STATE_SUMMON){
+	} else if (player.state == util.GAME_STATE_SUMMON){
 		disableButtons(true,true,false)
 		disableSpell(true)
 		for (i=0;i<15;i++) Buttons[i].reset();
@@ -1309,7 +1296,7 @@ function update(){
 			Buttons[player.summon[i]].toggle = true;
 			Buttons[player.summon[i]].focus = true;
 		}
-	} else if (player.state == GAME_STATE_UNIT) {
+	} else if (player.state == util.GAME_STATE_UNIT) {
 		disableButtons(true,true,false)
 		disableSpell(true)
 		if (game.turn%2 != player.num){
@@ -1322,15 +1309,19 @@ function update(){
 		}
 
 
-	} else if (player.state == GAME_STATE_SELECT) {
+	} else if (player.state == util.GAME_STATE_SELECT) {
 		canvas.style.cursor = "default";
 		disableButtons(true,true,false,false)
 		if (game.turn%2 != player.num){
 			disableButtons(true,true,true)
 		}
 	
-	} else if (player.state == GAME_STATE_COMBAT) {
+	} else if (player.state == util.GAME_STATE_COMBAT) {
 		disableSpell(true)
+		if (!game.combat) {
+			console.log('combat missing!')
+			return
+		}
 		if (game.combat.unit.player.num != player.num){
 			disableButtons(true,false,true);
 			DialogText = "Use a defense crest?"
@@ -1341,8 +1332,6 @@ function update(){
 
 		//console.log(game.combat);
 	}
-
-	render();
 }
 
 //socket.on('guard trigger', function(){
@@ -1378,7 +1367,7 @@ var init = function (){
 		
 		for (var i=0; i< EVENT_LIST.length; i++){
 			//console.log(EVENT_LIST[i].action);
-			if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_MOVE && EVENT_LIST[i].condition()) {
+			if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_MOVE) {
 				//render();
 				EVENT_LIST[i].action();
 				
@@ -1397,7 +1386,7 @@ var init = function (){
 		
 		for (var i=0; i<EVENT_LIST.length; i++){
 			//console.log(EVENT_LIST[i].action);
-			if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_CLICK && EVENT_LIST[i].condition()) {
+			if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_CLICK) {
 				//render();
 				EVENT_LIST[i].action();	
 				render()	
