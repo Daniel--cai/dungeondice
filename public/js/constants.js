@@ -53,13 +53,14 @@ exports.UNIT_STATUS_SILENCED = 2
 exports.boardSizeX = 13;
 exports.boardSizeY= 19;
 
-exports.GAME_STATE_UNIT = 2
+
 exports.GAME_STATE_ROLL = 0;
 exports.GAME_STATE_SUMMON = 1;
 exports.GAME_STATE_UNIT = 2;
 exports.GAME_STATE_COMBAT = 3;
 exports.GAME_STATE_SELECT = 4;
 exports.GAME_STATE_END = 5;
+exports.GAME_STATE_NEUTRAL = 6;
 
 exports.EMPTY = -1;
 exports.PLAYER_1 = 0;
