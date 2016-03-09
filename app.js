@@ -84,6 +84,8 @@ function Game(){
 			this.monsters[unit].x = point[0]
 			this.monsters[unit].y = point[1]
 		}
+		console.log('setting', unit,'to',point)
+
 		this.update('unit location', util.EMPTY, {unit:unit, loc:point})
 	}
 	
@@ -304,7 +306,9 @@ function Spell(name, cost,target){
 	this.id =  SpellID;
 	this.cooldown = 1;
 	this.target = target;
+	this.onEffect = () => console.log(this.name+'onEffect not implemented')
 	SpellID++;
+
 	return this;
 }
 
@@ -330,30 +334,22 @@ function Buff(name, duration){
 	this.duration = duration;
 	this.durationcounter = duration;
 	this.owner = null;
-	this._callbacks = {}
+	this.callbacks = {}
 
 	this.on = function(event, callback){
-		this._callbacks[event] = callback;
+		this.callbacks[event] = callback;
 	}
 
 	this.fire = function(event){
-		if (!this._callbacks.hasOwnProperty(event)){
-			console.log(event, 'not implemented')
+		if (!this.callbacks.hasOwnProperty(event)){
+			console.log(event, 'not implemented for', this.name)
 			return;
 
 		}
 		var args = Array.prototype.slice.call( arguments );
 		var topic = args.shift();
-		this._callbacks[event].apply(undefined, args)
+		this.callbacks[event].apply(undefined, args)
 	}
-
-	this.onApply = function(){console.log("onApply not implemented for " + this.name)};
-	this.onEffect = function(){console.log("onEffect not implemented for " + this.name)};
-	this.onFinish = function(){console.log("onFinish not implemented for " + this.name)};
-	this.onAttack = function(){console.log("onAttack not implemented for " + this.name)};
-	this.onDefend = function(){console.log("onDefend not implemented for " + this.name)};
-	this.onMove = function(){console.log("onMove not implemented for " + this.name)};
-	this.onTurn = function(){console.log("onTurn not implemented for " + this.name)};
 	return this;
 }
 
@@ -369,27 +365,33 @@ var SPELL_TEEMO2 = new Spell("Noxious Trap", [CREST_MAGIC, 2],true)
 function ApplyBuff(caster, target, buff){
 	for (var i = 0; i<target.buff.length; i++){
 		if (target.buff[i].name == buff.name){
-			return;
+			target.buff.splice(i,1);
+			break;
 		}
 	}
 	target.buff.push(buff);
 	buff.owner = caster.id;
+	console.log(buff.name)
+	games[target.player.id].update('buff unit',target.player.num, {target:target, buff:buff.name})
 }
 
 function DamageUnit(trigger, target, damage){
 	//event
+
+	if (!target.exist){
+		console.log('Damaging a dead unit')
+		return;
+	}
 	target.hp = target.hp - damage;
 	var remove = false
 	if (target.hp <= 0){
-		target.remove()
+		console.log('deaded')
+		target.destroy()
 	}
-	//alertGlobal(game, this.unit.type.name + "'s Toxic Mushroom dealt 10 damage to "+ event.trigger.type.name)
+	games[trigger.player.id].update('damage', util.EMPTY, {trigger:trigger.id, target:target.id, damage:damage})
+	console.log(trigger.type.name,'hit', target.type.name, 'for',damage)
 }
 
-
-var testb = new Buff('tets', 2);
-testb.on('hello', function(data){console.log('testb on',data)})
-//testb.fire('hello', 'hellothere')
 
 var BUFF_TEEMO1 = function(){
 	var buff = new Buff("Blinding Dart", 1);
@@ -401,33 +403,38 @@ var BUFF_TEEMO1 = function(){
 	})
 	return buff;
 }()
+
+function PROP_TEEMO2 (prop){
+	prop.on('collision', function(event){
+		DamageUnit(prop.unit,event.trigger, 40)
+		BUFF_SLOW(event.trigger, 1)
+		prop.destroy();
+	})
+}
+
+function BUFF_SLOW(unit, movement){
+	unit.impairment += movement;
+	games[unit.player.id].update('impairment', util.EMPTY, {unit: unit.id, point:movement})
+}
+
 SPELL_TEEMO1.onEffect = function(event){
+
 	var game = games[event.trigger.player.id]
 	var id = game.board.getUnitAtLoc(event.location[0],event.location[1]);
 	if (id == util.EMPTY) return "Must target unit";
 
-	var buff = BUFF_TEEMO1
-	//console.log(event)
-
-	
 	var target = game.monsters[game.board.getUnitAtLoc(event.location[0],event.location[1])]
+	var buff = BUFF_TEEMO1
 	ApplyBuff(event.trigger, target, buff)
+
 	DamageUnit(event.trigger, target, 10);
-	
 
 	return "";
 }
 
 SPELL_TEEMO2.onEffect = function(event){
 	var mushroom = new Prop("Toxic Mushroom", event.trigger.player, event.location, event.trigger);
-	mushroom.onCollision = function(event){
-		var game = games[event.trigger.player.id]
-		//console.log(event.trigger.type.name)
-		//console.log(event.trigger.player.id, game)
-		alertGlobal(game, this.unit.type.name + "'s Toxic Mushroom dealt 10 damage to "+ event.trigger.type.name)
-		DamageUnit(this.unit, event.trigger, 10);
-		this.clear = true;
-	}  
+	PROP_TEEMO2(mushroom); 
 	//console.log(event)
 	//var buff = new Buff("Blinding Dart", 1);
 	//ApplyBuff(event.trigger, event.target, buff)
@@ -478,15 +485,24 @@ function Combat(unit, target){
 
 		var game = games[this.unit.player.id]
 		game.combat = null
-		if (event.status.length == 0){
-			DamageUnit(this.unit, this.target, dmg)
-			console.log(this.atkmodifier + " mod " + this.defmodifier)
+		if (event.status.indexOf('miss') != -1){
+			console.log('mised!')
+			game.update('miss', util.EMPTY, {trigger:this.unit.id, target:this.target.id})
+		} else {
+			console.log('damage!', event.status)
+			//DamageUnit(this.unit, this.target, dmg)
+			console.log(this.unit.name+'('+this.unit.hp+')'+'attacking', this.target.name+'('+this.target.hp+')', 'for',this.atkmodifier+"(-"+this.defmodifier+")")
+			this.target.hp = this.target.hp - dmg;
+			if (this.target.hp <= 0){
+				this.target.destroy()
+			}
+			
 			console.log("after attack " +this.target.hp)
-			game.update('damage', util.EMPTY, {trigger:this.unit.id, target:this.target.id, damage:dmg, guard: this.guarded})
+			game.update('attack', util.EMPTY, {trigger:this.unit.id, target:this.target.id, damage:dmg, guard: this.guarded, status:event.status})
 			//sendAll(games[trigger.player.id], {id:'damage', trigger:trigger.id, target:target.id, remove: remove})
 					
 			//updateCrest();
-		} 
+		}
 		this.unit.player.updatePool(CREST_ATTACK, -this.unit.atkcost);
 		this.unit.player.changeState(util.GAME_STATE_UNIT)
 		this.target.player.changeState(util.GAME_STATE_NEUTRAL);
@@ -496,15 +512,42 @@ function Combat(unit, target){
 }
 
 function Prop(name, player, point,unit) {
+	this.id = 0
 	this.x = point[0];
 	this.y = point[1];
 	this.player = player;
 	this.name = name;
 	this.unit = unit ? unit : util.EMPTY;
-	console.log('prop is ' +this.unit)
 	this.clear = false;
-	this.onCollision = function(){console.log(name + ".onCollision not implemented")};
+
+	this.callbacks = {}
+
+	this.on = function(event, callback){
+		this.callbacks[event] = callback;
+	}
+
+	this.fire = function(event){
+		if (!this.callbacks.hasOwnProperty(event)){
+			console.log(event, 'not implemented', this.name)
+			return;
+		}
+		var args = Array.prototype.slice.call( arguments );
+		var topic = args.shift();
+		this.callbacks[event].apply(undefined, args)
+	}
+
+	this.id = games[this.player.id].props.length;
 	games[player.id].props.push(this)
+
+
+	games[player.id].update('prop', util.EMPTY, this)
+
+	this.destroy = function(){
+		games[this.player.id].props.splice(games[this.player.id].props.indexOf(this),1)
+		games[this.player.id].update('destroy prop', util.EMPTY, this)
+		//this.exist = false;
+	}
+
 	return this;
 }
 
@@ -526,14 +569,21 @@ function Unit(player, type, point, level) {
 	this.atkrange = 1;
 	this.buff = []
 	this.exist = true;
-
+	this.impairment = 0;
 	this.spells = [SPELL_TEEMO1, SPELL_TEEMO2];
 
 	//this.game = game;
 
 
 	this.attack = function(target){
-	 var d = util.manhattanDistance(this, target);
+
+		var d = util.manhattanDistance(this, target);
+
+		if (!target.exist){
+			console.log("Target is dead")
+			return false;
+		}
+
 		if (util.getCrestPool(this.player, CREST_ATTACK) < this.atkcost){
 			console.log("Not enough attack crest")
 			return false;
@@ -580,38 +630,54 @@ function Unit(player, type, point, level) {
 		return true;
 	}
 
-	this.remove = function(){
+	this.destroy = function(){
+		console.log('Removing', this.name, this.id)
+		var game = games[this.player.id]
+
+		game.setUnitAtLoc(util.EMPTY, [this.x,this.y])
+
+		console.log('destroy',[this.x,this.y],util.getTileState(game.board,this.x,this.y))
 		this.exist = false;
-		//game.monsters[this.id] = null;   
+		//game.monsters[this.id] = null
+		game.update('destroy unit', util.EMPTY, {unit:this, loc:[this.x,this.y]})
 	}
 
+
+
 	this.moveUnit = function(loc){
-			var game = games[this.player.id]
+			console.log('exist is ', this.exist)
+			if (!this.exist){
+				console.log('Moving a dead unit')
+				return;
+			}
+			//var game = games[this.player.id]
 			var board = game.board
 			var path = util.findPath(board,[this.x,this.y],loc);
 			var plen = path.length;
-			if (plen > 1 && plen-1 <= util.getCrestPool(this.player,util.CREST_MOVEMENT)) { 
-				var event = {trigger: this, location: loc}
-				for (var i=0; i<path.length; i++){
-						for (var j=0; j<game.props.length; j++){
-							if (game.props[j] && game.props[j].x == path[i][0] && game.props[j].y == path[i][1]){
-								game.props[j].onCollision(event);
-							}
-						}
-					 
-				}
-
+			//console.log(plen-1,'<=',this.impairment + util.getCrestPool(this.player,util.CREST_MOVEMENT))
+			if (plen > 1 && plen-1 <= util.getCrestPool(this.player,util.CREST_MOVEMENT) - this.impairment) { 			
 				game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
 				this.x = loc[0];
 				this.y = loc[1];
 				game.setUnitAtLoc(this.id,loc)
+				
 				this.player.updatePool(CREST_MOVEMENT,-(plen-1))
 				this.player.changeState(util.GAME_STATE_UNIT)
 			 
-				//prop onCollision events
-
+				var event = {trigger: this, location: loc}
+				for (var i=0; i<path.length; i++){
+						for (var j=0; j<game.props.length; j++){
+							if (game.props[j] && game.props[j].x == path[i][0] && game.props[j].y == path[i][1]){
+								game.props[j].fire('collision',event);
+							}
+						}
+					 
+				}
 				return true;
-			} 
+			} else {
+			
+				console.log('Illegal move',plen)
+			}
 			return false;
 	}
 
@@ -877,7 +943,8 @@ function Player(id){
 		} else if (game.monsters[m].player.id==this.id){      
 			this.changeState(util.GAME_STATE_SELECT);
 			this.unitSelected = m;
-			game.update('select unit', this.num, m)
+			conn.send({id:'select unit', unit:m})
+			//game.update('select unit', this.num, m)
 			//send(this.id, {num: this.num, id:'update', type:'select unit', data:m})
 			//send(this.id, {num: this.num, id:'update', type:'select unit', data:m})
 			return true
@@ -949,8 +1016,8 @@ function test(){
 
 	//units
 
-	var u1 = game.createUnit(p1, UNIT_IDS[0], [4,16])
-	var u2 = game.createUnit(p2, UNIT_IDS[1], [5,16])
+	var u1 = game.createUnit(p1, UNIT_IDS[0], [4,16]) //teemo
+	var u2 = game.createUnit(p2, UNIT_IDS[1], [5,16]) // soraka
 	console.assert(game.monsters.length ==2,"units added to monsters")
 	console.assert(u1.x == 4,"x position unit")
 	console.assert(u2.y == 16,"y position unit")
@@ -976,6 +1043,22 @@ function test(){
 
 	console.assert(p1.unitSelected == u1.id, "select unit ",u1.id, p1.unitSelected)
 	console.assert(p1.selectUnit(4,15)== false, "deselect unit")
+	game.board.setTileState([6,16],1)
+	var p = new Prop("Toxicc Mushroom", p1, [6,16],u1);
+	PROP_TEEMO2(p)
+	console.assert(game.props.length == 1)
+	console.assert(game.props[0].name == "Toxicc Mushroom")
+	var m = u2.moveUnit([6,16])
+	console.assert(game.props.length == 0)
+	console.assert(m == true)
+	console.assert(u2.exist == false)
+	console.log(u2.id,u2.x, u2.y, u2.exist)
+
+	console.assert(game.board.getUnitAtLoc(6,16) == util.EMPTY)
+
+	//u1.destroy()
+	//console.assert(game.monsters.length == 1)
+
 	DEBUG = 1;
 	console.log('Tests passed!')
 }
@@ -999,7 +1082,7 @@ wss.on('connection', function(socket){
 		//sockets[socket.id] = socket;
 
 		var game = opengames.pop();
-
+		console.log(opengames.length)
 		if (!game){
 			game = new Game();
 			opengames.push(game);
@@ -1007,20 +1090,23 @@ wss.on('connection', function(socket){
 			console.log("created new game")
 		} else {
 			console.log("joined new game")  
+			
 			game.init(p1);
 			
 			var t = game.createUnit(game.players[0], UNIT_IDS[2], [4,16])
 			var r = game.createUnit(game.players[1], UNIT_IDS[3], [5,16])
+			//var p = new Prop('test prop', p1, [4,16])
 			//new Prop("Toxic Mushroom", p1, temp);
 
 			var buff = BUFF_TEEMO1
-			ApplyBuff(t, t, buff)
-			ApplyBuff(r, r, buff)
+			//ApplyBuff(t, t, buff)
+			//ApplyBuff(r, r, buff)
 
 			game.players[0].changeState(util.GAME_STATE_UNIT)
 			console.log(game.players[0].id)
 			console.log("connecting with...");
 			console.log(p1.id)
+		
  
 		}
 
@@ -1045,7 +1131,7 @@ wss.on('connection', function(socket){
 				//if (u == util.EMPTY) return;
 				var event = {trigger: game.monsters[p1.unitSelected], location: loc};
 				//console.log(p1.spell)
-				var alert = p1.spell.onEffect(event);
+				var alert = spell.onEffect(event);
 				if (alert != ""){
 						socket.send(JSON.stringify({id:'alert', data:alert}));
 				} else {
@@ -1183,6 +1269,7 @@ wss.on('connection', function(socket){
 				//  ;
 				//} else if (p1.state == util.GAME_STATE_SELECT){
 				if (data.state == 'move'){
+						console.log('moving')
 					if (util.getTileState(game.board, data.loc[0], data.loc[1]) != util.EMPTY){
 						if (!game.monsters[p1.unitSelected].moveUnit(data.loc)){
 							console.log("invalid move");
@@ -1194,6 +1281,30 @@ wss.on('connection', function(socket){
 					if (!c_attackunit(data.loc[0], data.loc[1])){
 						console.log('attack failed')
 					}
+				} else if (data.state == 'cast'){
+					console.log('casting spell!')
+					var spell = game.monsters[p1.unitSelected].spells[data.button]
+					console.log(spell.cost[0])
+					if (p1.pool[spell.cost[0]] < spell.cost[1]){
+						socket.send(JSON.stringify({data:'alert', data:"Not enough"+CREST_TEXT[spell.cost[0]]+' to cast'+ spell.name}));
+					} else {
+
+						//console.log('self')
+						var event = {trigger: game.monsters[p1.unitSelected], location: data.loc};
+						//console.log(spell)
+						var alert = spell.onEffect(event);
+
+						if (alert != ""){
+							//socket.send(JSON.stringify({id:'alert', data:alert}));
+							console.log('spell cast error!')
+						} else {
+							console.log('spell cast went through')
+							p1.changeState(util.GAME_STATE_UNIT)
+						}
+							        
+					}
+
+				
 				}
 					//console.log("select")
 						//c_actionunit();    
@@ -1288,10 +1399,13 @@ wss.on('connection', function(socket){
 		
 		}
 		
-		//socket.on('close', function(){
-
-		//	console.log('user disconnected');
-		//});
+		socket.on('close', function(){
+			console.log('Player',p1.num,'has disconnected');
+			//games[id].players.splice(p1.num,1)
+			//console.log(games[id].players.length)
+			//opengames.push(games[id]);
+			//games[id] = null
+		});
 });
 
 console.log('listening on http://localhost:3000');

@@ -131,7 +131,7 @@ exports.neighbours = function (board,x,y){
 
 exports.findPossiblePath = function(board,pathStart, squares){
   var result = [];
-  console.log("findPossiblePath()")
+  //console.log("findPossiblePath()")
   for (var i=0; i<exports.boardSizeX;i++){
     for (var j=0; j<exports.boardSizeY;j++){
       if (!exports.validWalk(board,i,j)) continue;
