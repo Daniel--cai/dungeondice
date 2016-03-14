@@ -43,7 +43,7 @@ var actionState = util.PLAYER_STATE_NEUTRAL
 
 var ctx = canvas.getContext("2d");
 content.hidden = true;
-
+cancelButton.hidden = true
 
 var squareSize = 30;
 
@@ -122,7 +122,7 @@ SPELLS['Lucian'][0].on('effect', function(event){
 			}
 		}
 
-		SPELLS['Lucian'][0].fire('finish', {})
+		SPELLS['Lucian'][0].fire('finish', {trigger:event.trigger})
 
 	}
 
@@ -155,7 +155,7 @@ SPELLS['Lucian'][1].on('effect',function(event){
 				break;
 			}
 		}
-	SPELLS['Lucian'][1].fire('finish', {})
+	SPELLS['Lucian'][1].fire('finish', {trigger:event.trigger})
 	}
 })
 SPELLS['Lucian'][2] = new Spell("Relentless Pursuit", [CREST_MOVEMENT, 2],true)
@@ -195,8 +195,6 @@ SPELLS['Lucian'][2].on('cast', function(event){
 
 })
 
-
-
 SPELLS['Lucian'][2].on('effect', function(event){
 	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) != util.EMPTY) {console.log('Location not empty'); return}
 	var buff = util.EMPTY;
@@ -218,8 +216,18 @@ SPELLS['Lucian'][2].on('effect', function(event){
 	var path = util.findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
 	console.log(path)
 	event.trigger.movement(path)
-	SPELLS['Lucian'][2].fire('finish', {})
+	SPELLS['Lucian'][2].fire('finish', {trigger:event.trigger})
 })
+
+SPELLS['Lucian'][3] = new Spell("Ardent Cenzer", [CREST_MAGIC, 2],true)
+
+SPELLS['Lucian'][4] = new Spell('Lightslinger', [CREST_ATTACK,0], false)
+SPELLS['Lucian'][4].on('learn', function(event){
+	console.log('Learnt lightslinger')
+	ApplyBuff(event.trigger,event.trigger, BUFFS['Lightslinger']())
+})
+
+
 SPELLS['Teemo'] = []
 
 SPELLS['Teemo'][0] = new Spell("Blinding Dart", [CREST_ATTACK, 2],true)
@@ -236,7 +244,7 @@ SPELLS['Teemo'][0].on('effect',function(event){
 	ApplyBuff(event.trigger, target, buff)
 
 	DamageUnit(event.trigger.id, target.id, 10);
-	SPELLS['Teemo'][0].fire('finish')
+	SPELLS['Teemo'][0].fire('finish',{trigger:event.trigger})
 })
 
 SPELLS['Teemo'][1].on('effect', function(event){
@@ -248,10 +256,8 @@ SPELLS['Teemo'][1].on('effect', function(event){
 	//var buff = new Buff("Blinding Dart", 1);
 	//ApplyBuff(event.trigger, event.target, buff)
 	//DamageUnit(event.trigger, event.target, 10);
-	SPELLS['Teemo'][1].fire('finish')
-
+	SPELLS['Teemo'][1].fire('finish',{trigger:event.trigger})
 })
-
 
 UNITS['Teemo'] = {
 	name: 'Teemo',
@@ -366,6 +372,20 @@ var BUFF_silence = new Buff("Silenced", 1);
 var BUFF_root = new Buff("Root", 1);
 var BUFF_knock_up = new Buff("Knock Up", 1);
 
+BUFFS['Lightslinger'] = function(){
+	var buff = new Buff('Lightslinger', 0)
+	//buff.active = false;
+	buff.on('spell', function(event){
+		//buff.active = true;
+		event.trigger.hasAttacked = false;
+	})
+
+	//buff.on('attack',function(event){
+	//	if (!buff.active) return;
+	//})
+	return buff;
+}
+
 BUFFS['Blinding Dart'] = function(){
 	var buff = new Buff("Blinding Dart", 1);
 	buff.on('attack', function(event){
@@ -428,6 +448,9 @@ function Spell(name, cost,target){
 	}
 
 	this.on('finish', function(event){
+		for (var i =0; i<event.trigger.buff.length; i++){
+			event.trigger.buff[i].fire('spell', event)
+		}
 		player.changeState(util.GAME_STATE_UNIT)
 	})
 
@@ -673,13 +696,14 @@ function Combat(unit, target){
 			//}
 			DamageUnit(this.unit.id,this.target.id,dmg)
 
-			console.log("after attack " +this.target.hp)
+			//console.log("after attack " +this.target.hp)
 			//game.update('attack', util.EMPTY, {trigger:this.unit.id, target:this.target.id, damage:dmg, guard: this.guarded, status:event.status})
 			//sendAll(games[trigger.player.id], {id:'damage', trigger:trigger.id, target:target.id, remove: remove})
 
 			//updateCrest();
 		}
 
+		this.unit.hasAttacked = true;
 		this.unit.player.updatePool(CREST_ATTACK, -this.unit.atkcost);
 		this.unit.player.changeState(util.GAME_STATE_UNIT)
 		//this.target.player.changeState(util.GAME_STATE_NEUTRAL);
@@ -1297,11 +1321,12 @@ function Player(id){
 		var m = util.getUnitAtLocation(game.board,x,y)
 		if (this.unitSelected == m) {
 			this.changeState(util.GAME_STATE_UNIT);
+
 		} else if (game.monsters[m].player.num==this.num){
 			this.changeState(util.GAME_STATE_SELECT);
 			this.unitSelected = m;
 			conn.send({id:'select unit', unit:m})
-
+			disableSpell(false)
 			if (player.num == this.num){
 				if (game.monsters[m].spells[0]){
 					qButton.innerHTML = game.monsters[m].spells[0].name
@@ -1311,6 +1336,10 @@ function Player(id){
 				}
 				if (game.monsters[m].spells[2]){
 					eButton.innerHTML = game.monsters[m].spells[2].name
+				}
+				if (game.monsters[m].spells[4]){
+					passiveButton.innerHTML = game.monsters[m].spells[4].name
+					passiveButton.disabled = true
 				}
 
 			}
@@ -1550,7 +1579,7 @@ function disableSpell(d){
 		wButton.disabled = d;
 		eButton.disabled = d;
 		rButton.disabled = d;
-		player.spell = util.EMPTY
+		//player.spell = util.EMPTY
 }
 
 function disableButtons(a,b){
@@ -1567,7 +1596,7 @@ function changeState(p1, state){
   p1.state = state;
   p1.tileSelected = []
   player.spell = util.EMPTY
-
+	disableSpell(true)
   if (state == util.GAME_STATE_UNIT){
     p1.unitSelected = util.EMPTY;
 
@@ -2134,12 +2163,16 @@ function spellButtonEffect(button){
 	if (player.state != util.GAME_STATE_SELECT) return;
 	if (!game.monsters[player.unitSelected].spells[button]) return
 	if (!game.monsters[player.unitSelected].spells[button].target){
-		socket.send(JSON.stringify({ id:'cast', data:button}));
+		//socket.send(JSON.stringify({ id:'cast', data:button}));
+		console.log('no target spell')
 	} else {
-		player.spell = button;
+		window.player.spell = button;
+		console.log('player spell now',player.spell)
 		game.monsters[player.unitSelected].spells[button].fire('cast', {trigger:game.monsters[player.unitSelected]})
+		disableSpell(true)
+		cancelButton.hidden = false;
 	}
-	//console.log('cast',button)
+
 }
 
 function responseButton(button){
@@ -2171,7 +2204,10 @@ eButton.addEventListener("click", function(){
 
 cancelButton.addEventListener("click", function(){
 	player.spell = -1;
-	player.changeState(util.GAME_STATE_UNIT)
+	disableSpell(false)
+	cancelButton.hidden = true;
+	var m = game.monsters[player.unitSelected]
+	player.movePath = util.findPossiblePath(game.board,[m.x, m.y],exports.getCrestPool(player,CREST_MOVEMENT)-m.impairment)
 })
 
 
