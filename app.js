@@ -13,7 +13,7 @@ var server = http.createServer(app)
 server.listen(port)
 var WebSocketServer = require("ws").Server
 var wss = new WebSocketServer({server: server})
-		
+
 var playersockets = []
 var sockets = []
 var gamesinprogress = [];
@@ -52,7 +52,7 @@ function Game(){
 		this.players.push(player);
 
 		player.num = this.players.indexOf(player);
-		games[player.id] = this;      
+		games[player.id] = this;
 
 		if (this.players.length < 2) return;
 		sendAll(this, {id:'new game', data:this})
@@ -88,7 +88,7 @@ function Game(){
 
 		this.update('unit location', util.EMPTY, {unit:unit, loc:point})
 	}
-	
+
 	this.createUnit = function (player, id, point){
 
 			if (!id) return;
@@ -128,14 +128,14 @@ function Board(){
 			this.tiles[i].push(util.EMPTY);
 		}
 	}
-	
+
 	for (var i=0; i<this.boardSizeY;i++){
 		this.units[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
 			this.units[i].push(util.EMPTY);
 		}
 	}
-	
+
 	this.tiles[0][6] = util.PLAYER_2;
 	this.tiles[18][6] = util.PLAYER_1;
 	//this.tiles[0][6] = util.PLAYER_2;
@@ -176,7 +176,7 @@ function Board(){
 			}
 			//adjacent
 
-			if (util.getTileState(this,x+1,y) == player.num || 
+			if (util.getTileState(this,x+1,y) == player.num ||
 				util.getTileState(this,x-1,y) == player.num ||
 				util.getTileState(this,x,y-1) == player.num ||
 				util.getTileState(this,x,y+1) == player.num ){
@@ -186,7 +186,7 @@ function Board(){
 
 		return valid;
 	}
-	
+
 		return this;
 }
 
@@ -252,7 +252,7 @@ UNIT_IDS[3]= {
 }
 
 
-var Dice_Teemo = new Dice(UNIT_IDS[0], 
+var Dice_Teemo = new Dice(UNIT_IDS[0],
 				 [[CREST_SUMMON,1],
 					[CREST_SUMMON,1],
 					[CREST_SUMMON,1],
@@ -260,7 +260,7 @@ var Dice_Teemo = new Dice(UNIT_IDS[0],
 					[CREST_SUMMON,1],
 					[CREST_MOVEMENT,1]])
 
-var Dice_Soraka = new Dice(UNIT_IDS[1], 
+var Dice_Soraka = new Dice(UNIT_IDS[1],
 					[[CREST_SUMMON,2],
 					 [CREST_SUMMON,2],
 					 [CREST_SUMMON,2],
@@ -269,7 +269,7 @@ var Dice_Soraka = new Dice(UNIT_IDS[1],
 					 [CREST_MAGIC,3]]);
 
 
-var Dice_Poppy = new Dice(UNIT_IDS[2], 
+var Dice_Poppy = new Dice(UNIT_IDS[2],
 					[[CREST_SUMMON,3],
 					 [CREST_SUMMON,3],
 					 [CREST_SUMMON,3],
@@ -277,7 +277,7 @@ var Dice_Poppy = new Dice(UNIT_IDS[2],
 					 [CREST_TRAP,3],
 					 [CREST_ATTACK,1]]);
 
-var Dice_Garen = new Dice(UNIT_IDS[3], 
+var Dice_Garen = new Dice(UNIT_IDS[3],
 					[[CREST_SUMMON,4],
 					 [CREST_SUMMON,4],
 					 [CREST_DEFENSE,3],
@@ -292,7 +292,7 @@ function getRandomInt(min, max) {
 //colours
 var blue    = "#000099";
 var red = "#990000";
-var green  = "#009900"; 
+var green  = "#009900";
 var white = "#ffffff";
 var black = "#000000"
 
@@ -434,7 +434,7 @@ SPELL_TEEMO1.onEffect = function(event){
 
 SPELL_TEEMO2.onEffect = function(event){
 	var mushroom = new Prop("Toxic Mushroom", event.trigger.player, event.location, event.trigger);
-	PROP_TEEMO2(mushroom); 
+	PROP_TEEMO2(mushroom);
 	//console.log(event)
 	//var buff = new Buff("Blinding Dart", 1);
 	//ApplyBuff(event.trigger, event.target, buff)
@@ -469,7 +469,7 @@ function Combat(unit, target){
 	}
 
 	this.postattack = function(){
-		
+
 		//game = games[this.player.id]
 		//combat = game.combat;
 		var dmg = this.atkmodifier - this.defmodifier;
@@ -478,7 +478,7 @@ function Combat(unit, target){
 		}
 		var event = {attacker: this.unit, target: this.target, dmg: dmg, status: [] }
 		var status = []
-		for (var i=0; i< this.unit.buff.length; i++){ 
+		for (var i=0; i< this.unit.buff.length; i++){
 			this.unit.buff[i].fire('attack',event);
 		}
 		console.log('status',event.status)
@@ -496,11 +496,11 @@ function Combat(unit, target){
 			if (this.target.hp <= 0){
 				this.target.destroy()
 			}
-			
+
 			console.log("after attack " +this.target.hp)
 			game.update('attack', util.EMPTY, {trigger:this.unit.id, target:this.target.id, damage:dmg, guard: this.guarded, status:event.status})
 			//sendAll(games[trigger.player.id], {id:'damage', trigger:trigger.id, target:target.id, remove: remove})
-					
+
 			//updateCrest();
 		}
 		this.unit.player.updatePool(CREST_ATTACK, -this.unit.atkcost);
@@ -600,18 +600,18 @@ function Unit(player, type, point, level) {
 		if (this.hasAttacked) {
 			console.log("Already attack")
 			this.player.alert('Already attacked')
-			
+
 			//var socket = sockets[this.player.id]
 			//socket.emit('alert', "Already attacked");
 			return false
 		}
 		game = games[this.player.id]
-		
+
 
 		if (this.player.id == target.player.id) {
 			console.log("Cannot attack allies")
 			this.player.alert("Cannot attack allies")
-			
+
 			//var socket = sockets[this.player.id]
 			//socket.emit('alert', "Already attacked");
 			return false
@@ -655,15 +655,15 @@ function Unit(player, type, point, level) {
 			var path = util.findPath(board,[this.x,this.y],loc);
 			var plen = path.length;
 			//console.log(plen-1,'<=',this.impairment + util.getCrestPool(this.player,util.CREST_MOVEMENT))
-			if (plen > 1 && plen-1 <= util.getCrestPool(this.player,util.CREST_MOVEMENT) - this.impairment) { 			
+			if (plen > 1 && plen-1 <= util.getCrestPool(this.player,util.CREST_MOVEMENT) - this.impairment) {
 				game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
 				this.x = loc[0];
 				this.y = loc[1];
 				game.setUnitAtLoc(this.id,loc)
-				
+
 				this.player.updatePool(CREST_MOVEMENT,-(plen-1))
 				this.player.changeState(util.GAME_STATE_UNIT)
-			 
+
 				var event = {trigger: this, location: loc}
 				for (var i=0; i<path.length; i++){
 						for (var j=0; j<game.props.length; j++){
@@ -671,11 +671,11 @@ function Unit(player, type, point, level) {
 								game.props[j].fire('collision',event);
 							}
 						}
-					 
+
 				}
 				return true;
 			} else {
-			
+
 				console.log('Illegal move',plen)
 			}
 			return false;
@@ -776,7 +776,7 @@ var EVENT_LIST = [];
 function Event(trigger, condition, action){
 	this.trigger = trigger;
 	this.condition = condition;
-	this.action = action; 
+	this.action = action;
 	this.enabled = true;
 	EVENT_LIST.push(this);
 	this.triggerunit = null;
@@ -877,7 +877,7 @@ function Player(id){
 			game.players[((this.num == 0) ? 1 : 0)].changeState(util.GAME_STATE_UNIT);
 		}
 		game.update('change state', this.num, state)
-		
+
 	}
 
 	this.changeActionState = function(state){
@@ -896,20 +896,20 @@ function Player(id){
 		var summon = [[],[],[],[],[]];
 		var result = [];
 		//var dicechoice= [];
-			
+
 		for (var i=0;i<data.length; i++){
 			var dices = this.dices[data[i]]
 			var r = dices.roll();
 			//result.push(r)
 
-			
+
 			if (r[0] != CREST_SUMMON){
 				//console.log(this.pool);
 				this.updatePool(r[0],r[1])
 				//console.log(this.pool);
 				console.log(CREST_TEXT[r[0]] + " " + r[1]);
 
-	
+
 			} else {
 				summon[r[1]].push(data[i]);
 				console.log("SUMMON " + r[1]);
@@ -917,9 +917,9 @@ function Player(id){
 					summonlevel = r[1]
 				}
 			}
-			
+
 		}
-		
+
 		if (summonlevel){
 			//string += "Summoning level: " + summonlevel + "<br\>";
 			this.summon = summon[summonlevel];
@@ -927,7 +927,7 @@ function Player(id){
 			//console.log('hello',this.summon)
 			//this.summonlevel = summonlevel
 		}
-		return result;    
+		return result;
 	}
 
 	this.alert = function(data){
@@ -939,8 +939,8 @@ function Player(id){
 		var m = util.getUnitAtLocation(game.board,x,y)
 		if (this.unitSelected == m) {
 			this.changeState(util.GAME_STATE_UNIT);
-		 
-		} else if (game.monsters[m].player.id==this.id){      
+
+		} else if (game.monsters[m].player.id==this.id){
 			this.changeState(util.GAME_STATE_SELECT);
 			this.unitSelected = m;
 			conn.send({id:'select unit', unit:m})
@@ -1031,9 +1031,9 @@ function test(){
 	console.assert(u1.attack(u1) == false,"attack allies")
 	game.board.setTileState([4,15],1)
 	console.assert(util.getTileState(game.board,4,15) == 1, "board state tile")
-	
+
 	var m = u1.moveUnit([4,15])
-	console.assert(m == true, "move unit valid move") 
+	console.assert(m == true, "move unit valid move")
 	console.assert(p1.state == util.GAME_STATE_UNIT, "move unit state")
 
 	console.assert(util.getCrestPool(p1, util.CREST_MOVEMENT) == 6, "move unit crest is " + util.getCrestPool(p1, util.CREST_MOVEMENT) +"!=6")
@@ -1070,7 +1070,7 @@ wss.on('connection', function(socket){
 		console.log('a user connected');
 
 		//socket.emit('new player id', socket.id)
-		
+
 		var id = socket.upgradeReq.headers['sec-websocket-key'];
 		socket.send(JSON.stringify({id: 'id', data: id}))
 		sockets[id]=socket;
@@ -1078,7 +1078,7 @@ wss.on('connection', function(socket){
 		var p1 = new Player(id);
 		playersockets.push(p1);
 		//console.log(playersockets);
-		
+
 		//sockets[socket.id] = socket;
 
 		var game = opengames.pop();
@@ -1089,10 +1089,10 @@ wss.on('connection', function(socket){
 			game.init(p1);
 			console.log("created new game")
 		} else {
-			console.log("joined new game")  
-			
+			console.log("joined new game")
+
 			game.init(p1);
-			
+
 			var t = game.createUnit(game.players[0], UNIT_IDS[2], [4,16])
 			var r = game.createUnit(game.players[1], UNIT_IDS[3], [5,16])
 			//var p = new Prop('test prop', p1, [4,16])
@@ -1106,8 +1106,8 @@ wss.on('connection', function(socket){
 			console.log(game.players[0].id)
 			console.log("connecting with...");
 			console.log(p1.id)
-		
- 
+
+
 		}
 
 		var reselection = function (target){
@@ -1136,15 +1136,15 @@ wss.on('connection', function(socket){
 						socket.send(JSON.stringify({id:'alert', data:alert}));
 				} else {
 					alertGlobal(game, event.trigger.name +  " cast " + p1.spell.name)
-					p1.changeState(util.GAME_STATE_UNIT) 
-					
+					p1.changeState(util.GAME_STATE_UNIT)
+
 				}
 
 			}
 		}
 
 		socket.onmessage = function(msg){
-			
+
 			try {
 				var parsemsg = JSON.parse(msg.data)
 			} catch (e){
@@ -1161,11 +1161,11 @@ wss.on('connection', function(socket){
 				//var game = games[socket.id]
 			//var p1 = getCurrentPlayer(socket.id)
 				//console.log('current player turn ' + p1.num + ' game turn:' + game.turn%2 + " "+ id)
-				 
-				
+
+
 				//var gain = p1.pool.pool.slice();
 				//console.log('not playing')
-				
+
 				if (data.length != 3) return;
 						//console.log('<3 dices sent')
 
@@ -1175,16 +1175,16 @@ wss.on('connection', function(socket){
 				//console.log(p1.summon)
 				game.update('roll',p1.num, {data:result})
 
-				
+
 				if( p1.summon != 0 ) {
 					p1.changeState(util.GAME_STATE_SUMMON);
 				} else {
 					p1.changeState(util.GAME_STATE_UNIT)
 				}
-			
+
 				//update(game)
 
-			} 
+			}
 
 
 			if (eventid == 'c_summonoption'){
@@ -1225,7 +1225,7 @@ wss.on('connection', function(socket){
 
 				game.update('tile', p1.num , {shape: p1.tileSelected, valid:p1.valid})
 				//sockets[].send(JSON.stringify({id:'update', type:'tile', p1.tileSelected}))
-				//console.log(p1.tileSelected) 
+				//console.log(p1.tileSelected)
 			}
 
 
@@ -1239,12 +1239,12 @@ wss.on('connection', function(socket){
 				} else if (p1.state == util.GAME_STATE_SELECT){
 
 				}
-	
+
 			}
 
 
 			var c_tilesplace = function (x,y){
-	
+
 				if (game.makeSelection(p1)){
 					game.createUnit(p1,p1.dices[p1.summonchoice].type,[x,y])
 					p1.dices[p1.summonchoice] = null;
@@ -1301,18 +1301,18 @@ wss.on('connection', function(socket){
 							console.log('spell cast went through')
 							p1.changeState(util.GAME_STATE_UNIT)
 						}
-							        
+
 					}
 
-				
+
 				}
 					//console.log("select")
-						//c_actionunit();    
+						//c_actionunit();
 				//} else if (p1.state == util.GAME_STATE_UNIT){
-					
-					
-			
-			
+
+
+
+
 
 			}
 
@@ -1320,10 +1320,10 @@ wss.on('connection', function(socket){
 				if (p1.state != util.GAME_STATE_SUMMON) return;
 				p1.shape++;
 				if (p1.shape == util.shapes.length){
-					p1.shape = 0;    
+					p1.shape = 0;
 				}
 				c_tilemove()
-		
+
 			}
 			if (eventid == 'rotate shape'){
 				if (p1.state != util.GAME_STATE_SUMMON) return;
@@ -1339,7 +1339,7 @@ wss.on('connection', function(socket){
 			if (eventid == 'cast'){
 				if (p1.state == util.GAME_STATE_SELECT){
 					console.log("cast " + data);
-					var spellcode;   
+					var spellcode;
 					switch (data){
 						case 'q':
 							spellcode = 0;
@@ -1367,14 +1367,14 @@ wss.on('connection', function(socket){
 							if (alert != ""){
 								socket.send(JSON.stringify({id:'alert', data:alert}));
 							} else {
-								alertGlobal(game, event.trigger.name +  " cast " + p1.spell.name) 
+								alertGlobal(game, event.trigger.name +  " cast " + p1.spell.name)
 								p1.changeState(util.GAME_STATE_UNIT)
 							}
-							
-						}             
+
+						}
 					}
- 
-				 
+
+
 				}
 			}
 
@@ -1391,14 +1391,14 @@ wss.on('connection', function(socket){
 					game.combat.target.player.updatePool(CREST_DEFENSE,-1);
 					game.combat.defmodifier = game.combat.target.def;
 					game.combat.guarded = true;
-				}  
+				}
 				//} else if (data == 0)
 				game.combat.postattack();
 			}
 
-		
+
 		}
-		
+
 		socket.on('close', function(){
 			console.log('Player',p1.num,'has disconnected');
 			//games[id].players.splice(p1.num,1)

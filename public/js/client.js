@@ -37,7 +37,7 @@ var playerPanel = document.getElementById("players")
 var content = document.getElementById("content")
 
 var actionState = util.PLAYER_STATE_NEUTRAL
-
+var sendSwitch = true;
 //var movePath = []
 //var movementButton = document.getElementById("movement")
 
@@ -46,12 +46,16 @@ content.hidden = true;
 cancelButton.hidden = true
 
 var squareSize = 30;
+var boardXPadding = 0;
+var boardYPadding = 50;
 
+var animation = []
+var controlLock = false;
 var initUnit = 0;
 
 //var util.boardSizeX = 13;
-canvas.width = 580;
-canvas.height =580;
+canvas.width = 1200;
+canvas.height =680;
 
 var CREST_MOVEMENT = 0;
 var CREST_ATTACK = 1;
@@ -80,8 +84,8 @@ BUFFS['Relentless Pursuit'] = function(){
 }
 
 
-BUFFS['Ardent Blazer'] =  function(){
-	var buff = new Buff("Ardent Blazer", 1);
+BUFFS['Ardent Blaze'] =  function(){
+	var buff = new Buff("Ardent Blaze", 1);
 	buff.on('attacked', function(event){
 		//console.log(event)
 		var m = game.monsters[buff.owner]
@@ -118,7 +122,7 @@ SPELLS['Lucian'][0].on('effect', function(event){
 			var m = game.board.getUnitAtLoc(path[i][0],path[i][1])
 			if (m != util.EMPTY){
 				DamageUnit(event.trigger.id, m, 20)
-				ApplyBuff(event.trigger, game.monsters[m],BUFFS['Ardent Blazer']() )
+				//ApplyBuff(event.trigger, game.monsters[m],BUFFS['Ardent Blazer']() )
 			}
 		}
 
@@ -151,7 +155,7 @@ SPELLS['Lucian'][1].on('effect',function(event){
 			var m = game.board.getUnitAtLoc(path[i][0],path[i][1])
 			if (m != util.EMPTY){
 				DamageUnit(event.trigger.id, m, 10)
-				ApplyBuff(event.trigger, game.monsters[m],BUFFS['Ardent Blazer']() )
+				ApplyBuff(event.trigger, game.monsters[m],BUFFS['Ardent Blaze']() )
 				break;
 			}
 		}
@@ -160,19 +164,15 @@ SPELLS['Lucian'][1].on('effect',function(event){
 })
 SPELLS['Lucian'][2] = new Spell("Relentless Pursuit", [CREST_MOVEMENT, 2],true)
 SPELLS['Lucian'][2].on('learn', function(event){
-	console.log('learnt relentless')
+	//console.log('learnt relentless')
 	//console.log(event)
 	ApplyBuff(event.trigger, 	event.trigger, BUFFS['Relentless Pursuit']())
 
 })
 
 SPELLS['Lucian'][2].on('cast', function(event){
-	console.log('casting relentless puruist')
-	if (player.pool[SPELLS['Lucian'][2].cost[0]] < SPELLS['Lucian'][2].cost[1]){
-		console.log('Not enough', CREST_TEXT[SPELLS['Lucian'][2].cost[0]], 'to cast', SPELLS['Lucian'][2].name)
-		player.spell = -1;
-		return;
-	}
+//	console.log('casting relentless puruist')
+
 	var buff = util.EMPTY;
 	for (var i=0; i< event.trigger.buff.length; i++){
 		if (event.trigger.buff[i].name == 'Relentless Pursuit'){
@@ -237,7 +237,7 @@ SPELLS['Teemo'][0].on('effect',function(event){
 
 	//var game = games[event.trigger.player.id]
 	var id = game.board.getUnitAtLoc(event.location[0],event.location[1]);
-	if (id == util.EMPTY) return "Must target unit";
+	if (id == util.EMPTY) {console.log("Must target unit"); return };
 
 	var target = game.monsters[game.board.getUnitAtLoc(event.location[0],event.location[1])]
 	var buff = BUFFS['Blinding Dart']()
@@ -256,7 +256,47 @@ SPELLS['Teemo'][1].on('effect', function(event){
 	//var buff = new Buff("Blinding Dart", 1);
 	//ApplyBuff(event.trigger, event.target, buff)
 	//DamageUnit(event.trigger, event.target, 10);
+
 	SPELLS['Teemo'][1].fire('finish',{trigger:event.trigger})
+})
+
+BUFFS['Starcall'] =  function(){
+	var buff = new Buff("Starcall", 1);
+	return buff;
+}
+
+SPELLS['Soraka'] = [];
+SPELLS['Soraka'][0] = new Spell("Starcall", [CREST_MAGIC, 2],true)
+SPELLS['Soraka'][0].on('effect',function(event){
+	if (!event.target){
+		console.log('No units in area')
+		return
+	}
+	DamageUnit(event.trigger.id, event.target.id, 10);
+	BUFF_SLOW(event.target, 1)
+	ApplyBuff(event.trigger, event.target, BUFFS['Starcall']())
+	SPELLS['Soraka'][0].fire('finish',{trigger:event.trigger})
+})
+
+SPELLS['Soraka'][1] = new Spell("Astral Infusion", [CREST_MAGIC, 2],true)
+SPELLS['Soraka'][1].on('effect',function(event){
+	if (event.trigger.hp == 10) {
+		console.log('Not enough hp to cast');
+		return
+	}
+	console.log(event.target)
+	if (!event.target || event.target.id == event.trigger.id){
+		console.log('Must target another unit')
+		return;
+	}
+
+	if (event.target.player.num != event.trigger.player.num){
+		console.log('Cannot heal enemy units');
+		return;
+	}
+	event.target.hp = Math.min(event.target.hp + 10,event.target.maxhp);
+	event.trigger.hp -= 10;
+	SPELLS['Soraka'][1].fire('finish',{trigger:event.trigger})
 })
 
 UNITS['Teemo'] = {
@@ -272,7 +312,7 @@ UNITS['Soraka'] = {
 	hp: 20,
 	atk: 10,
 	def: 20,
-	spells: [],
+	spells: SPELLS['Soraka'],
 }
 
 UNITS['Poppy'] = {
@@ -297,6 +337,7 @@ UNITS['Lucian'] = {
 	atk: 30,
 	def: 10,
 	spells: SPELLS['Lucian'],
+ 	art: 'assets/img/lucian.jpg'
 }
 
 function Buff(name, duration){
@@ -327,20 +368,22 @@ function Buff(name, duration){
 
 function Prop(name,point,unit) {
 	this.id = 0
-	console.log(point)
+	//console.log(point)
 	this.x = point[0];
 	this.y = point[1];
 	this.name = name;
 	this.unit = unit ? unit : util.EMPTY;
 	this.clear = false;
-
+	this.exist = true;
 	this.callbacks = {}
 
 	this.on = function(event, callback){
+
 		this.callbacks[event] = callback;
 	}
 
 	this.fire = function(event){
+		if (this.exist == false) return;
 		if (!this.callbacks.hasOwnProperty(event)){
 			console.log(event, 'not implemented', this.name)
 			return;
@@ -353,14 +396,14 @@ function Prop(name,point,unit) {
 	this.destroy = function(){
 		//games[this.player.id].props.splice(games[this.player.id].props.indexOf(this),1)
 		//games[this.player.id].update('destroy prop', util.EMPTY, this)
-		//this.exist = false;
+		this.exist = false;
 		console.log('destroy')
 	}
 
 	this.id = game.props.length;
 	game.props.push(this)
 	if (player.num == game.turn%2){
-		conn.send({id:'new prop', name:name, point:point,unit:unit.id})
+		//conn.send({id:'new prop', name:name, point:point,unit:unit.id})
 	}
 
 	return this;
@@ -400,8 +443,10 @@ BUFFS['Blinding Dart'] = function(){
 PROPS['Toxic Mushroom'] = function (point, unit){
 	var prop = new Prop("Toxic Mushroom", point,unit);
 	prop.on('collision', function(event){
-		DamageUnit(prop.unit.id,event.trigger.id, 40)
+		DamageUnit(prop.unit.id,event.trigger.id, 10)
 		BUFF_SLOW(event.trigger, 1)
+		animation.push({type:'text', text:'Toxic Shroom!', color:white, x:prop.x*squareSize,y:(prop.y-1)*squareSize+boardYPadding, dy:-25,
+		duration:0.75, onfinish: function(a,b){console.log(a,b)}, args:[1,'ab']})
 		prop.destroy();
 	})
 	return prop;
@@ -424,8 +469,8 @@ function ApplyBuff (caster, target, buff){
 	}
 	target.buff.push(buff);
 	buff.owner = caster.id;
-	if (game.turn%2 == player.num){
-		conn.send({id:'apply buff', caster:caster.id, target:target.id, buff: buff.name})
+	if (sendSwitch){
+		//conn.send({id:'apply buff', caster:caster.id, target:target.id, buff: buff.name})
 	}
 	//console.log(buff.name)
 	//games[target.player.id].update('buff unit',target.player.num, {target:target, buff:buff.name})
@@ -451,7 +496,8 @@ function Spell(name, cost,target){
 		for (var i =0; i<event.trigger.buff.length; i++){
 			event.trigger.buff[i].fire('spell', event)
 		}
-		player.changeState(util.GAME_STATE_UNIT)
+		//console.log('finishing spell')
+		event.trigger.player.changeState(util.GAME_STATE_UNIT)
 	})
 
 	this.fire = function(event){
@@ -463,6 +509,7 @@ function Spell(name, cost,target){
 		}
 		var args = Array.prototype.slice.call( arguments );
 		var topic = args.shift();
+		//console.log('topic is',topic)
 		this.callbacks[event].apply(undefined, args)
 	}
 
@@ -489,23 +536,33 @@ function openConnection(c,num){
 		opponent.num = num == 0 ? 1 : 0
 		game.players = [player,opponent]
 		game.init()
-		player.changeState(util.GAME_STATE_UNIT)
-		if(player.num == 0){
-					game.createUnit(player,UNITS['Lucian'],[5,17])
+
+		if(num == 0){
+			player.changeState(util.GAME_STATE_UNIT)
+			game.createUnit(player,UNITS['Soraka'],[5,17])
+		} else {
+			player.state = util.GAME_STATE_END
+			changeUIState(util.GAME_STATE_END)
+			game.createUnit(player,UNITS['Teemo'],[4,17])
+
 		}
-		if(player.num == 1){
-					game.createUnit(player,UNITS['Teemo'],[4,17])
-		}
+			PROPS['Toxic Mushroom']([6,17], game.monsters[0])
 		//console.log(window.player)
 	});
 
 	conn.on('data', function(data) {
+		sendSwitch = false;
 		if (data.id == 'move unit'){
-			game.monsters[data.unit].moveUnit([data.x, data.y])
+			//game.monsters[data.unit].moveUnit([data.x, data.y])
+			game.monsters[data.unit].movement(data.path)
 		} else if (data.id == 'select unit'){
 			opponent.unitSelected = data.unit
 		} else if (data.id == 'change state'){
 			opponent.changeState(data.state)
+			if (data.state == util.GAME_STATE_END){
+				player.changeState(util.GAME_STATE_ROLL)
+				changeUIState(util.GAME_STATE_ROLL)
+			}
 		} else if (data.id == 'update pool'){
 			opponent.updatePool(data.crest, data.point)
 		} else if (data.id == 'update tile'){
@@ -515,17 +572,24 @@ function openConnection(c,num){
 		} else if(data.id == 'create unit'){
 			game.createUnit(opponent,UNITS[data.unitid],data.point)
 			//conn.send({id:, player:player,id:id,point:point})
-		} else if (data.id == 'guard'){
-			game.combat = data.combat;
-			console.log('block damage?')
-			yesButton.hidden = false;
-			noButton.hidden = false;
-		} else if (data.id == 'guard response'){
-			if (data.data == 1){
-				game.combat.defmodifier = game.combat.target.def;
-				game.combat.guarded = true;
+		} else if (data.id == 'attack'){
+			game.monsters[data.trigger].attack(game.monsters[data.target])
+			if (data.guard){
+				console.log('block damage?')
+				yesButton.hidden = false;
+				noButton.hidden = false;
 			}
+		} else if (data.id == 'spell effect'){
+			console.log(opponent.unitSelected)
+			var spell = game.monsters[opponent.unitSelected].spells[data.spell]
+			var target = data.target != util.EMPTY ? game.monsters[data.target]: null
+			var event = {trigger: game.monsters[opponent.unitSelected], location: data.location, target:game.monsters[data.target]};
+			spell.fire('effect',event);
+			//conn.send({id:'spell effect', spell:player.spell, location:[x,y]})
+		} else if (data.id == 'guard response'){
+			game.combat.guard(data.data)
 			game.combat.postattack()
+			changeUIState(util.GAME_STATE_UNIT)
 		} else if (data.id == 'damage unit'){
 			DamageUnit(data.trigger,data.target,data.damage)
 		} else if (data.id == 'apply buff'){
@@ -533,8 +597,12 @@ function openConnection(c,num){
 		} else if (data.id == 'new prop'){
 			//console.log(PROPS[data.name])
 			PROPS[data.name](data.point,game.monsters[data.unit]);
+		} else if(data.id == 'end turn'){
+			opponent.changeState(util.GAME_STATE_END);
+			game.turn++;
+			player.changeState(util.GAME_STATE_ROLL)
 		}
-
+		sendSwitch = true;
 
 	    console.log('Received', data);
 	 });
@@ -623,19 +691,24 @@ function DamageUnit(trig, targ, damage){
 		return;
 	}
 	target.hp = target.hp - damage;
+	var tx = boardXPadding+target.x*squareSize;
+	var ty = boardYPadding+target.y*squareSize;
+	//console.log(tx,ty)
+	if (damage > 0){
+		animation.push({type:'text', text:'-'+damage, color:white, x:tx,y:ty, dy:-25, duration:0.75})
+	}
 	//var remove = false
 
 	//games[trigger.player.id].update('damage', util.EMPTY, {trigger:trigger.id, target:target.id, damage:damage})
-	if (player.num == game.turn%2){
-		conn.send({id:'damage unit', trigger:trig, target:targ, damage:damage,})
+	if (sendSwitch){
+		//conn.send({id:'damage unit', trigger:trig, target:targ, damage:damage,})
 	}
-
+	console.log(trigger.type.name,'hit', target.type.name, 'for',damage)
 	if (target.hp <= 0){
-		//console.log('deaded')
 		target.destroy()
 	}
 
-	console.log(trigger.type.name,'hit', target.type.name, 'for',damage)
+
 }
 
 function Combat(unit, target){
@@ -645,20 +718,20 @@ function Combat(unit, target){
 	this.defmodifier = 0;
 	this.guarded = false;
 
-	this.guard = function(){
-			//socket = sockets[player.id];
-			//game = games[player.id]
-			//game.combat = new Combat(this, target);
-			//var opponent = game.players[((player.num == 0) ? 1 : 0)]
-			//console.log(unit.id, target.id)
-			//this.target.player.changeState(util.GAME_STATE_COMBAT)
-			//this.unit.player.changeState(util.GAME_STATE_COMBAT)
-			conn.send({id:'guard', unit:unit.id, target:target.id})
-			//send(target.player.id, {id:'guard'})
-			//console.log("changing state to combat: " + opponent.num)
-			//update(games[this.unit.player.id]);
+	this.guard = function(button){
+			if (button == 1){
+				game.combat.defmodifier = game.combat.target.def;
+				game.combat.guarded = true;
+				var rx = boardXPadding+target.x*squareSize
+				var ry = boardYPadding+target.y*squareSize
+				animation.push({
+					effect:'grow', image:IMAGES['Guard'],
+					x:rx,y:ry, dx:30,dy:30, sx:30, sy:30,
+					duration:0.75, fade:true,
+				})
+			}
 
-			//socket.emit('guard trigger', );
+
 	}
 
 	this.postattack = function(){
@@ -678,15 +751,16 @@ function Combat(unit, target){
 		for (var i=0; i< this.target.buff.length; i++){
 			this.target.buff[i].fire('attacked', event)
 		}
-
 		console.log('status',event.status)
-		conn.send({id:'combat resolution', status:status})
+
+		//conn.send({id:'combat resolution', status:status})
 		//var game = games[this.unit.player.id]
 		game.combat = null
 		if (event.status.indexOf('miss') != -1){
 			console.log('mised!')
 			//game.update('miss', util.EMPTY, {trigger:this.unit.id, target:this.target.id})
 		} else {
+
 			console.log('damage!', event.status)
 			//DamageUnit(this.unit, this.target, dmg)
 			console.log(this.unit.name+'('+this.unit.hp+')'+'attacking', this.target.name+'('+this.target.hp+')', 'for',this.atkmodifier+"(-"+this.defmodifier+")")
@@ -713,12 +787,15 @@ function Combat(unit, target){
 	return this;
 }
 
+
 function Unit(player, type, point, level) {
 	//idcounter++;
 	this.name = type.name;
 	this.type = type;
 	this.x = point[0];
 	this.y = point[1];
+	this.animx = point[0];
+	this.animy = point[1];
 	this.hp = type.hp;
 	this.maxhp = type.hp;
 	this.atk = type.atk;
@@ -732,7 +809,9 @@ function Unit(player, type, point, level) {
 	this.buff = []
 	this.exist = true;
 	this.impairment = 0;
-	this.spells = type.spells
+	this.spells = type.spells;
+	this.animations = [];
+
 
 
 	//console.log(type.spells)
@@ -784,9 +863,16 @@ function Unit(player, type, point, level) {
 		game.combat = new Combat(this, target);
 		//sendAll(game, {id:'combat', data:game.combat})
 		console.log('attack')
+		//animation.combat = {attacker:this, target:target, dt:0, finish:false};
+		//animation.push({image:IMAGES[this.name], x:0, y:0, dx:500, effect:'pan', duration:0.5})
+
+		if (sendSwitch){
+			conn.send({id:'attack', trigger:this.id, target:target.id, guard:util.getCrestPool(target.player,CREST_DEFENSE) > 0})
+		}
 		if (util.getCrestPool(target.player,CREST_DEFENSE) > 0){
-			console.log('guard')
-			game.combat.guard();
+			console.log('waiting for opponent..guard')
+			player.changeState(util.GAME_STATE_COMBAT)
+			//game.combat.guard();
 		} else {
 			console.log('post attack')
 			game.combat.postattack();
@@ -796,33 +882,55 @@ function Unit(player, type, point, level) {
 	}
 
 	this.destroy = function(){
-		console.log('Removing', this.name, this.id)
+		console.log('Removing', this.name, this.id, 'hp:', this.hp)
 		//var game = games[this.player.id]
-		game.setUnitAtLoc(util.EMPTY, [this.x,this.y])
+
+		window.game.setUnitAtLoc(util.EMPTY, [this.x,this.y])
 		//console.log('destroy',[this.x,this.y],util.getTileState(game.board,this.x,this.y))
 		this.exist = false;
+		console.log(game.board.getUnitAtLoc(this.x,this.y))
 		//game.monsters[this.id] = null
 		//game.update('destroy unit', util.EMPTY, {unit:this, loc:[this.x,this.y]})
 	}
 
-	this.moveUnit = function (loc){
-		//var m = game.monsters[unit]
-		game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
-		this.x = loc[0];
-		this.y = loc[1];
-		game.setUnitAtLoc(this.id,loc)
 
-		var event = {trigger: this, location: loc}
-		for (var j=0; j<game.props.length; j++){
-			if (game.props[j] && game.props[j].x == loc[0] && game.props[j].y == loc[1]){
-				game.props[j].fire('collision',event);
+
+	this.update = function(dt){
+
+		if (this.animations.length == 0) return
+
+		var move = this.animations[0];
+		//console.log(move)
+		var dx = move[0]- this.animx;
+		var dy = move[1] -this.animy ;
+		var ms = 10;
+
+		//console.log(this.animx,move[0])
+		//console.log(this.y,move[1])
+		if (dx != 0){
+				//console.log(dx/Math.abs(dx))
+				this.animx = this.animx + dx/Math.abs(dx)*ms*dt;
+				if (dx > 0 && this.animx >= move[0] || dx < 0 && this.animx <= move[0]){
+					this.animations.shift();
+					//this.x = move[0]
+					this.animx = move[0]
+					//console.log('popped!')
+
+				}
+		} else if (dy != 0){
+			this.animy = this.animy + dy/Math.abs(dy)*ms*dt;
+			if (dy > 0 && this.animy >= move[1] || dy < 0 && this.animy <= move[1]){
+				this.animations.shift();
+				//this.y = move[1]
+				this.animy = move[1]
+					//console.log('popped!')
 			}
-		}
 
-		if (window.player.num == game.turn%2){
-				//console.log(player.num, game.turn%2)
-				conn.send({id:'move unit', unit:this.id, x:this.x, y:this.y})
+		} else {
+			console.log('shift!')
+			this.animations.shift();
 		}
+		//console.log(this.animx,this.animy)
 	}
 
 	this.movement = function(path){
@@ -841,11 +949,18 @@ function Unit(player, type, point, level) {
 			//console.log(plen-1,'<=',this.impairment + util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//console.log(util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//if (plen > 1 && plen-1 <= this.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
-			for (var i=0; i<path.length; i++){
+			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:10, duration:200})
+			/*
+			for (var i=1; i<path.length; i++){
 				//console.log(path[i])
 				this.moveUnit(path[i])
 					//console.log('moved!')
 			}
+
+			if (this.exist == false) return;
+			game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
+			game.setUnitAtLoc(this.id,path[plen-1])
+			*/
 			//this.player.changeState(util.GAME_STATE_UNIT)
 
 				//return plen
@@ -879,11 +994,10 @@ function Game(){
 			var prevX = cursorX;
 			var prevY = cursorY;
 
+			cursorX = Math.floor((e.pageX-boardXPadding)/squareSize);
+		  cursorY = Math.floor((e.pageY-boardYPadding)/squareSize);
 
-			cursorX = Math.floor(e.pageX/squareSize);
-		    cursorY = Math.floor(e.pageY/squareSize);
-
-		    Event_Button_Focus(e.pageX, e.pageY);
+		    Event_Button_Focus(e.pageX-boardXPadding, e.pageY-boardYPadding);
 
 			if (prevX == cursorX && prevY == cursorY){
 				return;
@@ -902,7 +1016,7 @@ function Game(){
 		canvas.addEventListener("click", function(e){
 			//if (PLAYER_ID.id != currentPlayer.id)
 			//	return;
-			Event_Button_Click(e.pageX, e.pageY);
+			Event_Button_Click(e.pageX- boardXPadding, e.pageY-boardYPadding);
 
 			for (var i=0; i<EVENT_LIST.length; i++){
 				//console.log(EVENT_LIST[i].action);
@@ -926,6 +1040,7 @@ function Game(){
 	this.makeSelection = function(player){
 		//console.log(this.tileSelected.length)
 		if (player.tileSelected.length > 0 && player.valid){
+			//animation.push({type:'tile place'})
 			var cshape = rotateShape(this.shape,this.rotate);
 			for (var i=0; i<6; i++){
 				x = player.tileSelected[i][0];
@@ -933,24 +1048,28 @@ function Game(){
 				this.board.setTileState([x,y],player.num);
 			}
 			//this.tileSelected = [];
-			if (window.player.num == player.num){
+			if (sendSwitch){
 				conn.send({id:'make selection'})
 			}
 			return true;
+
 		}
 		//console.log('return fasle')
 		return false
 	}
 
 	this.setUnitAtLoc = function(unit, point){
+		console.assert(point[0] != undefined, 'setUnitAtLoc: null X value')
+		console.assert(point[1] != undefined,'setUnitAtLoc: null Y value')
 		this.board.units[point[1]][point[0]] = unit;
+		//console.log('setting points', point, unit)
 		if (unit != util.EMPTY){
 			this.monsters[unit].x = point[0]
 			this.monsters[unit].y = point[1]
 		}
 		//console.log('setting', unit,'to',point)
 
-		this.update('unit location', util.EMPTY, {unit:unit, loc:point})
+		//this.update('unit location', util.EMPTY, {unit:unit, loc:point})
 	}
 
 	this.createUnit = function (player, id, point){
@@ -961,10 +1080,12 @@ function Game(){
 			u.id = this.monsters.length-1;
 			//this.board.units[point[1]][point[0]] = u.id;
 			//this.update('create unit', player.num, u)
-
-			for (var i = 0; i< u.spells.length; i++){
+			var temp = sendSwitch
+			sendSwitch = false;
+			for (var i = 0; i< u.spells.length; i++){1
 				u.spells[i].fire('learn', {trigger:u})
 			}
+			sendSwitch = temp;
 
 			if (window.player.num == 1 && player.num == 0 && initUnit ==0){
 				initUnit = 1;
@@ -976,7 +1097,7 @@ function Game(){
 				this.setUnitAtLoc(temp.id, [this.monsters[1].x,this.monsters[1].y])
 			}
 			this.setUnitAtLoc(u.id, point)
-			if (window.player.num == player.num){
+			if (sendSwitch){
 				//console.log(id, point)
 				conn.send({id:'create unit', unitid:id.name, point:point})
 			}
@@ -1065,8 +1186,8 @@ function Board(){
 	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
-			this.tiles[i].push(0);
-			//this.tiles[i].push(util.EMPTY);
+			//this.tiles[i].push(0);
+			this.tiles[i].push(util.EMPTY);
 		}
 	}
 
@@ -1087,8 +1208,8 @@ function Board(){
 	this.getUnitAtLoc = function (x,y){
 	//console.log("unit at " + x +" " + y);
 		//console.log(this.units)
-		console.assert(x != undefined)
-		console.assert(y != undefined)
+		console.assert(x != undefined, 'getUnitAtLoc: null X value')
+		console.assert(y != undefined,'getUnitAtLoc: null Y value')
 		if (!boundCursor(x,y)) return -1
 
 		return this.units[y][x];
@@ -1170,13 +1291,14 @@ function Player(id){
 								DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],
 								DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen']];
 
+	this.diceButtonFocus = -1;
 
 	this.spell = util.EMPTY;
 
 	this.updatePool = function(crest, point){
 		this.pool[crest] += point;
 		//console.log('update pool')
-		if (player.num == this.num)
+		if (sendSwitch)
 			conn.send({id:'update pool', crest:crest, point:point})
 		//games[this.id].update('pool', this.num, {crest:crest, point:point})
 	}
@@ -1199,7 +1321,7 @@ function Player(id){
 		this.valid = game.board.validPlacement(this)
 		//console.log(shape)
 		//console.log('setting', this.num, this.valid)
-		if (player.num == this.num){
+		if (sendSwitch){
 			conn.send({id:'update tile', shape:shape})
 		}
 	}
@@ -1217,48 +1339,15 @@ function Player(id){
 		//console.log('change state')
 		//console.log(game.combat)
 		this.state = state;
-		this.unitSelected = util.EMPTY;
+		if (state != util.GAME_STATE_COMBAT){
+			this.unitSelected = util.EMPTY;
+		}
 		this.movePath = []
 		this.tileSelected = []
+		this.spell = -1;
 
-		if (state == util.GAME_STATE_END){
-			game.turn++;
-			this.rolled = false;
-			this.summon = [];
-			this.summonlevel = 0;
-			this.shape = 0;
-			this.rotate = 0;
-			this.valid = false;
-			this.spell = util.EMPTY
-			//this.actionstate = util.PLAYER_STATE_NEUTRAL;
+		changeUIState(state)
 
-			for (var i=0; i<game.monsters.length;i++){
-				if (!game.monsters[i].exist) continue;
-				if (game.monsters[i].player.num == this.num){
-					game.monsters[i].hasAttacked = false;
-					game.monsters[i].canAttacked = true;
-				}
-			}
-
-			var p = game.props
-			for (var i=0; i< p.length; i++){
-				if (p[i].clear){
-				p.splice(i,1)
-				}
-			}
-
-			//game.players[((this.num == 0) ? 1 : 0)].changeState(util.GAME_STATE_ROLL);
-			//game.players[((this.num == 0) ? 1 : 0)].changeState(util.GAME_STATE_UNIT);
-			if (player.num != this.num){
-				player.changeState(util.GAME_STATE_UNIT)
-			}
-		}
-		//game.update('change state', this.num, state)
-		if (player.num == this.num){
-			conn.send({id:'change state', state:state})
-		}
-
-		changeState(state)
 	}
 
 	this.changeActionState = function(state){
@@ -1270,6 +1359,35 @@ function Player(id){
 
 		console.log('end turn')
 		this.changeState(util.GAME_STATE_END);
+
+		game.turn++;
+		this.rolled = false;
+		this.summon = [];
+		this.summonchoice = util.EMPTY;
+		this.summonlevel = 0;
+		this.shape = 0;
+		this.rotate = 0;
+		this.valid = false;
+		this.spell = util.EMPTY
+		this.unitSelected = util.EMPTY
+
+		//this.actionstate = util.PLAYER_STATE_NEUTRAL;
+
+		for (var i=0; i<game.monsters.length;i++){
+			if (!game.monsters[i].exist) continue;
+			if (game.monsters[i].player.num == this.num){
+				game.monsters[i].hasAttacked = false;
+				game.monsters[i].canAttacked = true;
+			}
+		}
+
+		var p = game.props
+		for (var i=0; i< p.length; i++){
+			if (p[i].clear){
+			p.splice(i,1)
+			}
+		}
+
 	}
 
 	this.onRoll = function(data){
@@ -1282,7 +1400,7 @@ function Player(id){
 		for (var i=0;i<data.length; i++){
 			var dices = this.dices[data[i]]
 			var r = dices.roll();
-			//result.push(r)
+			result.push(r)
 
 
 			if (r[0] != CREST_SUMMON){
@@ -1290,8 +1408,6 @@ function Player(id){
 				this.updatePool(r[0],r[1])
 				//console.log(this.pool);
 				console.log(CREST_TEXT[r[0]] + " " + r[1]);
-
-
 			} else {
 				summon[r[1]].push(data[i]);
 				console.log("SUMMON " + r[1]);
@@ -1299,13 +1415,12 @@ function Player(id){
 					summonlevel = r[1]
 				}
 			}
-
 		}
 
 		if (summonlevel){
 			//string += "Summoning level: " + summonlevel + "<br\>";
 			this.summon = summon[summonlevel];
-			result = summon[summonlevel]
+			//result = summon[summonlevel]
 			//console.log('hello',this.summon)
 			//this.summonlevel = summonlevel
 		}
@@ -1318,9 +1433,12 @@ function Player(id){
 
 	this.selectUnit = function(x,y){
 		//var game = games[this.id]
-		var m = util.getUnitAtLocation(game.board,x,y)
+
+
+		var m = game.board.getUnitAtLoc(x,y)
 		if (this.unitSelected == m) {
 			this.changeState(util.GAME_STATE_UNIT);
+			conn.send({id:'select unit', unit:util.EMPTY})
 
 		} else if (game.monsters[m].player.num==this.num){
 			this.changeState(util.GAME_STATE_SELECT);
@@ -1587,42 +1705,25 @@ function disableButtons(a,b){
 		endturnButton.disabled = b;
 }
 
-function changeState(p1, state){
+function changeUIState(state){
+	console.log('Phase',GAME_STATE_TEXT[state])
 
-	if (p1.num == player.num){
-		console.log('Phase',GAME_STATE_TEXT[state])
+	if (state == util.GAME_STATE_COMBAT){
+			player.movePath = []
+			disableButtons(true,true)
+			return;
 	}
-    //var state = data.data;
-  p1.state = state;
-  p1.tileSelected = []
-  player.spell = util.EMPTY
+
 	disableSpell(true)
-  if (state == util.GAME_STATE_UNIT){
-    p1.unitSelected = util.EMPTY;
+	if (state == util.GAME_STATE_ROLL){
+		for (i=0;i<15;i++) Buttons[i].reset();
 
-  }
-
+	}
   if (state == util.GAME_STATE_END){
   	disableButtons(true,true)
-	for (i=0;i<15;i++) Buttons[i].reset();
-	DiceSelection = [];
-
-	p1.rolled = false;
-	p1.shape = 0;
-	p1.rotate = 0;
-	p1.valid = false;
-	p1.spell = util.EMPTY
-
-  p1.movePath = []
-    for (var i=0; i<game.monsters.length;i++){
-      if (!game.monsters[i].exist) continue;
-      if (game.monsters[i].player.num == this.num){
-        game.monsters[i].hasAttacked = false;
-        game.monsters[i].canAttacked = true;
-      }
-    }
-    game.turn++;
-  }
+		//for (i=0;i<15;i++) Buttons[i].reset();
+		DiceSelection = [];
+	}
 
 	//UI
 	yesButton.hidden = true;
@@ -1635,7 +1736,7 @@ function changeState(p1, state){
 	}
 	disableButtons(true,true)
 
-	if (player.state == util.GAME_STATE_SUMMON){
+	if (player.state == util.GAME_STATE_SUMMON ){
 		for (i=0;i<15;i++) Buttons[i].reset();
 		console.log('summon', player.summon)
 		for (i=0;i<player.summon.length;i++) {
@@ -1753,7 +1854,7 @@ function drawDialog(text){
 		ctx.fillRect(200,200,200,80);
 		ctx.strokeRect(200,200,200,80);
 		ctx.fillStyle = black;
-		ctx.font = ctx.font = "13px Arial";
+		ctx.font = "13px Arial";
 		ctx.fillText(DialogText,225, 225 )
 	}
 
@@ -1771,7 +1872,7 @@ function drawAlert(){
 		ctx.fillRect(200,200,250,80);
 		ctx.strokeRect(200,200,250,80);
 		ctx.fillStyle = black;
-		ctx.font = ctx.font = "13px Arial";
+		ctx.font = "13px Arial";
 		ctx.fillText(AlertText,225, 225 )
 		//ctx.fillText("x"+p[1],400 + j* 28+15,255 + i*30+30);
 	}
@@ -1779,6 +1880,16 @@ function drawAlert(){
 }
 
 function drawButton(){
+	/*
+	var grd = ctx.createLinearGradient(0, 0.000,0, 300);
+	grd.addColorStop(0.3, 'rgba(255, 235, 204, 1.000)');
+	grd.addColorStop(1.000, 'rgba(255, 153, 0,1)');
+
+	//ctx.fillStyle = grd;
+	ctx.strokeStyle = white;
+	ctx.fillRect(0,200,canvas.width*0.5,canvas.height*0.4);
+	ctx.strokeRect(0,200,canvas.width*0.5,canvas.height*0.4)
+		*/
 	for (var i=0; i< Buttons.length; i++){
 		if (!Buttons[i].hidden){
 			Buttons[i].render();
@@ -1792,16 +1903,25 @@ var DicePattern = [];
 
 function drawDicePattern(){
 	var count = 0
+	var xpad = 75;
+	var ypad = 250
 	for (var i=0; i< DicePattern.length;i++){
 		for (var j=0; j<6; j++){
 			var p = DicePattern[i].pattern[j];
-			drawCrest(p[0], 400 + j* 28, 255 + i*30, 25, 25)
-			ctx.fillStyle = red;
+			drawCrest(p[0], xpad +j*30, ypad + i*30, 25, 25)
+			ctx.fillStyle = white
+			ctx.strokeStyle = black
 			if (p[0] == 5) {
-				//ctx.fillText(p[1],400 + j* 28+9,255 + i*30+16);
+
+
+				ctx.lineWidth = 1;
+				ctx.fillText(p[1],xpad + j* 28+9,ypad + i*30+16);
+				ctx.strokeText(p[1],xpad + j* 28+9,ypad + i*30+16);
 			} else {
-				ctx.font = ctx.font = "10px Arial";
-				ctx.fillText("x"+p[1],400 + j* 28+15,255 + i*30+30);
+				ctx.font = "bolder 11px Arial ";
+					ctx.lineWidth = 1;
+				ctx.fillText("x"+p[1],xpad + j* 28+20,ypad+i*30+35);
+				ctx.strokeText("x"+p[1],xpad + j* 28+20,ypad+i*30+35);
 			}
 
 		}
@@ -1816,23 +1936,22 @@ function changeCursor(cursor){
 
 var Event_Button_Focus = function(x,y){
 	DicePattern = [];
+	player.diceButtonFocus = -1
+	if (player.state != util.GAME_STATE_ROLL) return;
 	for (var i=0;i<Buttons.length; i++){
 		var b = Buttons[i];
 		if (b.hidden) continue;
 		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
 			if (player.state == util.GAME_STATE_ROLL){
 				b.onFocus(x,y);
-
 			}
-
-			var m = player.dices[b.id].type;
+			player.diceButtonFocus = b.id
+			//var m = player.dices[b.id].type;
 			DicePattern.push(player.dices[b.id]);
-			setStatePanelText(m)
+			//setStatePanelText(m)
 		} else {
-
 			if (player.state == util.GAME_STATE_ROLL){
 				b.onUnfocus(x,y);
-
 			}
 		}
 
@@ -1857,7 +1976,7 @@ var Event_Button_Click = function(x,y){
 
 var summonToggle;
 
-var Button = function(id, img, x, y,sx,sy,unit){
+function Button(id, img, x, y,sx,sy,unit){
 	this.rx = x;
 	this.ry = y;
 	this.x = x;
@@ -1876,6 +1995,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 	this.reset = function(){
 		this.toggle = false;
 		this.focus = false;
+		this.unfocus = false
 		//icePattern = [];
 	}
 
@@ -1938,7 +2058,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 		} else if (player.state == util.GAME_STATE_SUMMON ){
 			if (this.toggle){
 				summonToggle = this;
-				console.log('summoinining')
+				console.log('summoinining', this.id)
 				player.summonchoice = this.id;
 				player.updateTile(player.updateShape(cursorX,cursorY))
 				//socket.send(JSON.stringify({id:'c_summonoption', data:this.id}))
@@ -1957,7 +2077,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 			}
 
 			if (this.unfocus){
-				ctx.globalAlpha = 0.5;
+				ctx.globalAlpha = 0.1;
 			}
 
 			if (this.focus){
@@ -1970,7 +2090,7 @@ var Button = function(id, img, x, y,sx,sy,unit){
 					ctx.fillStyle = black;
 				} else if (player.state == util.GAME_STATE_SUMMON){
 					if (summonToggle == this){
-						ctx.fillStyle = black;
+						ctx.fillStyle = white;
 					} else {
 						ctx.fillStyle = white;
 					}
@@ -1979,14 +2099,21 @@ var Button = function(id, img, x, y,sx,sy,unit){
 			}
 			drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
 			var lvl = player.dices[this.id].pattern[0][1]
-			ctx.fillStyle = black;
-			ctx.font = ctx.font = "10px Arial";
-			ctx.fillText(lvl,this.rx+15,this.ry+21);
+			ctx.fillStyle = white;
+			ctx.strokeStyle = black;
+			ctx.lineWidth = 2;
+			ctx.font = "bolder 20px Arial";
+			ctx.strokeText(lvl,this.rx+11,this.ry+24);
+			ctx.fillText(lvl,this.rx+11,this.ry+24);
+			ctx.drawImage(IMAGES['ButtonFrame'],this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod)
 		} else {
+			/*
 			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
 			ctx.fillStyle = black;
 			var lvl = player.dices[this.id].pattern[0][1]
 			ctx.fillText(lvl,this.rx+15,this.ry+21);
+			ctx.drawImage(IMAGES['ButtonFrame'],this.rx,this.ry,this.sx, this.sy)
+			*/
 		}
 		ctx.globalAlpha = 1;
 	}
@@ -1996,9 +2123,10 @@ var Button = function(id, img, x, y,sx,sy,unit){
 
 var DicePool = []
 var DiceSelection = []
-for (var i=0; i<3; i++){
-	for (var j=0;j<5;j++){
-		var b = new Button((i*5)+j,heartImage, 415+50*i,300+50*j, 36,36)
+var DiceButtonSize = 40;
+for (var i=0; i<5; i++){
+	for (var j=0;j<3;j++){
+		var b = new Button((j*5)+i,heartImage, 75+(DiceButtonSize+15)*i,300+(DiceButtonSize+15)*j, DiceButtonSize,DiceButtonSize)
 		DicePool.push(b);
 
 	}
@@ -2038,6 +2166,32 @@ img_crest.onload = function(){
 }
 img_crest.src = "assets/img/crests.jpg"
 
+var IMAGES = {}
+function ImageLoader(key, src){
+	IMAGES[key] = new Image();
+	IMAGES[key].src = src;
+}
+ImageLoader('Crest', 'assets/img/championstats_icons.jpg')
+ImageLoader('Lucian', 'assets/img/lucian.jpg')
+ImageLoader('Lightslinger', 'assets/img/Lightslinger.png')
+ImageLoader('LucianSquare', 'assets/img/LucianSquare.png')
+ImageLoader('TeemoSquare', 'assets/img/TeemoSquare.png')
+ImageLoader('Teemo', 'assets/img/teemo.jpg')
+ImageLoader('Soraka', 'assets/img/soraka.jpg')
+ImageLoader('SorakaSquare', 'assets/img/SorakaSquare.png')
+ImageLoader('Garen', 'assets/img/garen.jpg')
+ImageLoader('GarenSquare', 'assets/img/GarenSquare.png')
+ImageLoader('Texture','assets/img/texture.jpg')
+ImageLoader('Texture2','assets/img/texture2.jpg')
+ImageLoader('UI', 'assets/img/border.png')
+ImageLoader('UITEXTURE', 'assets/img/bgtexture.png')
+ImageLoader('Runeterra', 'assets/img/runeterra.png')
+ImageLoader('ButtonFrame', 'assets/img/buttonframe.png')
+ImageLoader('Guard', 'assets/img/armor.png')
+ImageLoader('Relentless Pursuit', 'assets/img/Relentless_Pursuit.png')
+ImageLoader('Ardent Blaze', 'assets/img/Ardent_Blaze.png')
+ImageLoader('Blinding Dart', 'assets/img/Blinding_Dart.png')
+ImageLoader('Starcall', 'assets/img/Starcall.png')
 /*
 function validPlacement(player){
 	var selection = player.tileSelected;
@@ -2149,11 +2303,11 @@ function getBoardState(x,y){
 
 
 function updateCrest(pool){
-	crestPanel.innerHTML = 	"<b>Movement: </b>" + pool[CREST_MOVEMENT]+ "<br>" +
-						"<b>Attack</b>: " + pool[CREST_ATTACK] +"<br>" +
-						"<b>Defense</b>: " + pool[CREST_DEFENSE] +"<br>" +
-						"<b>Magic</b>: " + pool[CREST_MAGIC] +"<br>" +
-						"<b>Trap</b>: " + pool[CREST_TRAP] +"<br>";
+	crestPanel.innerHTML = 	"<img src=assets/img/crest/movement.png height='20px' width='20px'>" + pool[CREST_MOVEMENT]+ "<br>" +
+						"<img src=assets/img/crest/attack.png height='20px' width='20px'>" + pool[CREST_ATTACK] +"<br>" +
+						"<img src=assets/img/crest/defense.png height='20px' width='20px'>" + pool[CREST_DEFENSE] +"<br>" +
+						"<img src=assets/img/crest/magic.png height='20px' width='20px'>" + pool[CREST_MAGIC] +"<br>" +
+						"<img src=assets/img/crest/trap.png height='20px' width='20px' >" + pool[CREST_TRAP] +"<br>";
 
 }
 
@@ -2167,18 +2321,32 @@ function spellButtonEffect(button){
 		console.log('no target spell')
 	} else {
 		window.player.spell = button;
-		console.log('player spell now',player.spell)
-		game.monsters[player.unitSelected].spells[button].fire('cast', {trigger:game.monsters[player.unitSelected]})
-		disableSpell(true)
-		cancelButton.hidden = false;
+		//console.log('player spell now',player.spell)
+		var name = game.monsters[player.unitSelected].name
+		if (player.pool[SPELLS[name][button].cost[0]] < SPELLS[name][button].cost[1]){
+			console.log('Not enough', CREST_TEXT[SPELLS['Lucian'][2].cost[0]], 'to cast', SPELLS['Lucian'][2].name)
+			player.spell = -1;
+		} else {
+			game.monsters[player.unitSelected].spells[button].fire('cast', {trigger:game.monsters[player.unitSelected]})
+			disableSpell(true)
+			cancelButton.hidden = false;
+		}
 	}
 
 }
 
 function responseButton(button){
 	conn.send({id:'guard response', data:button})
+	sendSwitch = false;
+	if (!game.combat){
+		console.log('Error: null combat')
+		return;
+	}
+	game.combat.guard(button)
+	game.combat.postattack()
+	sendSwitch = true;
 	yesButton.hidden = true;
-	yesButton.hidden = true;
+	noButton.hidden = true;
 	//socket.send(JSON.stringify({ id:'guard response', data:button}));
 }
 yesButton.addEventListener("click", function(){
@@ -2214,6 +2382,7 @@ cancelButton.addEventListener("click", function(){
 endturnButton.addEventListener("click", function(){
 	//socket.send(JSON.stringify({id:'end turn'}));
 	player.endTurn();
+	conn.send({id:'end turn'})
 	//PLAYER_ID.endTurn();
 })
 
@@ -2228,7 +2397,18 @@ rollButton.addEventListener("click", function(){
     for (var i=0; i<DiceSelection.length; i++){
     	data.push(DiceSelection[i].id)
     }
-    player.onRoll(data)
+    var result = player.onRoll(data)
+		console.log(result)
+		animation.push({type:'fade dice', crest:result[0], x:25, y:50, duration:4, size:75})
+		animation.push({type:'fade dice', crest:result[1], x:100, y:50, duration:4.5, size:75})
+		animation.push({type:'fade dice', crest:result[2], x:175, y:50, duration:5, size:75})
+
+		animation.push({type:'dice', speed:0.4, accel:5, x:25,y:50, size:75, duration:2, index:0, dice:player.dices[data[0]].pattern})
+		animation.push({type:'dice', speed:0.4, accel:5, x:100,y:50, size:75, duration:2.5, index:0, dice:player.dices[data[1]].pattern})
+		animation.push({type:'dice', speed:0.4, accel:5, x:175,y:50, size:75, duration:3, index:0, dice:player.dices[data[2]].pattern})
+
+
+
 	if( player.summon != 0 ) {
 		player.changeState(util.GAME_STATE_SUMMON);
 	} else {
@@ -2300,6 +2480,7 @@ function drawBoard(){
 	for (var i= verticalFlip ? 0 : util.boardSizeX-1; verticalFlip ? i< util.boardSizeX : i>=0 ; verticalFlip ? i++:i--){
 		for (var j= verticalFlip ? 0 : util.boardSizeY-1; verticalFlip ? j< util.boardSizeY : j>=0 ; verticalFlip ? j++:j--){
 	*/
+
 	for (var i = 0; i< util.boardSizeX; i++ ){
 		for (var j = 0; j< util.boardSizeY; j++ ){
 			ctx.fillStyle = "#303030";
@@ -2319,14 +2500,17 @@ function drawBoard(){
 
 			if (getBoardState(i,j)== util.PLAYER_1){
 				ctx.fillStyle = purple;
-				ctx.strokeStyle = purple
+				ctx.strokeStyle = white
+				ctx.drawImage(IMAGES['Texture'],x*squareSize,y*squareSize, squareSize,squareSize)
 			} else if (getBoardState(i,j) == util.PLAYER_2){
 				ctx.fillStyle = blue;
-				ctx.strokeStyle = blue
+				ctx.strokeStyle = white
+				ctx.drawImage(IMAGES['Texture2'],x*squareSize,y*squareSize, squareSize,squareSize)
 			} else {
 				continue;
 			}
-			drawSquare(x*squareSize,y*squareSize);
+
+
 		}
 	}
 
@@ -2350,9 +2534,10 @@ var drawCircle = function(x,y,w,p) {
 
 var drawProps = function() {
 	for (var i=0; i<game.props.length; i++){
+
 		var p = game.props[i];
 		//p = getCurrentPlayer()
-		if (!p){
+		if (p.exist == false){
 			continue;
 		}
 		ctx.beginPath();
@@ -2377,19 +2562,57 @@ var drawUnits = function() {
 		if (!m.exist) continue
 		var w = 1;
 		//p = getCurrentPlayer()
-		if (player.unitSelected == m.id){
+		var bordersize = 0;
+		if (player.unitSelected == m.id || opponent.unitSelected == m.id){
 			w = 3;
+			bordersize = 6;
 		}
-		if (opponent.unitSelected == m.id){
-			w = 5;
+		var x = m.x
+		var y = m.y
+
+		ctx.fillStyle = black;
+		if (m.player.num == 1){
+			//ctx.fillStyle = blue;
 		}
-		var x = m.x,y = m.y
-		if (player.num == 1){
+		if (player.num != m.player.num){
 			//x = util.boardSizeX-x-1
 			//y = util.boardSizeY-y-1
+			//ctx.fillStyle = purple;
 
+			//ctx.rotate(Math.PI/180);
 		}
-		drawCircle(x, y,w, m.player);
+		//
+
+		if (IMAGES[m.name+'Square']){
+			var nx = x*squareSize+bordersize/2;
+			var ny = y*squareSize+bordersize/2
+			var s = squareSize-bordersize
+			var angle = Math.PI
+			//console.log(angle)
+			ctx.fillRect(x*squareSize,y*squareSize,squareSize,squareSize);
+			//ctx.strokeRect(x,y,squareSize,squareSize);
+			if (m.player.num == opponent.num){
+				ctx.translate(nx,ny)
+				ctx.rotate(angle);
+				ctx.drawImage(IMAGES[m.name+'Square'],-s,-s,s,s);
+				ctx.rotate(-angle);
+				ctx.translate(-nx,-ny)
+			} else {
+					ctx.drawImage(IMAGES[m.name+'Square'],nx,ny,s,s);
+			}
+		} else {
+			drawCircle(x, y,w, m.player);
+		}
+
+		if (player.num != m.player.num){
+			//x = util.boardSizeX-x-1
+			//y = util.boardSizeY-y-1
+			//ctx.fillStyle = purple;
+
+			//ctx.rotate(-Math.PI/180);
+		}
+		//ctx.drawImage('assets/img/LucianSquare.png',x,y)
+		//
 
 	}
 
@@ -2446,12 +2669,6 @@ registerMoveEvent(
 	function(){return true},
 	function(){
 
-	});
-
-registerMoveEvent(
-	function(){return true},
-	function(){
-
 
 		if (game.turn%2 != player.num) return
 		if (player.state != util.GAME_STATE_SUMMON) return
@@ -2472,6 +2689,7 @@ registerMoveEvent(
 new Event(TRIGGER_MOUSE_CLICK,
 	function(){
 		if (game.turn%2 != player.num) return
+		if (controlLock) return;
 		var x = cursorX;
 		var y = cursorY;
 		if (player.num == 1){
@@ -2490,11 +2708,12 @@ new Event(TRIGGER_MOUSE_CLICK,
  				if (player.spell != util.EMPTY){
      			console.log('cast',player.spell)
 					var spell = game.monsters[player.unitSelected].spells[player.spell]
-					//console.log(spell)
-
-					var event = {trigger: game.monsters[player.unitSelected], location: [x,y]};
+					var m = game.board.getUnitAtLoc(x,y)
+					var target = m != util.EMPTY ? game.monsters[m] : null
+					//console.log(target.name)
+					var event = {trigger: game.monsters[player.unitSelected], location: [x,y], target:target};
+					conn.send({id:'spell effect', spell:player.spell, location:[x,y], target:m})
 					spell.fire('effect',event);
-
      		} else if (u == util.EMPTY){
      			//socket.send(JSON.stringify({id:'mouse click', data:{state:'move', loc:[x, y]}}))
  					if (game.board.getTileState(x, y) != util.EMPTY){
@@ -2504,6 +2723,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 						var plen = path.length
 						if (plen > 1 && plen-1 <= player.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
 	 						m.movement(path)
+							conn.send({id:'move unit', unit:m.id, path:path})
 							player.updatePool(CREST_MOVEMENT,-plen+1)
 							player.changeState(util.GAME_STATE_UNIT)
 						}
@@ -2518,6 +2738,7 @@ new Event(TRIGGER_MOUSE_CLICK,
     } else if (player.state == util.GAME_STATE_SUMMON){
 				if (game.makeSelection(player)){
 					game.createUnit(player,player.dices[player.summonchoice].type,[x,y])
+					Buttons[player.summonchoice].hidden = true;
 					player.changeState(util.GAME_STATE_UNIT);
 				}
      		//socket.send(JSON.stringify({id:'tile place',data:{loc:[x, y]} }))
@@ -2551,7 +2772,7 @@ function findStraightPath(pathStart, pathEnd){
 		if (validWalk(xi,yi)){
 			result.push([xi,yi])
 		} else {
-			console.log('breaking at', xi,yi)
+			//console.log('breaking at', xi,yi)
 			break;
 		}
 
@@ -2662,10 +2883,13 @@ var printCursor = function() {
 	}
 }
 
-var then = Date.now();
+var then
 
+
+var CrestCoord = [[290,100],[72,32],[217,35],[144,34],[217,163],[143,229]]
 function drawCrest(crest, x,y, sx, sy){
 	//var size = wx;
+	/*
 	if (img_crest_rdy) {
 		if (crest == CREST_SUMMON){
 			ctx.drawImage(img_crest,0,0,58,58, x, y, sx, sy);
@@ -2680,16 +2904,190 @@ function drawCrest(crest, x,y, sx, sy){
 		} else if (crest == CREST_TRAP){
 			ctx.drawImage(img_crest,284,0,59,58, x, y, sx, sy);
 		}
-
-
 	};
+	*/
+	ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
+	/*
+	if (crest == CREST_SUMMON){
+		ctx.drawImage(IMAGES['Crest'],143,229,35,35, x, y, sx, sy);
+	} else if (crest == CREST_MOVEMENT){
+		ctx.drawImage(IMAGES['Crest'],290,100,35,35, x, y, sx, sy);
+	} else if (crest == CREST_MAGIC){
+		ctx.drawImage(IMAGES['Crest'],144,34,35,35, x, y, sx, sy);
+	} else if (crest == CREST_ATTACK){
+		ctx.drawImage(IMAGES['Crest'],72,32,35,35, x, y, sx, sy);
+	} else if (crest == CREST_DEFENSE){
+		ctx.drawImage(IMAGES['Crest'],217,35,35,35, x, y, sx, sy);
+	} else if (crest == CREST_TRAP){
+		ctx.drawImage(IMAGES['Crest'],217,163,35,35, x, y, sx, sy);
+	}
+	*/
 }
 
 
 var time;
+
+
+
+function drawUIFrame(){
+	ctx.globalAlpha = 1
+	ctx.drawImage(IMAGES['Runeterra'], 0,0, canvas.width,canvas.height)
+	ctx.globalAlpha = 1
+	var w = 20;
+	/*
+	for (var i=w*2; i<canvas.width-w*2; i=i+w*2){
+		ctx.drawImage(IMAGES['UI'],75,5,40,20,i,0,w*2,w)
+	}
+
+	for (var i=w*2; i<canvas.height-w*2; i=i+w*2){
+		ctx.drawImage(IMAGES['UI'],5,82,20,40,canvas.width-w,i,w,w*2)
+	}
+
+	for (var i=w*2; i<canvas.height-w*2; i=i+w*2){
+		ctx.drawImage(IMAGES['UI'],163,82,20,40,0,i,w,w*2)
+	}
+
+	for (var i=w*2; i<canvas.width-w*2; i=i+w*2){
+		ctx.drawImage(IMAGES['UI'],80,166,40,20,i,canvas.height-w,w*2,w)
+	}
+	ctx.drawImage(IMAGES['UI'],5,5,40,40,0,0,w*2,w*2)
+	ctx.drawImage(IMAGES['UI'],143,5,40,40,canvas.width-w*2,0,w*2,w*2)
+	ctx.drawImage(IMAGES['UI'],5,146,40,40,0,canvas.height-w*2,w*2,w*2)
+	ctx.drawImage(IMAGES['UI'],143,146,40,40,canvas.width-w*2,canvas.height-w*2,w*2,w*2)
+	*/
+}
+
+function drawAnimation(dt){
+	var splice = [];
+	controlLock = true
+	if (animation.length == 0) controlLock = false
+	for (var i=0;i<animation.length;i++){
+		var a = animation[i];
+		if (a.delay) a.delay -= dt;
+		if (a.delay >= 0) continue
+
+		if (a.type == 'tile place'){
+			//console.log(player.tileSelected)
+		} else if (a.type == 'move unit'){
+			//console.log(a.path)
+			if (a.path.length > 0 && a.unit.exist){
+				var move = a.path[0];
+				var dx = move[0] - a.px;
+				var dy = move[1] - a.py ;
+				//console.log(dx,dy)
+				//console.log(this.animx,move[0])
+				//console.log(this.y,move[1])
+				var finish = false;
+				if (dx != 0){
+						a.unit.x = a.unit.x + dx/Math.abs(dx)*a.speed*dt;
+						//console.log(dx/Math.abs(dx)*a.speed*dt)
+						if (dx > 0 && a.unit.x >= move[0] || dx < 0 && a.unit.x <= move[0]){
+							finish = true;
+						}
+				} else if (dy != 0){
+					a.unit.y = a.unit.y + dy/Math.abs(dy)*a.speed*dt;
+					if (dy > 0 && a.unit.y >= move[1] || dy < 0 && a.unit.y <= move[1]){
+							finish = true;
+					}
+				} else {
+					console.log('same location')
+					finish = true;
+				}
+				if (finish){
+					a.path.shift();
+					game.setUnitAtLoc(util.EMPTY,[a.px, a.py])
+					game.setUnitAtLoc(a.unit.id,move)
+					var event = {trigger: a.unit, location: move}
+					for (var j=0; j<game.props.length; j++){
+						if (game.props[j] && game.props[j].x == move[0] && game.props[j].y == move[1]){
+							game.props[j].fire('collision',event);
+						}
+					}
+
+					splice.push(i)
+					animation.push({type:'move unit', unit:a.unit, path:a.path , px:a.unit.x, py:a.unit.y, speed:1, duration:200})
+
+				}
+			} else {
+				splice.push(i)
+			}
+		} else if (a.type == 'dice'){
+			//animation.push({id:'dice', speed:0.1, accel:1, x:50,y:50, size:50,delay:0.5, duration:2, index:0)
+				if (a.speed < 20)
+				a.speed = a.speed+a.accel*dt
+				a.index = (a.index + dt*a.speed)%6;
+				var crest = a.dice[Math.floor(a.index)][0];
+				var nextcrest = a.dice[(Math.floor(a.index)+1)%6][0]
+				//console.log(a.index)
+				//console.log(a.index)
+				//ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
+				var size = a.size *  (1-a.index+Math.floor(a.index))
+				ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1]+35*(a.index-Math.floor(a.index)),35,35*(a.index-Math.floor(a.index)),a.x,a.y,a.size,size)
+				ctx.drawImage(IMAGES['Crest'], CrestCoord[nextcrest][0],CrestCoord[nextcrest][1],35,35,a.x,a.y+a.size*(1-a.index+Math.floor(a.index)),a.size,a.size *  (a.index-Math.floor(a.index)))
+
+		} else if(a.type == 'text'){
+			ctx.globalAlpha = a.duration*2;
+			ctx.fillStyle = white;
+			if (a.color)ctx.fillStyle = a.color;
+			if (a.dx)	a.x = a.x+ dt*a.dx;
+			if (a.dy) a.y = a.y+ dt*a.dy;
+			ctx.font = "20px Arial";
+			//console.log(a.text)
+			ctx.fillText(a.text,a.x, a.y)
+			ctx.globalAlpha = 1;
+		} else if (a.effect == 'pan'){
+			if (a.dx)	a.x = a.x+ dt*a.dx;
+			if (a.dy) a.y = a.y+ dt*a.dy;
+			ctx.drawImage(a.image,a.x,a.y)
+		} else if (a.effect == 'grow'){
+			if (a.dx)	{
+				a.sx = a.sx+ dt*a.dx;
+				a.x -= (dt*a.dx)/2
+			}
+			if (a.dy) {
+				a.sy = a.sy+ dt*a.dy;
+				a.y -= (dt*a.dy)/2
+			}
+			if (a.fade) ctx.globalAlpha = a.duration
+			ctx.drawImage(a.image,a.x,a.y,a.sx,a.sy)
+		} else if(a.type == 'fade dice'){
+			//	ctx.drawImage(IMAGES['Crest'], ,CrestCoord[crest][1]+35*(a.index-crest),35,35*(1-a.index+crest),a.x,a.y,50,size)
+			//animation.push({type:'fade dice', crest:result[0][0], x:50, y:50, duration:1, delay:2})
+			//ctx.globalAlpha = a.duration
+			ctx.drawImage(IMAGES['Crest'],CrestCoord[a.crest[0]][0],CrestCoord[a.crest[0]][1],35,35,a.x,a.y, 50,50)
+			ctx.fillStyle = white;
+			ctx.strokeStyle = black;
+			ctx.lineWidth = 2
+			ctx.font = "bolder 20px Arial";
+			ctx.fillText(a.crest[1],a.x+20,a.y+30);
+			ctx.strokeText(a.crest[1],a.x+20,a.y+30);
+			//ctx.globalAlpha = 1
+		}
+		a.duration -= dt;
+		if (a.duration < 0){
+			splice.push(i);
+		}
+	}
+	while (splice.length > 0){
+		var a = splice.pop()
+		if (animation[a].onfinish){
+			//console.log('casting onfihsing with args', animation[a].args)
+			animation[a].onfinish.apply(undefined, animation[a].args)
+		}
+		animation.splice(a,1)
+	}
+
+}
+
+
 function render(){
 	requestAnimationFrame(render);
+
 	ctx.clearRect(0,0,canvas.width,canvas.height)
+	//ctx.drawImage(IMAGES['UI'],0,0, canvas.width,canvas.height)
+	drawUIFrame()
+
+	ctx.translate(boardXPadding,boardYPadding)
 	drawBoard();
 	drawUnits();
 	drawProps();
@@ -2701,13 +3099,25 @@ function render(){
 	drawPath();
 	//drawAlert();
 	drawDialog();
+
 	updateCrest(player.pool);
 
 
 	//====
 	canvas.style.cursor = "default";
-	var m = getUnitOnCursor(cursorX,cursorY);
 	setStatePanelText("")
+	//var m = game.monsters[player.unitSelected]
+	//if (!m){
+
+	if (player.unitSelected != util.EMPTY){
+		var m = game.monsters[player.unitSelected]
+		if (IMAGES[m.name]){
+				ctx.drawImage(IMAGES[m.name],415,0);
+		}
+	}
+
+	var	m = getUnitOnCursor(cursorX,cursorY);
+
 	if (m){
 		setStatePanelText(m)
 		if (m.player.num == player.num){
@@ -2715,12 +3125,40 @@ function render(){
 		} else if (player.state == util.GAME_STATE_SELECT){
 			canvas.style.cursor = "crosshair";
 		}
+		if (IMAGES[m.name]){
+				ctx.drawImage(IMAGES[m.name],415+150,0);
+		}
+		for (var i =0; i<m.buff.length; i++){
+			console.log()
+			if (IMAGES[m.buff[i].name])
+			ctx.drawImage(IMAGES[m.buff[i].name],m.x*squareSize+i*20,m.y*squareSize-20, 20,20)
+		}
 	}
 
-	var now = new Date().getTime(),
-    //var dt = now - (time || now);
-    time = now;
+	if (game.combat){
+		if (IMAGES[game.combat.target.name]){
+				ctx.drawImage(IMAGES[game.combat.target.name],415+150,0);
+				ctx.drawImage(IMAGES[game.combat.unit.name],415,0);
+		}
+	}
 
+	if (player.diceButtonFocus != util.EMPTY){
+		m = player.dices[player.diceButtonFocus].type;
+		//DicePattern.push(player.dices[b.id]);
+		setStatePanelText(m)
+	}
+	ctx.translate(-boardXPadding,-boardYPadding)
+	var now = new Date().getTime()
+	if (!time) time = now;
+	var dt = (now - time) / 1000.0
+  time = now;
+	for (m of game.monsters){
+		m.update(dt)
+	}
+
+	//drawDiceRoll(dt)
+
+	drawAnimation(dt);
 
 }
 
@@ -2734,46 +3172,10 @@ var PLAYER_ID = -1;
 var player;
 var opponent;
 
-
-
-
-var Second = 0;
-
-function drawGame(){
-
-	var now = Date.now();
-	var delta = now - then;
-	then = now;
-	window.requestAnimationFrame(drawGame);
-	Second += delta;
-	//console.log(delta);
-	if (Second >= 100){
-		Second = 0;
-		//console.log("one second");
-		for (var i=0; i<EVENT_LIST.length; i++){
-
-			if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_TIMEOUT) {
-				EVENT_LIST[i].timeout += 100;
-				if (EVENT_LIST[i].timeout >= EVENT_LIST[i].interval){
-					EVENT_LIST[i].action();
-					EVENT_LIST[i].timeout = 0;
-				}
-
-			}
-		}
-	}
-	if (game){
-		//console.log('rending')
-		//render()
-	}
-}
-
 //if (PLAYER_ID.isPlaying()) {
 //	//PLAYER_ID.nextState();
 //}
-
 var main = function(){
-
 	//requestAnimationFrame(main);
 	//printCursor();
 

@@ -22,19 +22,30 @@ body {
 
 
 td {
-	text-align: left; 
+	text-align: left;
 	vertical-align: top;
 	width: 200px;
 }
-
+.ui:hover {
+	/*width:200px;*/
+}
 .ui {
-
-	width: 60px;
+  border: 5px;
+  background-image: -webkit-gradient(
+  linear, left top, right bottom, from(rgba(50,50,50,0.6)),
+  to(rgba(80,80,80,0))
+);
+  text-decoration: none;
+	width: 100px;
 
 }
 
 #uipanel{
 	width: 350px;
+}
+
+#hudpanel tr{
+    //border: 2px;
 }
 
 #diceroll {
