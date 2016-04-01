@@ -67,6 +67,41 @@ var CREST_SUMMON = 5;
 var CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
 
 
+var IMAGES = {}
+function ImageLoader(key, src){
+	IMAGES[key] = new Image();
+	IMAGES[key].src = src;
+}
+
+IMAGES['New Crest'] = [];
+for (var i=0; i<6;i++){
+	var image = new Image()
+	image.src = 'assets/img/crest/'+ CREST_TEXT[i].toLowerCase() +'.png'
+	IMAGES['New Crest'].push(image)
+}
+
+ImageLoader('Crest', 'assets/img/championstats_icons.jpg')
+ImageLoader('Lucian', 'assets/img/lucian.jpg')
+ImageLoader('Lightslinger', 'assets/img/Lightslinger.png')
+ImageLoader('LucianSquare', 'assets/img/LucianSquare.png')
+ImageLoader('TeemoSquare', 'assets/img/TeemoSquare.png')
+ImageLoader('Teemo', 'assets/img/teemo.jpg')
+ImageLoader('Soraka', 'assets/img/soraka.jpg')
+ImageLoader('SorakaSquare', 'assets/img/SorakaSquare.png')
+ImageLoader('Garen', 'assets/img/garen.jpg')
+ImageLoader('GarenSquare', 'assets/img/GarenSquare.png')
+ImageLoader('Texture','assets/img/texture.jpg')
+ImageLoader('Texture2','assets/img/texture2.jpg')
+ImageLoader('UI', 'assets/img/border.png')
+ImageLoader('UITEXTURE', 'assets/img/bgtexture.png')
+ImageLoader('Runeterra', 'assets/img/runeterra.png')
+ImageLoader('ButtonFrame', 'assets/img/buttonframe.png')
+ImageLoader('Guard', 'assets/img/armor.png')
+ImageLoader('Relentless Pursuit', 'assets/img/Relentless_Pursuit.png')
+ImageLoader('Ardent Blaze', 'assets/img/Ardent_Blaze.png')
+ImageLoader('Blinding Dart', 'assets/img/Blinding_Dart.png')
+ImageLoader('Starcall', 'assets/img/Starcall.png')
+ImageLoader('Piercing Light', 'assets/img/Piercing_Light.png')
 
 
 var UNITS = {};
@@ -132,7 +167,7 @@ SPELLS['Lucian'][0].on('effect', function(event){
 
 })
 
-SPELLS['Lucian'][1] = new Spell("Ardent Cenzer", [CREST_MAGIC, 2],true)
+SPELLS['Lucian'][1] = new Spell("Ardent Blaze", [CREST_MAGIC, 2],true)
 SPELLS['Lucian'][1].on('effect',function(event){
 	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) == util.EMPTY) return "No unit targeted"
 	if (event.location[0] == event.trigger.x || event.location[1] == event.trigger.y){
@@ -219,12 +254,12 @@ SPELLS['Lucian'][2].on('effect', function(event){
 	SPELLS['Lucian'][2].fire('finish', {trigger:event.trigger})
 })
 
-SPELLS['Lucian'][3] = new Spell("Ardent Cenzer", [CREST_MAGIC, 2],true)
+SPELLS['Lucian'][3] = new Spell("Ardent Blaze", [CREST_MAGIC, 2],true)
 
-SPELLS['Lucian'][4] = new Spell('Lightslinger', [CREST_ATTACK,0], false)
+SPELLS['Lucian'][4] = new Spell('The Culling', [CREST_ATTACK,0], false)
 SPELLS['Lucian'][4].on('learn', function(event){
-	console.log('Learnt lightslinger')
-	ApplyBuff(event.trigger,event.trigger, BUFFS['Lightslinger']())
+	//console.log('Learnt lightslinger')
+	//ApplyBuff(event.trigger,event.trigger, BUFFS['Lightslinger']())
 })
 
 
@@ -298,6 +333,11 @@ SPELLS['Soraka'][1].on('effect',function(event){
 	event.trigger.hp -= 10;
 	SPELLS['Soraka'][1].fire('finish',{trigger:event.trigger})
 })
+
+
+SPELLDESCRIPTION = {};
+
+SPELLDESCRIPTION['Piercing Light'] = "Deal 20 damage 3 squares in front of Lucian. Can only be used if a target exists that is up to 2 squares away."
 
 UNITS['Teemo'] = {
 	name: 'Teemo',
@@ -538,12 +578,12 @@ function openConnection(c,num){
 		game.init()
 
 		if(num == 0){
-			player.changeState(util.GAME_STATE_UNIT)
-			game.createUnit(player,UNITS['Soraka'],[5,17])
+			player.changeState(util.GAME_STATE_ROLL)
+			game.createUnit(player,UNITS['Lucian'],[5,17])
 		} else {
 			player.state = util.GAME_STATE_END
 			changeUIState(util.GAME_STATE_END)
-			game.createUnit(player,UNITS['Teemo'],[4,17])
+			game.createUnit(player,UNITS['Soraka'],[4,17])
 
 		}
 			PROPS['Toxic Mushroom']([6,17], game.monsters[0])
@@ -555,6 +595,9 @@ function openConnection(c,num){
 		if (data.id == 'move unit'){
 			//game.monsters[data.unit].moveUnit([data.x, data.y])
 			game.monsters[data.unit].movement(data.path)
+			opponent.updatePool(CREST_MOVEMENT,-data.path.length+1)
+			opponent.animateDice(CREST_MOVEMENT)
+			opponent.changeState(util.GAME_STATE_UNIT)
 		} else if (data.id == 'select unit'){
 			opponent.unitSelected = data.unit
 		} else if (data.id == 'change state'){
@@ -696,6 +739,7 @@ function DamageUnit(trig, targ, damage){
 	//console.log(tx,ty)
 	if (damage > 0){
 		animation.push({type:'text', text:'-'+damage, color:white, x:tx,y:ty, dy:-25, duration:0.75})
+
 	}
 	//var remove = false
 
@@ -720,6 +764,8 @@ function Combat(unit, target){
 
 	this.guard = function(button){
 			if (button == 1){
+				target.player.updatePool(CREST_DEFENSE,-1);
+				target.player.animateDice(CREST_DEFENSE)
 				game.combat.defmodifier = game.combat.target.def;
 				game.combat.guarded = true;
 				var rx = boardXPadding+target.x*squareSize
@@ -779,6 +825,7 @@ function Combat(unit, target){
 
 		this.unit.hasAttacked = true;
 		this.unit.player.updatePool(CREST_ATTACK, -this.unit.atkcost);
+		this.unit.player.animateDice(CREST_ATTACK)
 		this.unit.player.changeState(util.GAME_STATE_UNIT)
 		//this.target.player.changeState(util.GAME_STATE_NEUTRAL);
 		//update(game);
@@ -949,7 +996,7 @@ function Unit(player, type, point, level) {
 			//console.log(plen-1,'<=',this.impairment + util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//console.log(util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//if (plen > 1 && plen-1 <= this.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
-			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:10, duration:200})
+			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200})
 			/*
 			for (var i=1; i<path.length; i++){
 				//console.log(path[i])
@@ -1039,7 +1086,7 @@ function Game(){
 
 	this.makeSelection = function(player){
 		//console.log(this.tileSelected.length)
-		if (player.tileSelected.length > 0 && player.valid){
+		if (player.tileSelected && player.tileSelected.length > 0 && player.valid){
 			//animation.push({type:'tile place'})
 			var cshape = rotateShape(this.shape,this.rotate);
 			for (var i=0; i<6; i++){
@@ -1051,6 +1098,7 @@ function Game(){
 			if (sendSwitch){
 				conn.send({id:'make selection'})
 			}
+			player.changeState(util.GAME_STATE_UNIT)
 			return true;
 
 		}
@@ -1143,28 +1191,28 @@ DICES['Teemo'] = new Dice(UNITS['Teemo'],
 					[CREST_MOVEMENT,1]])
 
 DICES['Soraka'] = new Dice(UNITS['Soraka'],
-					[[CREST_SUMMON,2],
-					 [CREST_SUMMON,2],
-					 [CREST_SUMMON,2],
-					 [CREST_SUMMON,2],
-					 [CREST_ATTACK,2],
+					[[CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_ATTACK,1],
 					 [CREST_MAGIC,3]]);
 
 
 DICES['Poppy'] = new Dice(UNITS['Poppy'],
-					[[CREST_SUMMON,3],
-					 [CREST_SUMMON,3],
-					 [CREST_SUMMON,3],
-					 [CREST_MOVEMENT,2],
+					[[CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_MOVEMENT,1],
 					 [CREST_TRAP,3],
 					 [CREST_ATTACK,1]]);
 
 DICES['Garen'] = new Dice(UNITS['Garen'],
-					[[CREST_SUMMON,4],
-					 [CREST_SUMMON,4],
-					 [CREST_DEFENSE,3],
-					 [CREST_MOVEMENT,1],
-					 [CREST_MAGIC,3],
+					[[CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_DEFENSE,1],
+					 [CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
 					 [CREST_TRAP,2]])
 
  DICES['Lucian'] = new Dice(UNITS['Lucian'],
@@ -1263,6 +1311,8 @@ function Board(){
 	return this;
 }
 
+
+
 function Player(id){
 	this.id = id;
 	this.num;
@@ -1287,7 +1337,7 @@ function Player(id){
 	this.spell = util.EMPTY;
 
 	this.valid = false;
-	this.dices = [DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],
+	this.dices = [DICES['Lucian'],DICES['Lucian'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],
 								DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],
 								DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen']];
 
@@ -1295,11 +1345,27 @@ function Player(id){
 
 	this.spell = util.EMPTY;
 
+	this.animateDice = function(crest,delay){
+		var size = 25
+		var gap = 10
+		var x = 500
+		var y = this.num == player.num ? 50 : 400;
+		y+i*(size+gap)
+		animation.push({
+			effect:'grow', image:IMAGES['New Crest'][crest],
+			x:x,y:y+(crest)*(size+gap)+boardYPadding, dx:20,dy:20, sx:size, sy:size,
+			duration:0.75, fade:true,delay:delay
+		})
+	}
+
 	this.updatePool = function(crest, point){
+
 		this.pool[crest] += point;
+
+
 		//console.log('update pool')
-		if (sendSwitch)
-			conn.send({id:'update pool', crest:crest, point:point})
+		//if (sendSwitch)
+			//conn.send({id:'update pool', crest:crest, point:point})
 		//games[this.id].update('pool', this.num, {crest:crest, point:point})
 	}
 
@@ -1317,11 +1383,12 @@ function Player(id){
 
 	this.updateTile = function(shape){
 		this.tileSelected = shape;
+		if (this.tileSelected == null) this.tileSelected = []
 		//console.log('update tile')
 		this.valid = game.board.validPlacement(this)
 		//console.log(shape)
 		//console.log('setting', this.num, this.valid)
-		if (sendSwitch){
+		if (sendSwitch && shape){
 			conn.send({id:'update tile', shape:shape})
 		}
 	}
@@ -1345,6 +1412,7 @@ function Player(id){
 		this.movePath = []
 		this.tileSelected = []
 		this.spell = -1;
+
 
 		changeUIState(state)
 
@@ -1387,7 +1455,7 @@ function Player(id){
 			p.splice(i,1)
 			}
 		}
-
+		//this.changeState(util.GAME_STATE_ROLL);
 	}
 
 	this.onRoll = function(data){
@@ -1405,7 +1473,7 @@ function Player(id){
 
 			if (r[0] != CREST_SUMMON){
 				//console.log(this.pool);
-				this.updatePool(r[0],r[1])
+				//this.updatePool(r[0],r[1])
 				//console.log(this.pool);
 				console.log(CREST_TEXT[r[0]] + " " + r[1]);
 			} else {
@@ -1444,6 +1512,7 @@ function Player(id){
 			this.changeState(util.GAME_STATE_SELECT);
 			this.unitSelected = m;
 			conn.send({id:'select unit', unit:m})
+			//animation.push({type:'message', text:'End Phase', color:red,x:-200,y:250,speed:1000,  duration:2})
 			disableSpell(false)
 			if (player.num == this.num){
 				if (game.monsters[m].spells[0]){
@@ -1715,9 +1784,19 @@ function changeUIState(state){
 	}
 
 	disableSpell(true)
-	if (state == util.GAME_STATE_ROLL){
-		for (i=0;i<15;i++) Buttons[i].reset();
+	rollButton.hidden = true;
 
+	for (i=0;i<15;i++) DicePool[i].hidden = true;
+	if (state == util.GAME_STATE_ROLL){
+		rollButton.hidden = false;
+
+		for (i=0;i<15;i++) DicePool[i].reset();
+		for (i=0; i<15; i++){
+			//console.log(i)
+			if (player.dices[i]){
+				DicePool[i].hidden = false;
+			}
+		}
 	}
   if (state == util.GAME_STATE_END){
   	disableButtons(true,true)
@@ -1729,20 +1808,18 @@ function changeUIState(state){
 	yesButton.hidden = true;
 	noButton.hidden = true;
 
-	for (i=0; i<15; i++){
-		if (!player.dices[i]){
-			Buttons[i].hidden = true;
-		}
-	}
+
 	disableButtons(true,true)
 
 	if (player.state == util.GAME_STATE_SUMMON ){
-		for (i=0;i<15;i++) Buttons[i].reset();
+		/*
+		for (i=0;i<15;i++) DicePool[i].reset();
 		console.log('summon', player.summon)
 		for (i=0;i<player.summon.length;i++) {
-			Buttons[player.summon[i]].toggle = true;
-			Buttons[player.summon[i]].focus = true;
+			DicePool[player.summon[i]].toggle = true;
+			DicePool[player.summon[i]].focus = true;
 		}
+		*/
 	} else if (player.state == util.GAME_STATE_SELECT ||
 		player.state == util.GAME_STATE_UNIT) {
 		disableButtons(true,false)
@@ -1890,42 +1967,46 @@ function drawButton(){
 	ctx.fillRect(0,200,canvas.width*0.5,canvas.height*0.4);
 	ctx.strokeRect(0,200,canvas.width*0.5,canvas.height*0.4)
 		*/
-	for (var i=0; i< Buttons.length; i++){
-		if (!Buttons[i].hidden){
-			Buttons[i].render();
-		}
+
+	for (var i=0;i<Buttons.length;i++){
+		ctx.globalAlpha = 1
+		if (!Buttons[i].hidden) Buttons[i].render()
 	}
+
 }
 
 
 
-var DicePattern = [];
+var DicePattern;
 
 function drawDicePattern(){
 	var count = 0
-	var xpad = 75;
-	var ypad = 250
-	for (var i=0; i< DicePattern.length;i++){
-		for (var j=0; j<6; j++){
-			var p = DicePattern[i].pattern[j];
-			drawCrest(p[0], xpad +j*30, ypad + i*30, 25, 25)
-			ctx.fillStyle = white
-			ctx.strokeStyle = black
-			if (p[0] == 5) {
+	var xpad = 110;
+	var ypad = 260
+	var xgap = 30;
+	var txgap =9;
+	var tygap =20;
+	if (DicePattern == null) return;
+	for (var j=0; j<6; j++){
+		var p = DicePattern.pattern[j];
+		//console.log(p[0])
 
+		//drawCrest(p[0], xpad +j*30, ypad + i*30, 25, 25)
+		ctx.fillStyle = white
+		ctx.strokeStyle = black
+		ctx.drawImage(IMAGES['New Crest'][p[0]],xpad +j*xgap, ypad, 25, 25)
+		ctx.font = "bolder 20px Arial ";
+		ctx.lineWidth = 1;
+		//if (p[0] == 5) {
+			ctx.fillText(p[1],xpad + j* xgap+txgap ,ypad+ tygap);
+			ctx.strokeText(p[1],xpad + j* xgap+txgap ,ypad + tygap);
+		//} else {
+		//	ctx.fillText("x"+p[1],xpad + j* 28+20,ypad+35);
+		//	ctx.strokeText("x"+p[1],xpad + j* 28+20,ypad+35);
+		//}
 
-				ctx.lineWidth = 1;
-				ctx.fillText(p[1],xpad + j* 28+9,ypad + i*30+16);
-				ctx.strokeText(p[1],xpad + j* 28+9,ypad + i*30+16);
-			} else {
-				ctx.font = "bolder 11px Arial ";
-					ctx.lineWidth = 1;
-				ctx.fillText("x"+p[1],xpad + j* 28+20,ypad+i*30+35);
-				ctx.strokeText("x"+p[1],xpad + j* 28+20,ypad+i*30+35);
-			}
-
-		}
 	}
+
 }
 function changeCursor(cursor){
 	console.log("sdf");
@@ -1935,24 +2016,15 @@ function changeCursor(cursor){
 }
 
 var Event_Button_Focus = function(x,y){
-	DicePattern = [];
-	player.diceButtonFocus = -1
-	if (player.state != util.GAME_STATE_ROLL) return;
+	//player.diceButtonFocus = -1
 	for (var i=0;i<Buttons.length; i++){
 		var b = Buttons[i];
 		if (b.hidden) continue;
 		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
-			if (player.state == util.GAME_STATE_ROLL){
-				b.onFocus(x,y);
-			}
-			player.diceButtonFocus = b.id
-			//var m = player.dices[b.id].type;
-			DicePattern.push(player.dices[b.id]);
-			//setStatePanelText(m)
+			b._onFocus(x,y);
 		} else {
-			if (player.state == util.GAME_STATE_ROLL){
-				b.onUnfocus(x,y);
-			}
+			b._onUnfocus(x,y);
+
 		}
 
 	}
@@ -1963,15 +2035,15 @@ var Event_Button_Focus = function(x,y){
 
 
 var Event_Button_Click = function(x,y){
-	if (player.state == util.GAME_STATE_ROLL || util.GAME_STATE_SUMMON){
-		for (var i=0;i<Buttons.length; i++){
-			var b = Buttons[i];
-			if (b.hidden) continue;
-			if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
-				b.onClick(x,y)
-			}
+
+	for (var i=0;i<Buttons.length; i++){
+		var b = Buttons[i];
+		if (b.hidden) continue;
+		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
+			if (b.onClick) b.onClick(x,y)
 		}
 	}
+
 }
 
 var summonToggle;
@@ -1984,12 +2056,14 @@ function Button(id, img, x, y,sx,sy,unit){
 
 	this.sx = sx;
 	this.sy = sy;
-	console.log(this.sx,this.sy)
+	//console.log(this.sx,this.sy)
 	this.hidden = false;
 	this.toggle = false;
 	this.focus = false;
 	this.unfocus = false;
 	this.id = id;
+	this.img = img;
+	this.unit = unit;
 	//this.unit = unit;
 
 	this.reset = function(){
@@ -1999,14 +2073,15 @@ function Button(id, img, x, y,sx,sy,unit){
 		//icePattern = [];
 	}
 
-	this.onFocus = function(x,y){
-
+	this._onFocus = function(x,y){
 		if (this.focus) return;
+		if (this.onFocus) this.onFocus();
+		this.focus = true;
 		//console.log(x,y, b.x, b.y, b.wx, b.hy)
 		if (player.state == util.GAME_STATE_ROLL){
 			//changeCursor("pointer")
-			this.focus = true;
 
+			//console.log(this.id)
 			//DicePattern = [];
 			//DicePattern.push(player.dices[0])
 
@@ -2014,23 +2089,73 @@ function Button(id, img, x, y,sx,sy,unit){
 		//render();
 
 	}
-	this.onUnfocus = function(x,y){
-
+	this._onUnfocus = function(x,y){
 		if (!this.focus) return;
-
-		if (this.toggle) return;
+		if (this.onUnfocus) this.onUnfocus()
+		this.focus = false;
+		//if (this.toggle) return;
 		//changeCursor("default")
 		//changeCursor("pointer")
 		if (player.state == util.GAME_STATE_ROLL){
-			this.focus = false;
-
 			//DicePattern = [];
 		}
 		//render();
 	}
-	this.onClick = function(x,y){
 
-		if (player.state == util.GAME_STATE_ROLL){
+	this.img = img;
+	//this
+			//ctx.drawImage(IMAGES['ButtonFrame'],this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod)
+		//} else {
+			/*
+			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
+			ctx.fillStyle = black;
+			var lvl = player.dices[this.id].pattern[0][1]
+			ctx.fillText(lvl,this.rx+15,this.ry+21);
+			ctx.drawImage(IMAGES['ButtonFrame'],this.rx,this.ry,this.sx, this.sy)
+			*/
+		//}
+		//ctx.globalAlpha = 1;
+	Buttons.push(this);
+	return this;
+}
+
+var DicePool = []
+var DiceSelection = []
+var DiceButtonSize = 40;
+var SummonPool = []
+
+var CREST_MOVEMENT = 0;
+var CREST_ATTACK = 1;
+var CREST_DEFENSE = 2;
+var CREST_MAGIC = 3;
+var CREST_TRAP = 4;
+var CREST_SUMMON = 5;
+
+var CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
+
+
+for (var i=0; i<3; i++){
+	for (var j=0;j<5;j++){
+		//console.log((i*3)+j)
+		var b = new Button((i*5)+j,IMAGES['New Crest'][CREST_SUMMON], 75+(DiceButtonSize+15)*j,300+(DiceButtonSize+15)*i, DiceButtonSize,DiceButtonSize)
+
+		b.onUnfocus = function(){
+			if (player.diceButtonFocus == this.id){
+				player.diceButtonFocus = -1
+				DicePattern = null
+			}
+
+		}
+		b.onFocus = function(){
+			//if (player.state != util.GAME_STATE_ROLL) return
+
+			player.diceButtonFocus = this.id
+			DicePattern = player.dices[this.id]
+			//console.log(DicePattern)
+		}
+
+		b.onClick = function(x,y){
+			if (player.state != util.GAME_STATE_ROLL) return;
 			if (this.toggle){
 				this.toggle = false;
 				DiceSelection.splice(DiceSelection.indexOf(this),1);
@@ -2044,105 +2169,82 @@ function Button(id, img, x, y,sx,sy,unit){
 					b.onUnfocus(x,y);
 				}
 			}
-			for (var i=0; i<15; i++){
-				Buttons[i].unfocus = false;
+			for (var i=0; i<DicePool.length; i++){
+				DicePool[i].unfocus = false;
 			}
 
 			if (DiceSelection.length == 3){
 				disableButtons(false,true)
+
 				for (var i=0; i<15; i++)
-					Buttons[i].unfocus = true;
-
-			}
-
-		} else if (player.state == util.GAME_STATE_SUMMON ){
-			if (this.toggle){
-				summonToggle = this;
-				console.log('summoinining', this.id)
-				player.summonchoice = this.id;
-				player.updateTile(player.updateShape(cursorX,cursorY))
-				//socket.send(JSON.stringify({id:'c_summonoption', data:this.id}))
+					DicePool[i].unfocus = true;
 			}
 		}
-	}
-	this.img = img;
 
-
-	this.render = function(){
-		ctx.globalAlpha = 0.25;
-		if (player.state == util.GAME_STATE_ROLL || player.state == util.GAME_STATE_SUMMON){
+		b.render = function(){
+			ctx.globalAlpha = 1;
 			var mod = 0;
-			if (player.state == util.GAME_STATE_ROLL){
-				ctx.globalAlpha = 1;
-			}
-
 			if (this.unfocus){
 				ctx.globalAlpha = 0.1;
 			}
 
 			if (this.focus){
-				mod = 1;
+				mod = 0;
 			}
 
 			if (this.toggle){
-				ctx.globalAlpha = 1;
+				ctx.globalAlpha = 0.5;
 				if (player.state == util.GAME_STATE_ROLL){
 					ctx.fillStyle = black;
-				} else if (player.state == util.GAME_STATE_SUMMON){
-					if (summonToggle == this){
-						ctx.fillStyle = white;
-					} else {
-						ctx.fillStyle = white;
-					}
 				}
 				ctx.fillRect(this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod);
 			}
-			drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
-			var lvl = player.dices[this.id].pattern[0][1]
+			//drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
+			ctx.drawImage(this.img,  this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
+			//var lvl = player.dices[this.id].pattern[0][1]
+			var lvl = 4;
 			ctx.fillStyle = white;
 			ctx.strokeStyle = black;
-			ctx.lineWidth = 2;
+			ctx.lineWidth = 1;
 			ctx.font = "bolder 20px Arial";
 			ctx.strokeText(lvl,this.rx+11,this.ry+24);
 			ctx.fillText(lvl,this.rx+11,this.ry+24);
-			ctx.drawImage(IMAGES['ButtonFrame'],this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod)
-		} else {
-			/*
-			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
-			ctx.fillStyle = black;
-			var lvl = player.dices[this.id].pattern[0][1]
-			ctx.fillText(lvl,this.rx+15,this.ry+21);
-			ctx.drawImage(IMAGES['ButtonFrame'],this.rx,this.ry,this.sx, this.sy)
-			*/
 		}
-		ctx.globalAlpha = 1;
-	}
-	Buttons.push(this);
-	return this;
-}
 
-var DicePool = []
-var DiceSelection = []
-var DiceButtonSize = 40;
-for (var i=0; i<5; i++){
-	for (var j=0;j<3;j++){
-		var b = new Button((j*5)+i,heartImage, 75+(DiceButtonSize+15)*i,300+(DiceButtonSize+15)*j, DiceButtonSize,DiceButtonSize)
+		//console.log(b.id)
 		DicePool.push(b);
-
 	}
 }
 
-var CREST_MOVEMENT = 0;
-var CREST_ATTACK = 1;
-var CREST_DEFENSE = 2;
-var CREST_MAGIC = 3;
-var CREST_TRAP = 4;
-var CREST_SUMMON = 5;
+for (var i=0;i<3;i++){
+	var b = new Button(i, IMAGES['New Crest'][CREST_SUMMON], 100+boardXPadding + 75*i,150+boardYPadding,50,50)
+	b.onClick = function(x,y){
+		if (player.state != util.GAME_STATE_SUMMON) return;
+		if (player.tileSelected.length > 0 ) return;
+		player.summonchoice = DiceSelection[this.id].id;
+		console.log('summoinining', player.summonchoice)
+			//player.dices[player.summonchoice]
+		player.updateTile(player.updateShape(cursorX,cursorY))
+		SummonPool[0].hidden = true;
+		SummonPool[1].hidden = true;
+		SummonPool[2].hidden = true;
+		DiceSelection = []
+		//SummonPool = []
+	}
 
-var CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
-
-
-
+	b.onFocus = function(){
+		//console.log('summon buttons ',this.id, DiceSelection[this.id].id)
+	}
+	b.render = function(){
+		//if (player.state != util.GAME_STATE_SUMMON) return;
+		//var l = DiceSelection.length
+		//if (l <= this.id) return;
+		//drawText(player.dices[DiceSelection[this.id].id].type.name, '20px Arial bolder', 200+ 50*this.id,200)
+		ctx.drawImage(IMAGES[player.dices[DiceSelection[this.id].id].type.name+'Square'], this.x ,this.y, this.sx,this.sy )
+	}
+	b.hidden = true;
+	SummonPool.push(b)
+}
 
 //colours
 var blue    = "#000099";
@@ -2151,47 +2253,6 @@ var purple  = "#990099";
 var white = "#ffffff";
 var black = "#000000"
 
-var heartReady = false;
-var heartImage = new Image();
-heartImage.onload = function(){
-	heartReady = true;
-	//init();
-};
-heartImage.src = 'assets/img/heart.png';
-
-var img_crest_rdy = false;
-var img_crest = new Image();
-img_crest.onload = function(){
-	img_crest_rdy = true;
-}
-img_crest.src = "assets/img/crests.jpg"
-
-var IMAGES = {}
-function ImageLoader(key, src){
-	IMAGES[key] = new Image();
-	IMAGES[key].src = src;
-}
-ImageLoader('Crest', 'assets/img/championstats_icons.jpg')
-ImageLoader('Lucian', 'assets/img/lucian.jpg')
-ImageLoader('Lightslinger', 'assets/img/Lightslinger.png')
-ImageLoader('LucianSquare', 'assets/img/LucianSquare.png')
-ImageLoader('TeemoSquare', 'assets/img/TeemoSquare.png')
-ImageLoader('Teemo', 'assets/img/teemo.jpg')
-ImageLoader('Soraka', 'assets/img/soraka.jpg')
-ImageLoader('SorakaSquare', 'assets/img/SorakaSquare.png')
-ImageLoader('Garen', 'assets/img/garen.jpg')
-ImageLoader('GarenSquare', 'assets/img/GarenSquare.png')
-ImageLoader('Texture','assets/img/texture.jpg')
-ImageLoader('Texture2','assets/img/texture2.jpg')
-ImageLoader('UI', 'assets/img/border.png')
-ImageLoader('UITEXTURE', 'assets/img/bgtexture.png')
-ImageLoader('Runeterra', 'assets/img/runeterra.png')
-ImageLoader('ButtonFrame', 'assets/img/buttonframe.png')
-ImageLoader('Guard', 'assets/img/armor.png')
-ImageLoader('Relentless Pursuit', 'assets/img/Relentless_Pursuit.png')
-ImageLoader('Ardent Blaze', 'assets/img/Ardent_Blaze.png')
-ImageLoader('Blinding Dart', 'assets/img/Blinding_Dart.png')
-ImageLoader('Starcall', 'assets/img/Starcall.png')
 /*
 function validPlacement(player){
 	var selection = player.tileSelected;
@@ -2351,7 +2412,6 @@ function responseButton(button){
 }
 yesButton.addEventListener("click", function(){
 	responseButton(1)
-	player.updatePool(CREST_DEFENSE,-1);
 })
 
 noButton.addEventListener("click", function(){
@@ -2386,6 +2446,8 @@ endturnButton.addEventListener("click", function(){
 	//PLAYER_ID.endTurn();
 })
 
+
+
 rollButton.addEventListener("click", function(){
 	//this.state = PLAYER_STATE_ROLL;
     //setDicePanelText("+2 MOVEMENT")
@@ -2398,17 +2460,87 @@ rollButton.addEventListener("click", function(){
     	data.push(DiceSelection[i].id)
     }
     var result = player.onRoll(data)
-		console.log(result)
-		animation.push({type:'fade dice', crest:result[0], x:25, y:50, duration:4, size:75})
-		animation.push({type:'fade dice', crest:result[1], x:100, y:50, duration:4.5, size:75})
-		animation.push({type:'fade dice', crest:result[2], x:175, y:50, duration:5, size:75})
 
-		animation.push({type:'dice', speed:0.4, accel:5, x:25,y:50, size:75, duration:2, index:0, dice:player.dices[data[0]].pattern})
-		animation.push({type:'dice', speed:0.4, accel:5, x:100,y:50, size:75, duration:2.5, index:0, dice:player.dices[data[1]].pattern})
-		animation.push({type:'dice', speed:0.4, accel:5, x:175,y:50, size:75, duration:3, index:0, dice:player.dices[data[2]].pattern})
+		var size = 50;
+		var duration = 0.25
+		var sxy = size*(1/duration)
+		var x = 100+boardXPadding+size/2
+		var dx = 75;
+		var y =  200+boardYPadding+size/2
+	//animation.push({type:'fade dice', crest:result[0], x:25, y:50, duration:4.5, size:size})
+		//animation.push({type:'fade dice', crest:result[1], x:100, y:50, duration:4.5, size:size})
+		//animation.push({type:'fade dice', crest:result[2], x:175, y:50, duration:4.5, size:size})
+
+		var onfinish = function(result){
+
+			for (var i = 0; i<result.length; i++){
+				if (result[i][0] != CREST_SUMMON){
+					//player.animateDice(result[0])
+					player.updatePool(result[i][0],result[i][1])
+				}
+			}
+		}
+
+		var ongrow = function(i){
+			//console.log(SummonPool)
+			if (!SummonPool[i]){
+				console.log('ongrow summonpool error')
+				return;
+			}
+			//console.log(DiceSelection[i])
+			console.log('unhiding button')
+			SummonPool[i].hidden = false;
+		}
+
+		for (var i =0; i <3; i++){
+			animation.push({
+				effect:'grow', image:IMAGES['New Crest'][result[i][0]],
+				x:x+i*dx,y:y, dx:0,dy:0, sx:size, sy:size,
+				duration:3.5, fade:false, text:result[i][1],tx:18,ty:35
+			})
+
+			animation.push({
+				effect:'grow', image:IMAGES['New Crest'][result[i][0]],
+				x:x+i*dx,y:y, dx:-sxy,dy:-sxy, sx:size, sy:size,
+				duration:duration, fade:false, delay:3.5
+			})
+
+			animation.push({type:'dice', speed:1, accel:5, x:x+i*dx,y:y, size:size,
+											duration:2+i*0.5, index:0, dice:player.dices[data[i]].pattern})
+
+			if (i == 2) {
+				animation[animation.length-1].onfinish = onfinish
+				animation[animation.length-1].args = [result]
+			}
+
+			if (result[i][0] != CREST_SUMMON) continue
+			//console.log(player.summon)
+			/*
+			animation.push({
+				effect:'grow', image:IMAGES['LucianSquare'],
+			x:x+i*dx,y:y, dx:0,dy:0, sx:size, sy:size,
+				duration:10, fade:false, delay:3+duration+.5
+			})
+			*/
+
+			if (player.summon.length == 0) continue
+			animation.push({
+				effect:'grow', image:IMAGES[player.dices[DiceSelection[i].id].type.name+'Square'],
+				x:x+i*dx,y:y, dx:sxy,dy:sxy, sx:0, sy:0, msx:size, msy:size,
+				duration:duration, fade:false, delay:3.5,onfinish:ongrow, args:[i]
+			})
 
 
 
+		}
+
+		/*
+		animation.push({type:'dice', speed:0.4, accel:5, x:100,y:50, size:size,
+										duration:2.5, index:0, dice:player.dices[data[1]].pattern})
+		animation.push({type:'dice', speed:0.4, accel:5, x:175,y:50, size:size,
+										duration:3, index:0, dice:player.dices[data[2]].pattern,onfinish:onfinish,args:result})
+
+*/
 	if( player.summon != 0 ) {
 		player.changeState(util.GAME_STATE_SUMMON);
 	} else {
@@ -2669,8 +2801,8 @@ registerMoveEvent(
 	function(){return true},
 	function(){
 
-
-		if (game.turn%2 != player.num) return
+		//remove comment
+		//if (game.turn%2 != player.num) return
 		if (player.state != util.GAME_STATE_SUMMON) return
 		if (boundCursor(cursorX,cursorY))
 		//player.cursorX = data.X;
@@ -2688,7 +2820,7 @@ registerMoveEvent(
 
 new Event(TRIGGER_MOUSE_CLICK,
 	function(){
-		if (game.turn%2 != player.num) return
+		//if (game.turn%2 != player.num) return
 		if (controlLock) return;
 		var x = cursorX;
 		var y = cursorY;
@@ -2725,6 +2857,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 	 						m.movement(path)
 							conn.send({id:'move unit', unit:m.id, path:path})
 							player.updatePool(CREST_MOVEMENT,-plen+1)
+							player.animateDice(CREST_MOVEMENT)
 							player.changeState(util.GAME_STATE_UNIT)
 						}
 					}
@@ -2738,8 +2871,11 @@ new Event(TRIGGER_MOUSE_CLICK,
     } else if (player.state == util.GAME_STATE_SUMMON){
 				if (game.makeSelection(player)){
 					game.createUnit(player,player.dices[player.summonchoice].type,[x,y])
-					Buttons[player.summonchoice].hidden = true;
+					//DicePool[player.summonchoice].hidden = true;
+					player.dices[player.summonchoice] = null;
+					//SummonPool = []
 					player.changeState(util.GAME_STATE_UNIT);
+
 				}
      		//socket.send(JSON.stringify({id:'tile place',data:{loc:[x, y]} }))
 		}
@@ -2906,7 +3042,7 @@ function drawCrest(crest, x,y, sx, sy){
 		}
 	};
 	*/
-	ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
+		ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
 	/*
 	if (crest == CREST_SUMMON){
 		ctx.drawImage(IMAGES['Crest'],143,229,35,35, x, y, sx, sy);
@@ -3005,7 +3141,7 @@ function drawAnimation(dt){
 					}
 
 					splice.push(i)
-					animation.push({type:'move unit', unit:a.unit, path:a.path , px:a.unit.x, py:a.unit.y, speed:1, duration:200})
+					animation.push({type:'move unit', unit:a.unit, path:a.path , px:a.unit.x, py:a.unit.y, speed:a.speed, duration:200})
 
 				}
 			} else {
@@ -3022,9 +3158,13 @@ function drawAnimation(dt){
 				//console.log(a.index)
 				//ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
 				var size = a.size *  (1-a.index+Math.floor(a.index))
-				ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1]+35*(a.index-Math.floor(a.index)),35,35*(a.index-Math.floor(a.index)),a.x,a.y,a.size,size)
-				ctx.drawImage(IMAGES['Crest'], CrestCoord[nextcrest][0],CrestCoord[nextcrest][1],35,35,a.x,a.y+a.size*(1-a.index+Math.floor(a.index)),a.size,a.size *  (a.index-Math.floor(a.index)))
+				ctx.translate(a.x-a.size/2,a.y-a.size/2)
+				//ctx.drawImage(IMAGES['New Crest'][crest], 0,35*(a.index-Math.floor(a.index)),35,35*(a.index-Math.floor(a.index)),0,0,a.size,size)
+				//ctx.drawImage(IMAGES['New Crest'][nextcrest],0 ,35,35,0,a.size*(1-a.index+Math.floor(a.index)),a.size,a.size *  (a.index-Math.floor(a.index)))
+				ctx.drawImage(IMAGES['New Crest'][crest],0,0,a.size,size)
+				ctx.drawImage(IMAGES['New Crest'][nextcrest],0,a.size*(1-a.index+Math.floor(a.index)),a.size,a.size *  (a.index-Math.floor(a.index)))
 
+				ctx.translate(-a.x+a.size/2,-a.y+a.size/2)
 		} else if(a.type == 'text'){
 			ctx.globalAlpha = a.duration*2;
 			ctx.fillStyle = white;
@@ -3040,28 +3180,67 @@ function drawAnimation(dt){
 			if (a.dy) a.y = a.y+ dt*a.dy;
 			ctx.drawImage(a.image,a.x,a.y)
 		} else if (a.effect == 'grow'){
+
 			if (a.dx)	{
 				a.sx = a.sx+ dt*a.dx;
-				a.x -= (dt*a.dx)/2
+				//a.x -= (dt*a.dx)/2
 			}
 			if (a.dy) {
 				a.sy = a.sy+ dt*a.dy;
-				a.y -= (dt*a.dy)/2
+				//a.y -= (dt*a.dy)/2
 			}
+
+
+
+			if (a.msx != null) if (a.sx >= a.msx) a.sx = a.msx;
+			if (a.msy != null) if (a.sy >= a.msy) a.sy = a.msy;
+			if (a.sx <= 0) a.sx = 0;
+			if (a.sy <= 0) a.sy = 0;
+			var x = a.x-a.sx/2
+			var y = a.y-a.sy/2
+
 			if (a.fade) ctx.globalAlpha = a.duration
-			ctx.drawImage(a.image,a.x,a.y,a.sx,a.sy)
+			ctx.translate(x,y)
+			if (a.crest != null) {
+				ctx.drawImage(a.image,CrestCoord[a.crest][0],CrestCoord[a.crest][1],35,35, 0,0,a.sx,a.sy)
+			} else {
+				ctx.drawImage(a.image,0,0,a.sx,a.sy)
+			}
+			if (a.text != null){
+				drawText(a.text,"bolder 30px Arial", a.tx,a.ty)
+			}
+			ctx.translate(-x,-y)
+
 		} else if(a.type == 'fade dice'){
 			//	ctx.drawImage(IMAGES['Crest'], ,CrestCoord[crest][1]+35*(a.index-crest),35,35*(1-a.index+crest),a.x,a.y,50,size)
 			//animation.push({type:'fade dice', crest:result[0][0], x:50, y:50, duration:1, delay:2})
-			//ctx.globalAlpha = a.duration
-			ctx.drawImage(IMAGES['Crest'],CrestCoord[a.crest[0]][0],CrestCoord[a.crest[0]][1],35,35,a.x,a.y, 50,50)
+			ctx.globalAlpha = a.duration
+			//console.log(a.duration)
+			ctx.drawImage(IMAGES['Crest'],CrestCoord[a.crest[0]][0],CrestCoord[a.crest[0]][1],35,35,a.x,a.y, a.size,a.size)
 			ctx.fillStyle = white;
 			ctx.strokeStyle = black;
 			ctx.lineWidth = 2
 			ctx.font = "bolder 20px Arial";
 			ctx.fillText(a.crest[1],a.x+20,a.y+30);
 			ctx.strokeText(a.crest[1],a.x+20,a.y+30);
-			//ctx.globalAlpha = 1
+			ctx.globalAlpha = 1
+		} else if (a.type == 'message'){
+			//animation.push({type:'message', text:'End Phase', color:red,x:200,y:200,speed:5, duration:5})
+			ctx.fillStyle = white;
+			ctx.strokeStyle = black;
+			var accel = 1200;
+			if (a.speed < 50) accel = 50
+			if (a.speed > 1000) accel = -1000
+			a.speed -= accel*dt
+			//console.log(a.speed)
+			if (a.speed < 0) a.speed = 1500
+			a.x += a.speed*dt;
+			ctx.fillRect(a.x,a.y,500,80);
+			ctx.strokeRect(a.x,a.y,500,80);
+			ctx.fillStyle = black;
+
+			ctx.font = "20px Arial";
+			ctx.fillText('hello',a.x,a.y+20)
 		}
 		a.duration -= dt;
 		if (a.duration < 0){
@@ -3071,6 +3250,7 @@ function drawAnimation(dt){
 	while (splice.length > 0){
 		var a = splice.pop()
 		if (animation[a].onfinish){
+			//console.log(animation[a].args)
 			//console.log('casting onfihsing with args', animation[a].args)
 			animation[a].onfinish.apply(undefined, animation[a].args)
 		}
@@ -3079,6 +3259,75 @@ function drawAnimation(dt){
 
 }
 
+
+function drawCrestPool(player,x,y){
+	//var x = 500;
+	//var y = 50;
+	var size = 25;
+	var gap = 10;
+	var textsize = 20;
+	ctx.translate(x-size/2,y-size/2)
+	for (var i=0; i<5; i++){
+		drawCrest(i,0,i*(size+gap), size,size)
+		ctx.fillStyle = black
+		ctx.font = textsize+"px Arial bold"
+		ctx.fillText(player.pool[i], size,i*(size+gap)+textsize)
+	}
+	ctx.translate(-x+size/2,-y+size/2)
+}
+
+function drawText(msg, font, x,y){
+	ctx.fillStyle = white;
+	ctx.strokeStyle = black;
+	ctx.lineWidth = 2;
+	ctx.font = font
+	ctx.strokeText(msg,x,y);
+	ctx.fillText(msg,x,y);
+}
+
+
+function drawDiceSelection(){
+	if (player.state != util.GAME_STATE_ROLL) return;
+	for (var i=0; i<DiceSelection.length; i++){
+		var l = DiceSelection.length
+		//100+boardXPadding + 75*i,150+boardYPadding
+		var x = 25+(l-i)*75
+		var y = 200
+		var s = 50;
+		var txgap = 18;
+		var tygap = 35;
+		ctx.drawImage(IMAGES['New Crest'][CREST_SUMMON],  x ,y, s,s)
+		var lvl = player.dices[DiceSelection[i].id].pattern[0][1]
+		ctx.fillStyle = white;
+		ctx.strokeStyle = black;
+		ctx.lineWidth = 2;
+		ctx.font = "bolder 30px Arial";
+
+		ctx.strokeText(lvl,x+txgap,y+tygap);
+		ctx.fillText(lvl,x+txgap,y+tygap);
+	}
+}
+
+
+function wrapText(text, x, y, maxWidth, lineHeight) {
+  var words = text.split(' ');
+  var line = '';
+
+  for(var n = 0; n < words.length; n++) {
+    var testLine = line + words[n] + ' ';
+    var metrics = ctx.measureText(testLine);
+    var testWidth = metrics.width;
+    if (testWidth > maxWidth && n > 0) {
+      ctx.fillText(line, x, y);
+      line = words[n] + ' ';
+      y += lineHeight;
+    }
+    else {
+      line = testLine;
+    }
+  }
+  ctx.fillText(line, x, y);
+}
 
 function render(){
 	requestAnimationFrame(render);
@@ -3092,15 +3341,16 @@ function render(){
 	drawUnits();
 	drawProps();
 	drawButton()
-
+	drawDiceSelection();
 	drawDicePattern();
 	drawSelection(player);
 	drawSelection(opponent);
 	drawPath();
 	//drawAlert();
 	drawDialog();
-
-	updateCrest(player.pool);
+	drawCrestPool(player,500,50);
+	drawCrestPool(opponent,500,400);
+	//updateCrest(player.pool);
 
 
 	//====
@@ -3112,7 +3362,7 @@ function render(){
 	if (player.unitSelected != util.EMPTY){
 		var m = game.monsters[player.unitSelected]
 		if (IMAGES[m.name]){
-				ctx.drawImage(IMAGES[m.name],415,0);
+				//ctx.drawImage(IMAGES[m.name],415,0);
 		}
 	}
 
@@ -3133,6 +3383,32 @@ function render(){
 			if (IMAGES[m.buff[i].name])
 			ctx.drawImage(IMAGES[m.buff[i].name],m.x*squareSize+i*20,m.y*squareSize-20, 20,20)
 		}
+
+		for (var i=0; i<m.spells.length; i++){
+			if (IMAGES[m.spells[i].name]){
+					//console.log(i)
+					ctx.drawImage(IMAGES[m.spells[i].name],415+150,200+i*60+20,40,40)
+					ctx.fillStyle = black;
+					ctx.strokeStyle = white;
+					ctx.globalAlpha = 0.6
+					ctx.fillRect(415+150+40+20,200+i*60+20, 400,40)
+
+					ctx.globalAlpha =1;
+					ctx.lineWidth = 2
+					ctx.strokeRect(415+150+40+20, 200+i*60+20, 400,40)
+					ctx.fillStyle = white;
+					ctx.font = "bold 15px Arial"
+
+					var text = m.spells[i].name
+					if (SPELLDESCRIPTION[m.spells[i].name]){
+						text = SPELLDESCRIPTION[m.spells[i].name]
+					}
+					wrapText(text, 415+150+40+20+5,200+i*60+20+15, 400, 20)
+
+			}
+
+		}
+
 	}
 
 	if (game.combat){
@@ -3143,6 +3419,7 @@ function render(){
 	}
 
 	if (player.diceButtonFocus != util.EMPTY){
+		//console.log(player.diceButtonFocus)
 		m = player.dices[player.diceButtonFocus].type;
 		//DicePattern.push(player.dices[b.id]);
 		setStatePanelText(m)
