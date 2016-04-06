@@ -28,7 +28,7 @@ var qButton = document.getElementById('q');
 var wButton = document.getElementById('w');
 var eButton = document.getElementById('e');
 var rButton = document.getElementById('r');
-
+var spellButton = [qButton, wButton, eButton, rButton]
 
 var statPanel = document.getElementById("stat");
 var crestPanel = document.getElementById("crest");
@@ -66,6 +66,10 @@ var CREST_SUMMON = 5;
 
 var CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
 
+var STAT_HP =0
+var STAT_ATTACK = 1
+var STAT_DEFENSE = 2
+
 
 var IMAGES = {}
 function ImageLoader(key, src){
@@ -79,6 +83,10 @@ for (var i=0; i<6;i++){
 	image.src = 'assets/img/crest/'+ CREST_TEXT[i].toLowerCase() +'.png'
 	IMAGES['New Crest'].push(image)
 }
+ImageLoader('Heart', 'assets/img/Health_Potion_item.png')
+ImageLoader('Sword', 'assets/img/Long_Sword.png')
+ImageLoader('Heart Grey',  'assets/img/Health_Potion_item_grey.png')
+ImageLoader('Shield','assets/img/dshield.png')
 
 ImageLoader('Crest', 'assets/img/championstats_icons.jpg')
 ImageLoader('Lucian', 'assets/img/lucian.jpg')
@@ -103,6 +111,13 @@ ImageLoader('Blinding Dart', 'assets/img/Blinding_Dart.png')
 ImageLoader('Starcall', 'assets/img/Starcall.png')
 ImageLoader('Piercing Light', 'assets/img/Piercing_Light.png')
 
+ImageLoader('NasusSquare', 'assets/img/NasusSquare.png')
+ImageLoader('Nasus', 'assets/img/Nasus.jpg')
+ImageLoader('Siphoning Strike', 'assets/img/Siphoning_Strike.png')
+ImageLoader('Spirit Fire', 'assets/img/Spirit_Fire.png')
+ImageLoader('Soul Eater', 'assets/img/Soul_Eater.png')
+
+
 
 var UNITS = {};
 var SPELLS = {};
@@ -111,16 +126,16 @@ var PROPS = {}
 
 BUFFS['Relentless Pursuit'] = function(){
 	var buff = new Buff("Relentless Pursuit", 0);
-	buff.counter = 0;
+	buff.stack = 0;
 	buff.on('attack', function(event){
-		buff.counter++;
+		buff.stack++;
 	})
 	return buff
 }
 
 
 BUFFS['Ardent Blaze'] =  function(){
-	var buff = new Buff("Ardent Blaze", 1);
+	var buff = new Buff("Ardent Blaze", 1, true);
 	buff.on('attacked', function(event){
 		//console.log(event)
 		var m = game.monsters[buff.owner]
@@ -131,9 +146,111 @@ BUFFS['Ardent Blaze'] =  function(){
 	return buff;
 }
 
+BUFFS['Siphoning Strike'] = function(){
+	var buff = new Buff("Siphoning Strike", 0);
+	buff.stack = 3;
+	buff.active = false;
+	buff.on('attack', function(event){
+		if (!buff.active) return
+		var m = game.monsters[buff.owner]
+		game.combat.atkmodifier += buff.stack*10;
+		buff.active = false;
+		console.log('Siphon')
+	})
+	buff.on('kill', function(event){
+		console.log('kill',event)
+		buff.stack++
+	})
+	return buff
+}
+
+PROPS['Spirit Fire'] = function (point, unit){
+	var prop = new Prop("Spirit File", point,unit);
+	prop.duration = 3;
+	prop.on('collision', function(event){
+		if (event.trigger.hasBuff('Spirit Fire') != util.EMPTY) return;
+		ApplyBuff(prop.unit, event.trigger, BUFFS['Spirit Fire']())
+	})
+
+	prop.on('dies', function(event){
+		console.log('prop removed')
+	})
+
+	prop.on('turn', function(event){
+		prop.duration --;
+		if (prop.duration <= 0) {
+			prop.destroy();
+		}
+		var m = game.board.getUnitAtLoc(prop.x, prop.y)
+		if (m == util.EMPTY) return;
+		if (game.monsters[m].hasBuff('Spirit Fire') != util.EMPTY) return;
+		console.log('reapply')
+		ApplyBuff(prop.unit, game.monsters[m], BUFFS['Spirit Fire']())
+
+
+	})
+	return prop;
+}
+
+BUFFS['Spirit Fire'] = function(){
+	var buff = new Buff("Spirit Fire",1);
+	buff.on('apply', function(event){
+			console.log('Spirit fire applied on', event.trigger.name)
+			event.trigger.statmod[STAT_DEFENSE] -= 10;
+	})
+	buff.on('expire', function(event){
+			console.log('Spirit Fire expired!')
+			var m = game.monsters[buff.owner]
+			m.statmod[STAT_DEFENSE] += 10
+	})
+	return buff;
+}
+
+BUFFS['Soul Eater'] = function(){
+	var buff = new Buff('Soul Eater', 0);
+	buff.on('attack', function(event){
+		console.log('Soul eater +hp!')
+		game.monsters[buff.owner].hp += 10;
+		if (game.monsters[buff.owner].hp > game.monsters[buff.owner].maxhp)
+		game.monsters[buff.owner].hp = game.monsters[buff.owner].maxhp
+
+	})
+	return buff;
+}
+
+SPELLS['Nasus'] = []
+
+SPELLS['Nasus'][0] = new Spell('Siphoning Strike', [CREST_ATTACK, 2], "self")
+SPELLS['Nasus'][0].on ('learn', function(event){
+	ApplyBuff(event.trigger, event.trigger,BUFFS['Siphoning Strike']())
+})
+
+SPELLS['Nasus'][0].on ('effect', function(event){
+	if (event.trigger.hasAttacked){
+		console.log('unit already attacked')
+		return;
+	}
+	spellButton[0].disabled = true;
+	for (var i = 0; i < event.trigger.buff.length; i++){
+		if (event.trigger.buff[i].name == 'Siphoning Strike'){
+			event.trigger.buff[i].active = true;
+		}
+	}
+})
+
+SPELLS['Nasus'][1] = new Spell('Spirit Fire', [CREST_MAGIC, 2], "target")
+SPELLS['Nasus'][1].on ('effect',function(event){
+	PROPS['Spirit Fire'](event.location, event.trigger)
+})
+
+SPELLS['Nasus'][2] = new Spell ('Soul Eater', [CREST_MAGIC, 0], "passive")
+SPELLS['Nasus'][0].on ('learn', function(event){
+	ApplyBuff(event.trigger, event.trigger,BUFFS['Soul Eater']())
+})
+
 
 SPELLS['Lucian'] = []
-SPELLS['Lucian'][0] = new Spell("Piercing Light", [CREST_ATTACK, 2],true)
+SPELLS['Lucian'][0] = new Spell("Piercing Light", [CREST_ATTACK, 2],"target")
 SPELLS['Lucian'][0].on('effect', function(event){
 	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) == util.EMPTY) return "No unit targeted"
 
@@ -161,13 +278,13 @@ SPELLS['Lucian'][0].on('effect', function(event){
 			}
 		}
 
-		SPELLS['Lucian'][0].fire('finish', {trigger:event.trigger})
+		//SPELLS['Lucian'][0].fire('finish', {trigger:event.trigger})
 
 	}
 
 })
 
-SPELLS['Lucian'][1] = new Spell("Ardent Blaze", [CREST_MAGIC, 2],true)
+SPELLS['Lucian'][1] = new Spell("Ardent Blaze", [CREST_MAGIC, 2],"target")
 SPELLS['Lucian'][1].on('effect',function(event){
 	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) == util.EMPTY) return "No unit targeted"
 	if (event.location[0] == event.trigger.x || event.location[1] == event.trigger.y){
@@ -194,10 +311,10 @@ SPELLS['Lucian'][1].on('effect',function(event){
 				break;
 			}
 		}
-	SPELLS['Lucian'][1].fire('finish', {trigger:event.trigger})
+	//SPELLS['Lucian'][1].fire('finish', {trigger:event.trigger})
 	}
 })
-SPELLS['Lucian'][2] = new Spell("Relentless Pursuit", [CREST_MOVEMENT, 2],true)
+SPELLS['Lucian'][2] = new Spell("Relentless Pursuit", [CREST_MOVEMENT, 2],"target")
 SPELLS['Lucian'][2].on('learn', function(event){
 	//console.log('learnt relentless')
 	//console.log(event)
@@ -219,10 +336,10 @@ SPELLS['Lucian'][2].on('cast', function(event){
 	var x = event.trigger.x;
 	var y = event.trigger.y
 	//console.log(x,y)
-	player.movePath = player.movePath.concat(findStraightPath([x,y],[x+buff.counter+1,y]))
-	player.movePath = player.movePath.concat(findStraightPath([x,y],[x-(buff.counter+1),y]))
-	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y-(buff.counter+1)]))
-	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y+buff.counter+1]))
+	player.movePath = player.movePath.concat(findStraightPath([x,y],[x+buff.stack+1,y]))
+	player.movePath = player.movePath.concat(findStraightPath([x,y],[x-(buff.stack+1),y]))
+	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y-(buff.stack+1)]))
+	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y+buff.stack+1]))
 	console.log(player.movePath)
 	//player.movePath.concat()
 
@@ -241,22 +358,22 @@ SPELLS['Lucian'][2].on('effect', function(event){
 	}
 	if (buff == util.EMPTY){console.log('Unit has not learnt Relentless Pursuit'); return}
 	var path = findStraightPath([event.trigger.x,event.trigger.y],event.location)
-	if (path.length> Math.min(buff.counter+1, 4)) return
+	if (path.length> Math.min(buff.stack+1, 4)) return
 
 	player.updatePool(CREST_MOVEMENT, -2)
-	buff.counter = 0;
+	buff.stack = 0;
 	console.log('casting relentless pursuit', event.location[0],event.trigger.x ,event.location[1] , event.trigger.y)
 	if (!(event.location[0] == event.trigger.x || event.location[1] == event.trigger.y))  {console.log('Must target in a line'); return}
 
 	var path = util.findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
 	console.log(path)
 	event.trigger.movement(path)
-	SPELLS['Lucian'][2].fire('finish', {trigger:event.trigger})
+	//SPELLS['Lucian'][2].fire('finish', {trigger:event.trigger})
 })
 
-SPELLS['Lucian'][3] = new Spell("Ardent Blaze", [CREST_MAGIC, 2],true)
+SPELLS['Lucian'][3] = new Spell("Ardent Blaze", [CREST_MAGIC, 2],"target")
 
-SPELLS['Lucian'][4] = new Spell('The Culling', [CREST_ATTACK,0], false)
+SPELLS['Lucian'][4] = new Spell('The Culling', [CREST_ATTACK,0], "target")
 SPELLS['Lucian'][4].on('learn', function(event){
 	//console.log('Learnt lightslinger')
 	//ApplyBuff(event.trigger,event.trigger, BUFFS['Lightslinger']())
@@ -265,8 +382,8 @@ SPELLS['Lucian'][4].on('learn', function(event){
 
 SPELLS['Teemo'] = []
 
-SPELLS['Teemo'][0] = new Spell("Blinding Dart", [CREST_ATTACK, 2],true)
-SPELLS['Teemo'][1] = new Spell("Noxious Trap", [CREST_MAGIC, 2],true)
+SPELLS['Teemo'][0] = new Spell("Blinding Dart", [CREST_ATTACK, 2],"target")
+SPELLS['Teemo'][1] = new Spell("Noxious Trap", [CREST_MAGIC, 2],"target")
 
 SPELLS['Teemo'][0].on('effect',function(event){
 
@@ -279,7 +396,7 @@ SPELLS['Teemo'][0].on('effect',function(event){
 	ApplyBuff(event.trigger, target, buff)
 
 	DamageUnit(event.trigger.id, target.id, 10);
-	SPELLS['Teemo'][0].fire('finish',{trigger:event.trigger})
+	//SPELLS['Teemo'][0].fire('finish',{trigger:event.trigger})
 })
 
 SPELLS['Teemo'][1].on('effect', function(event){
@@ -292,7 +409,7 @@ SPELLS['Teemo'][1].on('effect', function(event){
 	//ApplyBuff(event.trigger, event.target, buff)
 	//DamageUnit(event.trigger, event.target, 10);
 
-	SPELLS['Teemo'][1].fire('finish',{trigger:event.trigger})
+	//SPELLS['Teemo'][1].fire('finish',{trigger:event.trigger})
 })
 
 BUFFS['Starcall'] =  function(){
@@ -301,7 +418,7 @@ BUFFS['Starcall'] =  function(){
 }
 
 SPELLS['Soraka'] = [];
-SPELLS['Soraka'][0] = new Spell("Starcall", [CREST_MAGIC, 2],true)
+SPELLS['Soraka'][0] = new Spell("Starcall", [CREST_MAGIC, 2],"target")
 SPELLS['Soraka'][0].on('effect',function(event){
 	if (!event.target){
 		console.log('No units in area')
@@ -310,10 +427,10 @@ SPELLS['Soraka'][0].on('effect',function(event){
 	DamageUnit(event.trigger.id, event.target.id, 10);
 	BUFF_SLOW(event.target, 1)
 	ApplyBuff(event.trigger, event.target, BUFFS['Starcall']())
-	SPELLS['Soraka'][0].fire('finish',{trigger:event.trigger})
+	//SPELLS['Soraka'][0].fire('finish',{trigger:event.trigger})
 })
 
-SPELLS['Soraka'][1] = new Spell("Astral Infusion", [CREST_MAGIC, 2],true)
+SPELLS['Soraka'][1] = new Spell("Astral Infusion", [CREST_MAGIC, 2],"target")
 SPELLS['Soraka'][1].on('effect',function(event){
 	if (event.trigger.hp == 10) {
 		console.log('Not enough hp to cast');
@@ -331,7 +448,7 @@ SPELLS['Soraka'][1].on('effect',function(event){
 	}
 	event.target.hp = Math.min(event.target.hp + 10,event.target.maxhp);
 	event.trigger.hp -= 10;
-	SPELLS['Soraka'][1].fire('finish',{trigger:event.trigger})
+	//SPELLS['Soraka'][1].fire('finish',{trigger:event.trigger})
 })
 
 
@@ -377,16 +494,22 @@ UNITS['Lucian'] = {
 	atk: 30,
 	def: 10,
 	spells: SPELLS['Lucian'],
- 	art: 'assets/img/lucian.jpg'
+}
+
+UNITS['Nasus'] = {
+	name: 'Nasus',
+	hp: 40,
+	atk: 10,
+	def: 20,
+	spells:SPELLS['Nasus'],
 }
 
 function Buff(name, duration){
 	this.name = name;
 	this.duration = duration;
-	this.durationcounter = duration;
+	//this.durationcounter = duration;
 	this.owner = null;
 	this.callbacks = {}
-
 	this.on = function(event, callback){
 		this.callbacks[event] = callback;
 	}
@@ -437,6 +560,7 @@ function Prop(name,point,unit) {
 		//games[this.player.id].props.splice(games[this.player.id].props.indexOf(this),1)
 		//games[this.player.id].update('destroy prop', util.EMPTY, this)
 		this.exist = false;
+		this.fire('dies', {})
 		console.log('destroy')
 	}
 
@@ -473,7 +597,7 @@ BUFFS['Blinding Dart'] = function(){
 	var buff = new Buff("Blinding Dart", 1);
 	buff.on('attack', function(event){
 		//console.log(event)
-		event.dmg = 0;
+		game.combat.atkmodifier = 0;
 		event.status.push('miss')
 		console.log('missed!')
 	})
@@ -498,9 +622,9 @@ function BUFF_SLOW(unit, movement){
 }
 
 function ApplyBuff (caster, target, buff){
-	if (!caster) {console.log('caster null'); return}
-	if (!target) {console.log('target null'); return}
-	if (!buff) {console.log('buff null'); return}
+	if (!caster) {console.log('caster null'); return false}
+	if (!target) {console.log('target null'); return false}
+	if (!buff) {console.log('buff null'); return false}
 	for (var i = 0; i<target.buff.length; i++){
 		if (target.buff[i].name == buff.name){
 			target.buff.splice(i,1);
@@ -512,25 +636,26 @@ function ApplyBuff (caster, target, buff){
 	if (sendSwitch){
 		//conn.send({id:'apply buff', caster:caster.id, target:target.id, buff: buff.name})
 	}
+	return true
 	//console.log(buff.name)
 	//games[target.player.id].update('buff unit',target.player.num, {target:target, buff:buff.name})
 }
 
 
 
-function Spell(name, cost,target){
+function Spell(name, cost,type){
 	this.name = name;
 	this.cost = cost;
-
+	this.type = type
 	this.cooldown = 1;
-	this.target = target;
+	this.type = type
 	this.onEffect = () => console.log(this.name+'onEffect not implemented')
 
 	this.callbacks = {}
-
 	this.on = function(event, callback){
 		this.callbacks[event] = callback;
 	}
+
 
 	this.on('finish', function(event){
 		for (var i =0; i<event.trigger.buff.length; i++){
@@ -578,20 +703,21 @@ function openConnection(c,num){
 		game.init()
 
 		if(num == 0){
-			player.changeState(util.GAME_STATE_ROLL)
+			player.changeState(util.GAME_STATE_UNIT)
 			game.createUnit(player,UNITS['Lucian'],[5,17])
 		} else {
 			player.state = util.GAME_STATE_END
 			changeUIState(util.GAME_STATE_END)
-			game.createUnit(player,UNITS['Soraka'],[4,17])
+			game.createUnit(player,UNITS['Teemo'],[4,17])
 
 		}
-			PROPS['Toxic Mushroom']([6,17], game.monsters[0])
+			PROPS['Spirit Fire']([6,17], game.monsters[0])
 		//console.log(window.player)
 	});
 
 	conn.on('data', function(data) {
 		sendSwitch = false;
+		console.log('Received', data);
 		if (data.id == 'move unit'){
 			//game.monsters[data.unit].moveUnit([data.x, data.y])
 			game.monsters[data.unit].movement(data.path)
@@ -628,6 +754,7 @@ function openConnection(c,num){
 			var target = data.target != util.EMPTY ? game.monsters[data.target]: null
 			var event = {trigger: game.monsters[opponent.unitSelected], location: data.location, target:game.monsters[data.target]};
 			spell.fire('effect',event);
+			spell.fire('finish', {trigger:event.trigger})
 			//conn.send({id:'spell effect', spell:player.spell, location:[x,y]})
 		} else if (data.id == 'guard response'){
 			game.combat.guard(data.data)
@@ -643,11 +770,26 @@ function openConnection(c,num){
 		} else if(data.id == 'end turn'){
 			opponent.changeState(util.GAME_STATE_END);
 			game.turn++;
-			player.changeState(util.GAME_STATE_ROLL)
+			player.changeState(util.GAME_STATE_UNIT)
+			for (var i=0;i<game.monsters.length; i++){
+				for (var j=0; j<game.monsters[i].buff.length;j++){
+					var buff = game.monsters[i].buff[j]
+					if (buff.duration == 0) continue
+					buff.duration--;
+					if (buff.duration == 0){
+						console.log('removing', buff.name,'from',game.monsters[i].type.name)
+						game.monsters[i].removeBuff(buff.name)
+					}
+				}
+			}
+			for (var i=0; i<game.props.length; i++){
+				game.props[i].fire('turn',{})
+			}
+
 		}
 		sendSwitch = true;
 
-	    console.log('Received', data);
+
 	 });
 	//setTimeout(function(){ conn.send('Hello!'); }, 3000);
   // Send messagess
@@ -747,8 +889,17 @@ function DamageUnit(trig, targ, damage){
 	if (sendSwitch){
 		//conn.send({id:'damage unit', trigger:trig, target:targ, damage:damage,})
 	}
-	console.log(trigger.type.name,'hit', target.type.name, 'for',damage)
+	//console.log(trigger.type.name,'hit', target.type.name, 'for',damage)
 	if (target.hp <= 0){
+		var event = {target:target}
+		for (var i=0; i<trigger.buff.length ;i++){
+			trigger.buff[i].fire('kill', event)
+		}
+		var event = {attacker:trigger}
+		for (var i=0; i<target.buff.length ;i++){
+			target.buff[i].fire('dies', event)
+		}
+
 		target.destroy()
 	}
 
@@ -790,10 +941,6 @@ function Combat(unit, target){
 		}
 		var event = {attacker: this.unit, target: this.target, dmg: dmg, status: [] }
 		var status = []
-		for (var i=0; i< this.unit.buff.length; i++){
-			this.unit.buff[i].fire('attack',event);
-		}
-
 		for (var i=0; i< this.target.buff.length; i++){
 			this.target.buff[i].fire('attacked', event)
 		}
@@ -847,6 +994,7 @@ function Unit(player, type, point, level) {
 	this.maxhp = type.hp;
 	this.atk = type.atk;
 	this.def = type.def;
+	this.statmod = [0,0,0]
 	this.player = player;
 	if (level) this.level = level;
 	this.hasAttacked = false;
@@ -865,6 +1013,24 @@ function Unit(player, type, point, level) {
 
 	//this.game = game;
 
+	this.removeBuff = function(name){
+		for (var i=0; i<this.buff.length;i++){
+			if(this.buff[i].name == name){
+				this.buff[i].fire('expire', {})
+				this.buff.splice(i,1)
+				break;
+			}
+		}
+	}
+
+	this.hasBuff = function(name){
+			for (var i=0; i<this.buff.length;i++){
+				if(this.buff[i].name == name){
+					return i;
+				}
+			}
+			return util.EMPTY;
+	}
 
 	this.attack = function(target){
 
@@ -913,6 +1079,12 @@ function Unit(player, type, point, level) {
 		//animation.combat = {attacker:this, target:target, dt:0, finish:false};
 		//animation.push({image:IMAGES[this.name], x:0, y:0, dx:500, effect:'pan', duration:0.5})
 
+
+		var event = {trigger:this, target:target}
+		for (var i=0; i< this.buff.length; i++){
+			this.buff[i].fire('attack',event);
+		}
+
 		if (sendSwitch){
 			conn.send({id:'attack', trigger:this.id, target:target.id, guard:util.getCrestPool(target.player,CREST_DEFENSE) > 0})
 		}
@@ -932,10 +1104,10 @@ function Unit(player, type, point, level) {
 		console.log('Removing', this.name, this.id, 'hp:', this.hp)
 		//var game = games[this.player.id]
 
-		window.game.setUnitAtLoc(util.EMPTY, [this.x,this.y])
+		game.setUnitAtLoc(util.EMPTY, [this.x,this.y])
 		//console.log('destroy',[this.x,this.y],util.getTileState(game.board,this.x,this.y))
 		this.exist = false;
-		console.log(game.board.getUnitAtLoc(this.x,this.y))
+		//console.log(game.board.getUnitAtLoc(this.x,this.y))
 		//game.monsters[this.id] = null
 		//game.update('destroy unit', util.EMPTY, {unit:this, loc:[this.x,this.y]})
 	}
@@ -1162,15 +1334,7 @@ function Game(){
 
 
 function Dice(type, pattern){
-	//this.id = diceid;
-	//diceid++;
 	this.type = type;
-	//this.move=move;
-	//this.attack=attack;
-	//this.defense=defense;
-	//this.magic=magic;
-	//this.trap=trap;
-
 	this.pattern = pattern;
 	//console.log(CREST_SUMMON)
 	this.roll = function(){
@@ -1513,16 +1677,15 @@ function Player(id){
 			this.unitSelected = m;
 			conn.send({id:'select unit', unit:m})
 			//animation.push({type:'message', text:'End Phase', color:red,x:-200,y:250,speed:1000,  duration:2})
-			disableSpell(false)
+			disableSpell(true)
 			if (player.num == this.num){
-				if (game.monsters[m].spells[0]){
-					qButton.innerHTML = game.monsters[m].spells[0].name
-				}
-				if (game.monsters[m].spells[1]){
-					wButton.innerHTML = game.monsters[m].spells[1].name
-				}
-				if (game.monsters[m].spells[2]){
-					eButton.innerHTML = game.monsters[m].spells[2].name
+				for (var i = 0; i<4;i++){
+					if (game.monsters[m].spells[i]){
+						spellButton[i].innerHTML = game.monsters[m].spells[i].name
+						spellButton[i].hidden = false;
+						if (game.monsters[m].spells[i].type != "passive")
+						spellButton[i].disabled = false;
+					}
 				}
 				if (game.monsters[m].spells[4]){
 					passiveButton.innerHTML = game.monsters[m].spells[4].name
@@ -2376,12 +2539,18 @@ function updateCrest(pool){
 
 function spellButtonEffect(button){
 	if (player.state != util.GAME_STATE_SELECT) return;
-	if (!game.monsters[player.unitSelected].spells[button]) return
-	if (!game.monsters[player.unitSelected].spells[button].target){
+	var spell = game.monsters[player.unitSelected].spells[button]
+	if (!spell) return
+	if (spell.type == "self"){
 		//socket.send(JSON.stringify({ id:'cast', data:button}));
 		console.log('no target spell')
+		var event = {trigger: game.monsters[player.unitSelected]};
+		conn.send({id:'spell effect', spell:button, location:[-1,-1], target:-1})
+		spell.fire('effect',event);
+		spell.fire('finish', {trigger:event.trigger})
+
 	} else {
-		window.player.spell = button;
+		player.spell = button;
 		//console.log('player spell now',player.spell)
 		var name = game.monsters[player.unitSelected].name
 		if (player.pool[SPELLS[name][button].cost[0]] < SPELLS[name][button].cost[1]){
@@ -2581,7 +2750,6 @@ function setDicePanelText(text){
 }
 
 function setStatePanelText(m){
-
 	var text = "";
 	if (m){
 		//var mt = m.type;
@@ -2846,6 +3014,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 					var event = {trigger: game.monsters[player.unitSelected], location: [x,y], target:target};
 					conn.send({id:'spell effect', spell:player.spell, location:[x,y], target:m})
 					spell.fire('effect',event);
+					spell.fire('finish', {trigger:event.trigger})
      		} else if (u == util.EMPTY){
      			//socket.send(JSON.stringify({id:'mouse click', data:{state:'move', loc:[x, y]}}))
  					if (game.board.getTileState(x, y) != util.EMPTY){
@@ -3265,13 +3434,21 @@ function drawCrestPool(player,x,y){
 	//var y = 50;
 	var size = 25;
 	var gap = 10;
-	var textsize = 20;
+	var textsize = 15;
 	ctx.translate(x-size/2,y-size/2)
+	ctx.strokeStyle = white;
+	ctx.fillStyle = black
+	ctx.globalAlpha = 0.6
+	ctx.fillRect(-20,-20, 100,200)
+	ctx.globalAlpha = 1
+	ctx.strokeRect(-20,-20, 100,200)
 	for (var i=0; i<5; i++){
 		drawCrest(i,0,i*(size+gap), size,size)
-		ctx.fillStyle = black
-		ctx.font = textsize+"px Arial bold"
-		ctx.fillText(player.pool[i], size,i*(size+gap)+textsize)
+		ctx.fillStyle = white
+
+
+		ctx.font = ""+textsize+"px Arial"
+		ctx.fillText(player.pool[i], size+10,i*(size+gap)+textsize+5)
 	}
 	ctx.translate(-x+size/2,-y+size/2)
 }
@@ -3348,8 +3525,8 @@ function render(){
 	drawPath();
 	//drawAlert();
 	drawDialog();
-	drawCrestPool(player,500,50);
-	drawCrestPool(opponent,500,400);
+	drawCrestPool(player,425,32);
+	drawCrestPool(opponent,425,400);
 	//updateCrest(player.pool);
 
 
@@ -3367,22 +3544,66 @@ function render(){
 	}
 
 	var	m = getUnitOnCursor(cursorX,cursorY);
-
 	if (m){
-		setStatePanelText(m)
+		//setStatePanelText(m)
 		if (m.player.num == player.num){
 			canvas.style.cursor = "pointer";
 		} else if (player.state == util.GAME_STATE_SELECT){
 			canvas.style.cursor = "crosshair";
 		}
+
+		//buffs
+		for (var i =0; i<m.buff.length; i++){
+			console.log()
+			if (IMAGES[m.buff[i].name]){
+				ctx.drawImage(IMAGES[m.buff[i].name],m.x*squareSize+i*squareSize,(m.y-1)*squareSize, squareSize,squareSize)
+				if (m.buff[i].stack != null){
+					ctx.font = "bolder 20px Arial"
+						ctx.strokeStyle = black
+						ctx.lineWidth = 1
+					ctx.fillText(m.buff[i].stack, m.x*squareSize+i*20+20, m.y*squareSize-20+20);
+					ctx.strokeText(m.buff[i].stack, m.x*squareSize+i*20+20, m.y*squareSize-20+20);
+				}
+			}
+
+		}
+		//unit hud
+
 		if (IMAGES[m.name]){
 				ctx.drawImage(IMAGES[m.name],415+150,0);
 		}
-		for (var i =0; i<m.buff.length; i++){
-			console.log()
-			if (IMAGES[m.buff[i].name])
-			ctx.drawImage(IMAGES[m.buff[i].name],m.x*squareSize+i*20,m.y*squareSize-20, 20,20)
+
+		ctx.strokeStyle = white;
+		ctx.fillStyle = black
+		ctx.globalAlpha = 0.6
+		ctx.fillRect(415+280,0, 325,200)
+		ctx.globalAlpha = 1
+		ctx.strokeRect(415+280,0, 325,200)
+
+		ctx.fillStyle = white;
+		ctx.strokeStyle = black;
+		ctx.lineWidth =2
+		ctx.font = 'bolder 20px Arial'
+		ctx.fillText('HP', 415+290,30)
+		ctx.fillText('ATK', 415+290,65)
+		ctx.fillText('DEF', 415+290,100)
+		ctx.strokeText('HP', 415+290,30)
+		ctx.strokeText('ATK', 415+290,65)
+		ctx.strokeText('DEF', 415+290,100)
+		for (var i=0; i<m.maxhp; i=i+10){
+				ctx.globalAlpha = 0.5
+				ctx.drawImage(IMAGES['Heart Grey'],415+290+(i/10)*(32)+60,10, 30,30 )
+				ctx.globalAlpha = 1
+				if (i<m.hp) ctx.drawImage(IMAGES['Heart'],415+290+(i/10)*(32)+60,10, 30,30 )
 		}
+
+		for (var i=0; i<1; i=i+10){
+				ctx.drawImage(IMAGES['Sword'],415+290+(i/10)*(32)+60,0+42, 30,30 )
+		}
+		for (var i=0; i<1; i=i+10){
+				ctx.drawImage(IMAGES['Shield'],415+290+(i/10)*(32)+60,0+74, 30,30 )
+		}
+
 
 		for (var i=0; i<m.spells.length; i++){
 			if (IMAGES[m.spells[i].name]){
@@ -3406,7 +3627,6 @@ function render(){
 					wrapText(text, 415+150+40+20+5,200+i*60+20+15, 400, 20)
 
 			}
-
 		}
 
 	}
