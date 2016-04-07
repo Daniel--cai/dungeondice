@@ -42,7 +42,7 @@ exports.CREST_SUMMON = 5;
 
 exports.blue    = "#000099";
 exports.red = "#990000";
-exports.green  = "#009900"; 
+exports.green  = "#009900";
 exports.white = "#ffffff";
 exports.black = "#000000"
 
@@ -66,6 +66,20 @@ exports.EMPTY = -1;
 exports.PLAYER_1 = 0;
 exports.PLAYER_2 = 1;
 
+CREST_MOVEMENT = 0;
+CREST_ATTACK = 1;
+CREST_DEFENSE = 2;
+CREST_MAGIC = 3;
+CREST_TRAP = 4;
+CREST_SUMMON = 5;
+
+CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
+
+STAT_HP =0
+STAT_ATTACK = 1
+STAT_DEFENSE = 2
+
+GAME_STATE_TEXT = ['Roll', 'Summon', 'Unit', 'Combat', 'Select', 'End','Neutral']
 
 exports.Node = function (parent, point){
   this.x = point.x;
@@ -100,7 +114,7 @@ exports.getTileState = function (board,x,y){
 exports.getUnitAtLocation = function (board,x,y){
 
   if (!exports.boundCursor(x,y)) return exports.EMPTY
-  if (!board) {console.log('getUnitAtLocation: Empty board'); return exports.EMPTY} 
+  if (!board) {console.log('getUnitAtLocation: Empty board'); return exports.EMPTY}
   return board.units[y][x];
 }
 
@@ -120,8 +134,8 @@ exports.neighbours = function (board,x,y){
 
   if (exports.validWalk(board,x,N)) result.push({x:x, y:N});
 
-  if (exports.validWalk(board,x,S)) result.push({x:x, y:S});    
- 
+  if (exports.validWalk(board,x,S)) result.push({x:x, y:S});
+
   if (exports.validWalk(board,E,y)) result.push({x:E, y:y});
 
   if (exports.validWalk(board,W,y)) result.push({x:W, y:y});
@@ -140,7 +154,7 @@ exports.findPossiblePath = function(board,pathStart, squares){
       if (possible.length > 0 && possible.length <= squares+1){
         result.push([i,j]);
         //console.log([i,j] + " " + possible.length)
-      } 
+      }
 
     }
   }
@@ -188,7 +202,7 @@ exports.findPath = function(board,pathStart,pathEnd){
         path = new exports.Node(nodecurr, neighcurr[i]);
         if (!astar[path.value]){
           path.g = nodecurr.g + exports.manhattanDistance(neighcurr[i], nodecurr);
-          path.f = path.g + exports.manhattanDistance(neighcurr[i], pathend);   
+          path.f = path.g + exports.manhattanDistance(neighcurr[i], pathend);
           open.push(path);
           astar[path.value] = true;
         }
@@ -235,7 +249,7 @@ exports.validPlacement = function(player,selection){
         return false;
       }
       //adjacent
-      if (util.getTileState(this,x+1,y) == player.num || 
+      if (util.getTileState(this,x+1,y) == player.num ||
         util.getTileState(this,x-1,y) == player.num ||
         util.getTileState(this,x,y-1) == player.num ||
         util.getTileState(this,x,y+1) == player.num ){
@@ -245,4 +259,3 @@ exports.validPlacement = function(player,selection){
 
     return valid;
   }
-
