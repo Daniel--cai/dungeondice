@@ -20,6 +20,7 @@ var boardXPadding = 0;
 var boardYPadding = 50;
 
 var animation = []
+var projectiles = []
 var controlLock = false;
 var initUnit = 0;
 
@@ -56,10 +57,9 @@ var BUFF_root = new Buff("Root", 1);
 var BUFF_knock_up = new Buff("Knock Up", 1);
 
 function BUFF_SLOW(unit, movement){
-	unit
 	//games[unit.player.id].update('impairment', util.EMPTY, {unit: unit.id, point:movement})
 }
-
+/*
 function ApplyBuff (caster, target, buff){
 	if (!caster) {console.log('caster null'); return false}
 	if (!target) {console.log('target null'); return false}
@@ -79,6 +79,7 @@ function ApplyBuff (caster, target, buff){
 	//console.log(buff.name)
 	//games[target.player.id].update('buff unit',target.player.num, {target:target, buff:buff.name})
 }
+*/
 
 
 function getRandomInt(min, max) {
@@ -147,6 +148,10 @@ function DamageUnit(trig, targ, damage){
 		animation.push({type:'text', text:'-'+damage, color:white, x:tx,y:ty, dy:-25, duration:0.75})
 
 	}
+	var event = {trigger:trigger, target:target}
+	for (var i=0; i<trigger.buff.length ;i++){
+		trigger.buff[i].fire('damage', event)
+	}
 	//var remove = false
 
 	//games[trigger.player.id].update('damage', util.EMPTY, {trigger:trigger.id, target:target.id, damage:damage})
@@ -164,6 +169,7 @@ function DamageUnit(trig, targ, damage){
 			target.buff[i].fire('dies', event)
 		}
 
+
 		target.destroy()
 	}
 
@@ -176,6 +182,7 @@ function Combat(unit, target){
 	this.atkmodifier = unit.atk;
 	this.defmodifier = 0;
 	this.guarded = false;
+	this.status = []
 
 	this.guard = function(button){
 			if (button == 1){
@@ -203,22 +210,17 @@ function Combat(unit, target){
 		if (dmg < 0) {
 			dmg = 0;
 		}
-		var event = {attacker: this.unit, target: this.target, dmg: dmg, status: [] }
-		var status = []
-		for (var i=0; i< this.target.buff.length; i++){
-			this.target.buff[i].fire('attacked', event)
-		}
-		console.log('status',event.status)
+
+		//console.log('status',event.status)
 
 		//conn.send({id:'combat resolution', status:status})
 		//var game = games[this.unit.player.id]
 		game.combat = null
-		if (event.status.indexOf('miss') != -1){
+		if (this.status.indexOf('miss') != -1){
 			console.log('mised!')
 			//game.update('miss', util.EMPTY, {trigger:this.unit.id, target:this.target.id})
 		} else {
 
-			console.log('damage!', event.status)
 			//DamageUnit(this.unit, this.target, dmg)
 			console.log(this.unit.name+'('+this.unit.hp+')'+'attacking', this.target.name+'('+this.target.hp+')', 'for',this.atkmodifier+"(-"+this.defmodifier+")")
 			//this.target.hp = this.target.hp - dmg;
@@ -333,8 +335,8 @@ function Game(){
 	}
 
 	this.setUnitAtLoc = function(unit, point){
-		console.assert(point[0] != undefined, 'setUnitAtLoc: null X value')
-		console.assert(point[1] != undefined,'setUnitAtLoc: null Y value')
+		console.assert(point[0] != undefined, 'setUnitAtLoc: null X value '+point[0])
+		console.assert(point[1] != undefined,'setUnitAtLoc: null Y value '+point[1])
 		this.board.units[point[1]][point[0]] = unit;
 		//console.log('setting points', point, unit)
 		if (unit != util.EMPTY){
@@ -360,7 +362,7 @@ function Game(){
 				u.spells[i].fire('learn', {trigger:u})
 			}
 			sendSwitch = temp;
-
+/*
 			if (window.player.num == 1 && player.num == 0 && initUnit ==0){
 				initUnit = 1;
 				u.id = 0;
@@ -369,11 +371,11 @@ function Game(){
 				this.monsters[1] = temp;
 				temp.id = 1;
 				this.setUnitAtLoc(temp.id, [this.monsters[1].x,this.monsters[1].y])
-			}
+			}*/
 			this.setUnitAtLoc(u.id, point)
 			if (sendSwitch){
 				//console.log(id, point)
-				conn.send({id:'create unit', unitid:id.name, point:point})
+				conn.send({id:'create unit', unitid:id.name, point:point, player:player.num})
 			}
 			return u
 		//var unit2 = new unit(id1, 2, 2, util.PLAYER_2);
@@ -452,8 +454,8 @@ function Board(){
 	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
-			//this.tiles[i].push(0);
-			this.tiles[i].push(util.EMPTY);
+			this.tiles[i].push(0);
+			//this.tiles[i].push(util.EMPTY);
 		}
 	}
 
@@ -1472,8 +1474,8 @@ var drawUnits = function() {
 			w = 3;
 			bordersize = 6;
 		}
-		var x = m.x
-		var y = m.y
+		var x = m.animx
+		var y = m.animy
 
 		ctx.fillStyle = black;
 		if (m.player.num == 1){
@@ -1619,7 +1621,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 					var event = {trigger: game.monsters[player.unitSelected], location: [x,y], target:target};
 					conn.send({id:'spell effect', spell:player.spell, location:[x,y], target:m})
 					spell.fire('effect',event);
-					spell.fire('finish', {trigger:event.trigger})
+
      		} else if (u == util.EMPTY){
      			//socket.send(JSON.stringify({id:'mouse click', data:{state:'move', loc:[x, y]}}))
  					if (game.board.getTileState(x, y) != util.EMPTY){
@@ -1867,10 +1869,18 @@ function drawUIFrame(){
 	*/
 }
 
+function drawProjectile(dt){
+	for (var i = projectiles.length-1; i>=0; i--){
+		var p = projectiles[i]
+		//console.log(i,p)
+		p.update(dt)
+		p.render()
+	}
+}
+
 function drawAnimation(dt){
 	var splice = [];
-	controlLock = true
-	if (animation.length == 0) controlLock = false
+
 	for (var i=0;i<animation.length;i++){
 		var a = animation[i];
 		if (a.delay) a.delay -= dt;
@@ -1881,6 +1891,7 @@ function drawAnimation(dt){
 		} else if (a.type == 'move unit'){
 			//console.log(a.path)
 			if (a.path.length > 0 && a.unit.exist){
+
 				var move = a.path[0];
 				var dx = move[0] - a.px;
 				var dy = move[1] - a.py ;
@@ -1889,14 +1900,14 @@ function drawAnimation(dt){
 				//console.log(this.y,move[1])
 				var finish = false;
 				if (dx != 0){
-						a.unit.x = a.unit.x + dx/Math.abs(dx)*a.speed*dt;
+						a.unit.animx = a.unit.animx + dx/Math.abs(dx)*a.speed*dt;
 						//console.log(dx/Math.abs(dx)*a.speed*dt)
-						if (dx > 0 && a.unit.x >= move[0] || dx < 0 && a.unit.x <= move[0]){
+						if (dx > 0 && a.unit.animx >= move[0] || dx < 0 && a.unit.animx <= move[0]){
 							finish = true;
 						}
 				} else if (dy != 0){
-					a.unit.y = a.unit.y + dy/Math.abs(dy)*a.speed*dt;
-					if (dy > 0 && a.unit.y >= move[1] || dy < 0 && a.unit.y <= move[1]){
+					a.unit.animy = a.unit.animy + dy/Math.abs(dy)*a.speed*dt;
+					if (dy > 0 && a.unit.animy >= move[1] || dy < 0 && a.unit.animy <= move[1]){
 							finish = true;
 					}
 				} else {
@@ -1905,8 +1916,10 @@ function drawAnimation(dt){
 				}
 				if (finish){
 					a.path.shift();
-					game.setUnitAtLoc(util.EMPTY,[a.px, a.py])
-					game.setUnitAtLoc(a.unit.id,move)
+					a.unit.animx = move[0];
+					a.unit.animy = move[1];
+
+
 					var event = {trigger: a.unit, location: move}
 					for (var j=0; j<game.props.length; j++){
 						if (game.props[j] && game.props[j].x == move[0] && game.props[j].y == move[1]){
@@ -1915,7 +1928,7 @@ function drawAnimation(dt){
 					}
 
 					splice.push(i)
-					animation.push({type:'move unit', unit:a.unit, path:a.path , px:a.unit.x, py:a.unit.y, speed:a.speed, duration:200})
+					animation.push({type:'move unit', unit:a.unit, path:a.path , px:move[0], py:move[1], speed:a.speed, duration:200})
 
 				}
 			} else {
@@ -2111,43 +2124,7 @@ function wrapText(text, x, y, maxWidth, lineHeight) {
   ctx.fillText(line, x, y);
 }
 
-function render(){
-	requestAnimationFrame(render);
-
-	ctx.clearRect(0,0,canvas.width,canvas.height)
-	//ctx.drawImage(IMAGES['UI'],0,0, canvas.width,canvas.height)
-	drawUIFrame()
-
-	ctx.translate(boardXPadding,boardYPadding)
-	drawBoard();
-	drawUnits();
-	drawProps();
-	drawButton()
-	drawDiceSelection();
-	drawDicePattern();
-	drawSelection(player);
-	drawSelection(opponent);
-	drawPath();
-	//drawAlert();
-	drawDialog();
-	drawCrestPool(player,425,32);
-	drawCrestPool(opponent,425,400);
-	//updateCrest(player.pool);
-
-
-	//====
-	canvas.style.cursor = "default";
-	setStatePanelText("")
-	//var m = game.monsters[player.unitSelected]
-	//if (!m){
-
-	if (player.unitSelected != util.EMPTY){
-		var m = game.monsters[player.unitSelected]
-		if (IMAGES[m.name]){
-				//ctx.drawImage(IMAGES[m.name],415,0);
-		}
-	}
-
+function drawUnitHUD(dt){
 	var	m = getUnitOnCursor(cursorX,cursorY);
 	if (m){
 		//setStatePanelText(m)
@@ -2158,10 +2135,11 @@ function render(){
 		}
 
 		//buffs
+		var skip = 0;
 		for (var i =0; i<m.buff.length; i++){
 			console.log()
 			if (IMAGES[m.buff[i].name]){
-				ctx.drawImage(IMAGES[m.buff[i].name],m.x*squareSize+i*squareSize,(m.y-1)*squareSize, squareSize,squareSize)
+				ctx.drawImage(IMAGES[m.buff[i].name],m.x*squareSize+(i-skip)*squareSize,(m.y-1)*squareSize, squareSize,squareSize)
 				if (m.buff[i].stack != null){
 					ctx.font = "bolder 20px Arial"
 						ctx.strokeStyle = black
@@ -2169,6 +2147,8 @@ function render(){
 					ctx.fillText(m.buff[i].stack, m.x*squareSize+i*20+20, m.y*squareSize-20+20);
 					ctx.strokeText(m.buff[i].stack, m.x*squareSize+i*20+20, m.y*squareSize-20+20);
 				}
+			} else {
+				skip++
 			}
 
 		}
@@ -2235,13 +2215,63 @@ function render(){
 		}
 
 	}
+}
 
+function render(){
+
+	controlLock = true
+	if (animation.length == 0) controlLock = false
+	var now = new Date().getTime()
+	if (!time) time = now;
+	var dt = (now - time) / 1000.0
+	time = now;
+
+	requestAnimationFrame(render);
+
+	ctx.clearRect(0,0,canvas.width,canvas.height)
+	//ctx.drawImage(IMAGES['UI'],0,0, canvas.width,canvas.height)
+	drawUIFrame()
+
+	ctx.translate(boardXPadding,boardYPadding)
+	drawBoard();
+	drawUnits();
+	drawProps();
+	drawButton()
+	drawDiceSelection();
+	drawDicePattern();
+	drawSelection(player);
+	drawSelection(opponent);
+	drawPath();
+	//drawAlert();
+	drawDialog();
+	drawCrestPool(player,425,32);
+	drawCrestPool(opponent,425,400);
+	//updateCrest(player.pool);
+	drawProjectile(dt)
+
+	//====
+	canvas.style.cursor = "default";
+	setStatePanelText("")
+	//var m = game.monsters[player.unitSelected]
+	//if (!m){
+
+	if (player.unitSelected != util.EMPTY){
+		var m = game.monsters[player.unitSelected]
+		if (IMAGES[m.name]){
+				//ctx.drawImage(IMAGES[m.name],415,0);
+		}
+	}
+
+	if (!controlLock)
+		drawUnitHUD(dt)
+
+	/*
 	if (game.combat){
 		if (IMAGES[game.combat.target.name]){
 				ctx.drawImage(IMAGES[game.combat.target.name],415+150,0);
 				ctx.drawImage(IMAGES[game.combat.unit.name],415,0);
 		}
-	}
+	}*/
 
 	if (player.diceButtonFocus != util.EMPTY){
 		//console.log(player.diceButtonFocus)
@@ -2250,16 +2280,6 @@ function render(){
 		setStatePanelText(m)
 	}
 	ctx.translate(-boardXPadding,-boardYPadding)
-	var now = new Date().getTime()
-	if (!time) time = now;
-	var dt = (now - time) / 1000.0
-  time = now;
-	for (m of game.monsters){
-		m.update(dt)
-	}
-
-	//drawDiceRoll(dt)
-
 	drawAnimation(dt);
 
 }

@@ -24,13 +24,16 @@ function openConnection(c,num){
 
 		if(num == 0){
 			player.changeState(util.GAME_STATE_UNIT)
-			game.createUnit(player,UNITS['Nasus'],[5,17])
-      //PROPS['Spirit Fire']([6,17], game.monsters[0])
 		} else {
 			player.state = util.GAME_STATE_END
 			changeUIState(util.GAME_STATE_END)
+		}
+		if (num == 1){
+			//sendSwitch = false
+			game.createUnit(opponent,UNITS['Darius'],[6,18])
+			game.createUnit(opponent,UNITS['Ahri'],[6,17])
 			game.createUnit(player,UNITS['Teemo'],[4,17])
-      //PROPS['Spirit Fire']([6,17], game.monsters[0])
+			//sendSwitch = true
 		}
 
 
@@ -61,7 +64,9 @@ function openConnection(c,num){
 		} else if (data.id == 'make selection'){
 			game.makeSelection(opponent);
 		} else if(data.id == 'create unit'){
-			game.createUnit(opponent,UNITS[data.unitid],data.point)
+			var p1 = player;
+			if (data.player != player.num) p1 = opponent
+			game.createUnit(p1,UNITS[data.unitid],data.point)
 			//conn.send({id:, player:player,id:id,point:point})
 		} else if (data.id == 'attack'){
 			game.monsters[data.trigger].attack(game.monsters[data.target])
@@ -76,7 +81,6 @@ function openConnection(c,num){
 			var target = data.target != util.EMPTY ? game.monsters[data.target]: null
 			var event = {trigger: game.monsters[opponent.unitSelected], location: data.location, target:game.monsters[data.target]};
 			spell.fire('effect',event);
-			spell.fire('finish', {trigger:event.trigger})
 			//conn.send({id:'spell effect', spell:player.spell, location:[x,y]})
 		} else if (data.id == 'guard response'){
 			game.combat.guard(data.data)

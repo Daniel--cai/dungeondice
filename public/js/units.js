@@ -48,6 +48,30 @@ UNITS['Nasus'] = {
 	spells:SPELLS['Nasus'],
 }
 
+UNITS['Braum'] = {
+	name:'Braum',
+	hp: 50,
+	atk: 10,
+	def: 10,
+	spells:SPELLS['Braum']
+}
+
+UNITS['Ahri'] = {
+	name: 'Ahri',
+	hp: 30,
+	atk:10,
+	def:10,
+	spells:SPELLS['Ahri']
+}
+
+UNITS['Darius'] = {
+	name: 'Darius',
+	hp: 30,
+	atk:10,
+	def:20,
+	spells:SPELLS['Darius']
+}
+
 function Unit(player, type, point, level) {
 	//idcounter++;
 	this.name = type.name;
@@ -72,15 +96,49 @@ function Unit(player, type, point, level) {
 	this.impairment = 0;
 	this.spells = type.spells;
 	this.animations = [];
+	this._buffer = []
 
 	this.removeBuff = function(name){
-		for (var i=0; i<this.buff.length;i++){
-			if(this.buff[i].name == name){
-				this.buff[i].fire('expire', {})
-				this.buff.splice(i,1)
+		console.log('removing ',name)
+		//this._buffer.push(name)
+
+		for (var j=this.buff.length-1; j>=0;j--){
+			if(this.buff[j].name == name){
+					console.log('clearing ',this.buff[j].name)
+				this.buff[j].fire('expire', {trigger:this})
+				this.buff.splice(j,1)
 				break;
 			}
 		}
+	}
+
+	this.clearBuff = function(){
+
+		for (var i=0; i<this._buffer.length; i++){
+			for (var j=0; j<this.buff.length;j++){
+				if(this.buff[j].name == this._buffer[i]){
+						console.log('clearing ',this.buff[j].name)
+					this.buff[i].fire('expire', {trigger:this})
+					this.buff.splice(i,1)
+					break;
+				}
+			}
+		}
+	}
+
+	this.addBuff = function(caster, buff){
+		if (!caster) {console.log('caster null'); return false}
+		if (!buff) {console.log('buff null'); return false}
+		for (var i = 0; i<this.buff.length; i++){
+			if (this.buff[i].name == buff.name){
+				this.buff.splice(i,1);
+				break;
+			}
+		}
+		this.buff.push(buff);
+		buff.fire('apply', {trigger:this, caster:caster})
+		buff.owner = caster.id;
+		return true
 	}
 
 	this.hasBuff = function(name){
@@ -139,11 +197,23 @@ function Unit(player, type, point, level) {
 		//animation.combat = {attacker:this, target:target, dt:0, finish:false};
 		//animation.push({image:IMAGES[this.name], x:0, y:0, dx:500, effect:'pan', duration:0.5})
 
+		//var ubuffs = JSON.parse(JSON.stringify(this.buff))
+		//var ubuffs =  this.buff.splice(0)
 
+		//var tbuffs =  target.buff.splice(0)
 		var event = {trigger:this, target:target}
-		for (var i=0; i< this.buff.length; i++){
+		for (var i=this.buff.length-1; i>=0 ; i--){
 			this.buff[i].fire('attack',event);
 		}
+
+		game.combat.status.push(status)
+
+		var event = {attacker: this, trigger: target}
+		for (var i=target.buff.length-1; i>=0 ; i--){
+			target.buff[i].fire('attacked', event)
+		}
+
+		game.combat.status.push(status)
 
 		if (sendSwitch){
 			conn.send({id:'attack', trigger:this.id, target:target.id, guard:util.getCrestPool(target.player,CREST_DEFENSE) > 0})
@@ -156,7 +226,7 @@ function Unit(player, type, point, level) {
 			console.log('post attack')
 			game.combat.postattack();
 		}
-
+		this.clearBuff()
 		return true;
 	}
 
@@ -228,7 +298,12 @@ function Unit(player, type, point, level) {
 			//console.log(plen-1,'<=',this.impairment + util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//console.log(util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//if (plen > 1 && plen-1 <= this.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
+
 			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200})
+
+			game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
+
+			game.setUnitAtLoc(this.id,path[path.length-1])
 			/*
 			for (var i=1; i<path.length; i++){
 				//console.log(path[i])

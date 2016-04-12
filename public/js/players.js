@@ -113,11 +113,12 @@ function Player(id){
 		for (var i=0;i<game.monsters.length; i++){
 			for (var j=0; j<game.monsters[i].buff.length;j++){
 				var buff = game.monsters[i].buff[j]
-				console.log(game.monsters[i].type.name)
-				console.log(game.monsters[buff.owner].type.name, this.num)
+				//console.log(game.monsters[i].type.name)
+				//console.log(game.monsters[buff.owner].type.name, this.num)
 				if (game.monsters[buff.owner].player.num != this.num) continue;
 				if (buff.duration == 0) continue
 				buff.duration--;
+				buff.fire('turn',{trigger:game.monsters[i]})
 				if (buff.duration == 0){
 					console.log('removing', buff.name,'from',game.monsters[i].type.name)
 					game.monsters[i].removeBuff(buff.name)
@@ -127,7 +128,13 @@ function Player(id){
 		for (var i=0; i<game.props.length; i++){
 			var p = game.props[i];
 			if (p.unit != util.EMPTY && p.unit.player.num != player.num) return;
-			p.fire('turn',{})
+			p.fire('turn',{trigger:p})
+		}
+
+		for (var i=0;i<projectiles.length;i++){
+			var p = projectiles[i]
+			console.log(p.delay)
+			p.delay--
 		}
 	}
 
@@ -198,9 +205,10 @@ function Player(id){
 
 	this.selectUnit = function(x,y){
 		//var game = games[this.id]
-
-
 		var m = game.board.getUnitAtLoc(x,y)
+
+		if (game.monsters[m].hasBuff('Stunned') != util.EMPTY) return;
+
 		if (this.unitSelected == m) {
 			this.changeState(util.GAME_STATE_UNIT);
 			conn.send({id:'select unit', unit:util.EMPTY})

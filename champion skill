@@ -50,8 +50,6 @@ Tibbers. Deal 10 damage to targets around the square. Summons tibber 30/10/0. On
 Blitzcrank.
 If blitzcrank drops to 10 hp, you can use up to 3 defense crest to gain a shield. For each crest used, it gains 10. Shield lasts until the end of turn, and can only be used once per round.
 
-Blitz
-
 Pulls the target up to 3 square away in front of blitzcrank.
 
 Thresh
@@ -68,7 +66,6 @@ Mimic
 
 Ahri
 Her attacks and charm build point. For every 3rd point, she gains hp 10hp
-
 Orb
 Deals 10 damage to 2 squares away. The orb then comes back dealing 10 damage to units hit. Enemy champion cannot guard against the second hit.
 
