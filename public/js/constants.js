@@ -221,6 +221,40 @@ exports.getCrestPool = function(player, crest){
   return player.pool[crest]
 }
 
+function isOrthogonal(x1,y1,x2,y2){
+  return x1 == x2 || y1 == y2
+}
+
+function manhattanDistance(point, goal){
+	return Math.abs(point.x - goal.x) + Math.abs(point.y- goal.y);
+}
+
+function findStraightPath(pathStart, pathEnd){
+	var result = []
+	var dx = pathEnd[0]-pathStart[0];
+	var dy = pathEnd[1]-pathStart[1];
+	if (!(dx == 0 || dy == 0)) return [];
+	for (var i=1; i<=Math.max(Math.abs(dx),Math.abs(dy)); i++){
+		var xi = pathStart[0]
+		var yi = pathStart[1]
+		if (dx == 0){
+			if (dy <0) yi -= i
+			else 	yi += i;
+		} else if (dy == 0){
+			if (dx <0) xi -= i
+			else 	xi+=i;
+		}
+		if (validWalk(xi,yi)){
+			result.push([xi,yi])
+		} else {
+			//console.log('breaking at', xi,yi)
+			break;
+		}
+
+	}
+	return result
+}
+
 exports.validPlacement = function(player,selection){
   //var cshape;
   //if (!selection){

@@ -64,12 +64,36 @@ UNITS['Ahri'] = {
 	spells:SPELLS['Ahri']
 }
 
+UNITS['Sivir'] = {
+	name: 'Sivir',
+	hp: 20,
+	atk:30,
+	def:10,
+	spells:SPELLS['Sivir']
+}
+
 UNITS['Darius'] = {
 	name: 'Darius',
 	hp: 30,
 	atk:10,
 	def:20,
 	spells:SPELLS['Darius']
+}
+
+UNITS['Yasuo'] = {
+	name: 'Yasuo',
+	hp: 50,
+	atk:20,
+	def:20,
+	spells:SPELLS['Yasuo']
+}
+
+UNITS['Kogmaw'] = {
+	name: "Kogmaw",
+	hp: 30,
+	atk:20,
+	def:20,
+	spells:SPELLS['Kogmaw']
 }
 
 function Unit(player, type, point, level) {
@@ -81,6 +105,7 @@ function Unit(player, type, point, level) {
 	this.animx = point[0];
 	this.animy = point[1];
 	this.hp = type.hp;
+	this.shield = 0;
 	this.maxhp = type.hp;
 	this.atk = type.atk;
 	this.def = type.def;
@@ -99,12 +124,12 @@ function Unit(player, type, point, level) {
 	this._buffer = []
 
 	this.removeBuff = function(name){
-		console.log('removing ',name)
+		//onsole.log('removing ',name)
 		//this._buffer.push(name)
 
 		for (var j=this.buff.length-1; j>=0;j--){
 			if(this.buff[j].name == name){
-					console.log('clearing ',this.buff[j].name)
+				console.log('removing',this.buff[j].name)
 				this.buff[j].fire('expire', {trigger:this})
 				this.buff.splice(j,1)
 				break;
@@ -136,8 +161,9 @@ function Unit(player, type, point, level) {
 			}
 		}
 		this.buff.push(buff);
-		buff.fire('apply', {trigger:this, caster:caster})
 		buff.owner = caster.id;
+		buff.fire('apply', {trigger:this, caster:caster})
+
 		return true
 	}
 
@@ -299,7 +325,17 @@ function Unit(player, type, point, level) {
 			//console.log(util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//if (plen > 1 && plen-1 <= this.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
 
-			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200})
+			var finish = function(m, path){
+				console.log('finished!')
+				var plen =  path.length;
+				var event = {trigger: m, x1:this.x, y1:m.y, x2:path[plen-1][0], y2:path[plen-1][1]}
+				for (var i=0; i<m.buff.length; i++){
+						m.buff[i].fire('move',event);
+				}
+			}
+
+
+			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200, onfinish:finish, args:[this,path]})
 
 			game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
 

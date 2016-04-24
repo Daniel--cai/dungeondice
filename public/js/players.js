@@ -2,7 +2,7 @@
 function Player(id){
 	this.id = id;
 	this.num;
-	this.pool = [5,5,5,5,5]
+	this.pool = [5,5,0,5,5]
 
 	this.state = util.GAME_STATE_END;
 	//this.actionstate = util.PLAYER_STATE_NEUTRAL;
@@ -133,14 +133,14 @@ function Player(id){
 
 		for (var i=0;i<projectiles.length;i++){
 			var p = projectiles[i]
-			console.log(p.delay)
+			//console.log(p.delay)
 			p.delay--
 		}
 	}
 
 	this.endTurn = function (){
 		//sockets[this.id].send(JSON.stringify({data:'alert', data:"End Phase"}));
-		console.log('end turn')
+		//console.log('end turn')
 		this.changeState(util.GAME_STATE_END);
 		this.rolled = false;
 		this.summon = [];
@@ -205,35 +205,27 @@ function Player(id){
 
 	this.selectUnit = function(x,y){
 		//var game = games[this.id]
-		var m = game.board.getUnitAtLoc(x,y)
 
-		if (game.monsters[m].hasBuff('Stunned') != util.EMPTY) return;
+		var m = game.monsters[game.board.getUnitAtLoc(x,y)]
+		if (m.hasBuff('Stunned') != util.EMPTY) return;
 
-		if (this.unitSelected == m) {
+		if (this.unitSelected == m.id) {
 			this.changeState(util.GAME_STATE_UNIT);
 			conn.send({id:'select unit', unit:util.EMPTY})
 
-		} else if (game.monsters[m].player.num==this.num){
+		} else if (m.player.num==this.num){
 			this.changeState(util.GAME_STATE_SELECT);
-			this.unitSelected = m;
-			conn.send({id:'select unit', unit:m})
+
+			player.movePath = util.findPossiblePath(game.board,[m.x, m.y],exports.getCrestPool(player,CREST_MOVEMENT)-m.impairment)
+
+			this.unitSelected = m.id;
+			conn.send({id:'select unit', unit:m.id})
 			//animation.push({type:'message', text:'End Phase', color:red,x:-200,y:250,speed:1000,  duration:2})
 			disableSpell(true)
 			if (player.num == this.num){
-				for (var i = 0; i<4;i++){
-					if (game.monsters[m].spells[i]){
-						spellButton[i].innerHTML = game.monsters[m].spells[i].name
-						spellButton[i].hidden = false;
-						if (game.monsters[m].spells[i].type != "passive")
-						spellButton[i].disabled = false;
-					}
-				}
-				if (game.monsters[m].spells[4]){
-					passiveButton.innerHTML = game.monsters[m].spells[4].name
-					passiveButton.disabled = true
-				}
-
+				showUnitSpells(m)
 			}
+			console.log('Unit selected:', m.id)
 			return true
 		}
 		return false;

@@ -19,7 +19,7 @@ function openConnection(c,num){
 		opponent = new Player(num==0 ? 'one' : 'two')
 		opponent.num = num == 0 ? 1 : 0
 		game.players = [player,opponent]
-    console.log(player.num, opponent.num)
+    //console.log(player.num, opponent.num)
 		game.init()
 
 		if(num == 0){
@@ -31,7 +31,14 @@ function openConnection(c,num){
 		if (num == 1){
 			//sendSwitch = false
 			game.createUnit(opponent,UNITS['Darius'],[6,18])
+			game.createUnit(opponent,UNITS['Nasus'],[7,18])
+			game.createUnit(opponent,UNITS['Lucian'],[8,18])
+			game.createUnit(opponent,UNITS['Soraka'],[5,17])
+			game.createUnit(opponent,UNITS['Braum'],[5,16])
+			game.createUnit(opponent,UNITS['Sivir'],[4,16])
 			game.createUnit(opponent,UNITS['Ahri'],[6,17])
+			game.createUnit(opponent,UNITS['Yasuo'],[3,17])
+			game.createUnit(opponent,UNITS['Kogmaw'],[2,17])
 			game.createUnit(player,UNITS['Teemo'],[4,17])
 			//sendSwitch = true
 		}
@@ -42,11 +49,11 @@ function openConnection(c,num){
 
 	conn.on('data', function(data) {
 		sendSwitch = false;
-		console.log('Received', data);
+		//console.log('Received', data);
 		if (data.id == 'move unit'){
 			//game.monsters[data.unit].moveUnit([data.x, data.y])
 			game.monsters[data.unit].movement(data.path)
-			opponent.updatePool(CREST_MOVEMENT,-data.path.length+1)
+			opponent.updatePool(CREST_MOVEMENT,-data.path.length+1-game.monsters[data.unit].impairment)
 			opponent.animateDice(CREST_MOVEMENT)
 			opponent.changeState(util.GAME_STATE_UNIT)
 		} else if (data.id == 'select unit'){

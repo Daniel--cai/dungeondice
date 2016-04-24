@@ -3,6 +3,7 @@ SPELLS['Nasus'] = []
 SPELLS['Nasus'][0] = new Spell('Siphoning Strike', [CREST_ATTACK, 2], "self")
 SPELLS['Nasus'][0].on ('learn', function(event){
 	event.trigger.addBuff(event.trigger,BUFFS['Siphoning Strike']())
+	return true;
 })
 SPELLS['Nasus'][0].on ('effect', function(event){
 	if (event.trigger.hasAttacked){
@@ -88,7 +89,7 @@ SPELLS['Lucian'][2].on('cast', function(event){
 	player.movePath = player.movePath.concat(findStraightPath([x,y],[x-(buff.stack+1),y]))
 	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y-(buff.stack+1)]))
 	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y+buff.stack+1]))
-	console.log(player.movePath)
+	//console.log(player.movePath)
 	//player.movePath.concat()
 
 	//findStraightPath([x,y],[x,y+3]),  findStraightPath([x,y],[x,y-3])
@@ -123,23 +124,22 @@ SPELLS['Lucian'][2].on('effect', function(event){
 
 SPELLS['Teemo'] = []
 SPELLS['Teemo'][0] = new Spell("Blinding Dart", [CREST_ATTACK, 2],"target")
-SPELLS['Teemo'][1] = new Spell("Noxious Trap", [CREST_MAGIC, 2],"target")
+
 
 SPELLS['Teemo'][0].on('effect',function(event){
+	var target = game.board.getUnitAtLoc(event.location[0],event.location[1]);
+	if (target == util.EMPTY) {console.log("Must target unit"); return false};
+	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
+	p.target = true;
+	p.on('collision', function(event){
 
-	//var game = games[event.trigger.player.id]
-	var id = game.board.getUnitAtLoc(event.location[0],event.location[1]);
-	if (id == util.EMPTY) {console.log("Must target unit"); return false};
-
-	var target = game.monsters[game.board.getUnitAtLoc(event.location[0],event.location[1])]
-	var buff = BUFFS['Blinding Dart']()
-	target.addBuff(event.trigger, buff)
-
-	DamageUnit(event.trigger.id, target.id, 10);
+		event.trigger.addBuff(p.caster, BUFFS['Blinding Dart']())
+		p.destroy()
+	})
 	return true;
-	//SPELLS['Teemo'][0].fire('finish',{trigger:event.trigger})
 })
 
+SPELLS['Teemo'][1] = new Spell("Noxious Trap", [CREST_MAGIC, 2],"target")
 SPELLS['Teemo'][1].on('effect', function(event){
 	//var mushroom = new Prop("Toxic Mushroom", event.trigger.player, event.location, event.trigger);
 	//PROP_TEEMO2(mushroom);
@@ -240,13 +240,13 @@ SPELLS['Ahri'][0].on('learn', function(event){
 
 SPELLS['Ahri'][1] = new Spell ("Orb of Deception", [CREST_MAGIC, 2], "target")
 SPELLS['Ahri'][1].on('effect', function(event){
+
+	if (!isOrthogonal(event.trigger.x,event.trigger.y,event.location[0],event.location[1])) return false
+
 	var path = [];
-	for (var i = 1; i<4; i++){
-	//	path.push([event.trigger.x+dx*i,event.trigger.y+dy*i])
-	}
 	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
 	p.on('collision', function(event){
-		if (event.trigger.player.num == p.caster.player.num) return;
+		if (event.trigger.player.num == p.caster.player.num) return false;
 		DamageUnit(event.caster.id,event.trigger.id, 10);
 	})
 	p.on('finish', function(event){
@@ -254,13 +254,11 @@ SPELLS['Ahri'][1].on('effect', function(event){
 		var s = new Projectile(p.dx,p.dy,p.x,p.y, p.caster)
 		s.delay = 2;
 		s.on('collision', function(event){
-			if (event.trigger.player.num == s.caster.player.num) return;
+			if (event.trigger.player.num == s.caster.player.num) return false;
 			DamageUnit(event.caster.id,event.trigger.id, 10);
 		})
 	})
-	p.on('turn',function(event){
-
-	})
+	return true;
 })
 
 SPELLS['Ahri'][2] = new Spell("Charm", [CREST_MAGIC, 0],"target")
@@ -298,6 +296,42 @@ SPELLS['Darius'][0].on('learn', function(event){
 	event.trigger.addBuff(event.trigger, BUFFS['Hemorrhage Passive']())
 })
 
+SPELLS['Sivir'] = [];
+SPELLS['Sivir'][0] = new Spell("Fleet of Foot", [CREST_MAGIC, 0],"passive")
+SPELLS['Sivir'][0].on('learn', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Fleet of Foot Passive']())
+})
+
+SPELLS['Sivir'][1] = new Spell ("Boomerang Blade", [CREST_MAGIC, 2], "target")
+SPELLS['Sivir'][1].on('effect', function(event){
+
+	if (!isOrthogonal(event.trigger.x,event.trigger.y,event.location[0],event.location[1])) return false
+
+	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
+	var damage = 5;
+	p.stack = 6;
+	var hit = function(event){
+		//friendly fire;
+		//if (event.trigger.player.num == p.caster.player.num) return false;
+		DamageUnit(event.caster.id,event.trigger.id, p.stack*damage);
+		p.stack--;
+		if (p.stack < 0) p.stack = 0
+	}
+	p.on('collision', hit)
+	p.on('finish', function(event){
+		var s = new Projectile(p.dx,p.dy,p.x,p.y, p.caster)
+		s.stack = p.stack;
+		s.on('collision', hit)
+	})
+	return true;
+})
+
+SPELLS['Sivir'][2] = new Spell ("Spell Shield", [CREST_MAGIC, 2], "self")
+SPELLS['Sivir'][2].on('effect', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Spell Shield']())
+	return true;
+})
+
 function Spell(name, cost,type){
 	this.name = name;
 	this.cost = cost;
@@ -314,16 +348,18 @@ function Spell(name, cost,type){
 
 	this.on('finish', function(event){
 		for (var i =0; i<event.trigger.buff.length; i++){
-			event.trigger.buff[i].fire('spell', event)
+			//event.trigger.buff[i].fire('spell', event)
 		}
 		//console.log('finishing spell')
+		event.trigger.player.updatePool(cost[0],-cost[1])
 		event.trigger.player.changeState(util.GAME_STATE_UNIT)
 	})
 
 	this.fire = function(event){
 		if (!this.callbacks.hasOwnProperty(event)){
-			if (event != 'learn' && event != 'spell')
+			if (event != 'learn' &&  event != 'apply'){
 				console.log(event, 'not implemented for', this.name)
+			}
 			return;
 
 		}
@@ -332,7 +368,7 @@ function Spell(name, cost,type){
 		//console.log('topic is',topic)
 		var boolean = this.callbacks[event].apply(undefined, args)
 		if (event == 'effect'){
-			console.log('finish',args[0], boolean)
+			//console.log('finish',args[0], boolean)
 			if (boolean) this.fire('finish', args[0])
 		}
 	}
@@ -342,3 +378,49 @@ function Spell(name, cost,type){
 
 	return this;
 }
+
+SPELLS['Yasuo'] = []
+SPELLS['Yasuo'][0] = new Spell ("Way of the Wanderer", [CREST_MAGIC, 2], "passive")
+SPELLS['Yasuo'][0].on('learn', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Way of the Wanderer']())
+})
+
+SPELLS['Yasuo'][1] = new Spell ('Steel Tempest', [CREST_ATTACK, 1], "target")
+SPELLS['Yasuo'][1].on('effect',function(event){
+	var index = event.trigger.hasBuff('Steel Tempest')
+	if (index == util.EMPTY){
+		event.trigger.addBuff(event.trigger, BUFFS['Steel Tempest']())
+		index = event.trigger.buff.length-1;
+	}
+	event.trigger.buff[index].stack += 1;
+	if (event.trigger.buff[index].stack == 3){
+		event.trigger.buff[index].stack = 0;
+		var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
+		p.on('collision', function(event){
+			event.trigger.addBuff(p.caster, BUFFS['Stunned']())
+			DamageUnit(p.owner, event.trigger, 10)
+		})
+	} else {
+		var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
+		p.target = true;
+		p.on('collision', function(event){
+			DamageUnit(p.owner, event.trigger, 10)
+		})
+	}
+	return true;
+})
+
+SPELLS['Yasuo'][2] = new Spell ('Windwall', [CREST_ATTACK, 1], "target")
+SPELLS['Yasuo'][2].on('effect',function(event){
+	var p = new Prop('Windwall', event.location, event.trigger)
+	p.on('spell hit', function(event){
+		event.proj.destroy();
+	})
+	return true;
+})
+
+SPELLS['Kogmaw'] = []
+SPELLS['Kogmaw'][0] = new Spell ('Icathian Surprise' [CREST_ATTACK,0], "passive")
+SPELLS['Kogmaw'][0].on('learn', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Icathian Surprise']())
+})

@@ -18,20 +18,14 @@ Wither: target monster cost 1 extra crest to move for each square until the end 
 
 Vayne
 Night hunter movement cost half if she walks  towards the direction an enemy champion
-
 Tumble. Moves one square away. Can be diagonally. Vayne can attack additional for this turn.
-
 Condemn: knock back target 1 squares backwards. If the unit cannot move there, deal 10 damage and the target is stunned until the end of the next turn.
 
 Jinx
 If jinx scores a kill, jinx is able to move equal to the number of life point the decayed unit had on the same turn.
-
 Pow pow fish bones Jinx attack deal area effect around the target. Cost 2 extra attack.
-
-
 Trap,
 Setup the ground with trap. Enemy champions at the end of the next turn are immobilised.
-
 
 
 Sivir
@@ -260,6 +254,6 @@ Aatrox
 Blood well
 Each time Aatrox attacks he builds
 
-Every 2 attack, he either
-Deals 20 bonus damage and cost 10 health.
-Recover 20health
+Toggle: Every 2 attack, he either
+-Deals 20 bonus damage and cost 10 health.
+-Recover 10health

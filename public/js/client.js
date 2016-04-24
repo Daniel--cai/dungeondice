@@ -40,7 +40,8 @@ function Buff(name, duration){
 
 	this.fire = function(event){
 		if (!this.callbacks.hasOwnProperty(event)){
-			console.log(event, 'not implemented for', this.name)
+			//if (event != 'apply')
+			//console.log(event, 'not implemented for', this.name)
 			return;
 
 		}
@@ -358,7 +359,7 @@ function Game(){
 			//this.update('create unit', player.num, u)
 			var temp = sendSwitch
 			sendSwitch = false;
-			for (var i = 0; i< u.spells.length; i++){1
+			for (var i = 0; i< u.spells.length; i++){
 				u.spells[i].fire('learn', {trigger:u})
 			}
 			sendSwitch = temp;
@@ -1146,7 +1147,13 @@ function updateCrest(pool){
 function spellButtonEffect(button){
 	if (player.state != util.GAME_STATE_SELECT) return;
 	var spell = game.monsters[player.unitSelected].spells[button]
+	var name = game.monsters[player.unitSelected].name
 	if (!spell) return
+	if (player.pool[SPELLS[name][button].cost[0]] < SPELLS[name][button].cost[1]){
+		console.log('Not enough', CREST_TEXT[SPELLS[name][button].cost[0]], 'to cast', SPELLS[name][button].name)
+		player.spell = -1;
+		return;
+	}
 	if (spell.type == "self"){
 		//socket.send(JSON.stringify({ id:'cast', data:button}));
 		console.log('no target spell')
@@ -1158,15 +1165,12 @@ function spellButtonEffect(button){
 	} else {
 		player.spell = button;
 		//console.log('player spell now',player.spell)
-		var name = game.monsters[player.unitSelected].name
-		if (player.pool[SPELLS[name][button].cost[0]] < SPELLS[name][button].cost[1]){
-			console.log('Not enough', CREST_TEXT[SPELLS['Lucian'][2].cost[0]], 'to cast', SPELLS['Lucian'][2].name)
-			player.spell = -1;
-		} else {
-			game.monsters[player.unitSelected].spells[button].fire('cast', {trigger:game.monsters[player.unitSelected]})
-			disableSpell(true)
-			cancelButton.hidden = false;
-		}
+
+
+		game.monsters[player.unitSelected].spells[button].fire('cast', {trigger:game.monsters[player.unitSelected]})
+		disableSpell(true)
+		cancelButton.hidden = false;
+
 	}
 
 }
@@ -1609,8 +1613,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 			//console.log('unit select')
      		//socket.send(JSON.stringify({id:'mouse click', data:{state: 'select', loc:[x, y]}}))
    		player.selectUnit(x, y)
-   		var m = game.monsters[u]
-			player.movePath = util.findPossiblePath(game.board,[m.x, m.y],exports.getCrestPool(player,CREST_MOVEMENT)-m.impairment)
+
     } else if (player.state == util.GAME_STATE_SELECT){
  				if (player.spell != util.EMPTY){
      			console.log('cast',player.spell)
@@ -1625,14 +1628,15 @@ new Event(TRIGGER_MOUSE_CLICK,
      		} else if (u == util.EMPTY){
      			//socket.send(JSON.stringify({id:'mouse click', data:{state:'move', loc:[x, y]}}))
  					if (game.board.getTileState(x, y) != util.EMPTY){
-	 					console.log('moving')
+	 					//console.log('moving')
 						var m = game.monsters[player.unitSelected]
 						var path = util.findPath(game.board,[m.x,m.y],[x,y]);
 						var plen = path.length
 						if (plen > 1 && plen-1 <= player.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
 	 						m.movement(path)
 							conn.send({id:'move unit', unit:m.id, path:path})
-							player.updatePool(CREST_MOVEMENT,-plen+1)
+							console.log(m.impairment)
+							player.updatePool(CREST_MOVEMENT,-plen+1-m.impairment)
 							player.animateDice(CREST_MOVEMENT)
 							player.changeState(util.GAME_STATE_UNIT)
 						}
@@ -1662,35 +1666,6 @@ new Event(TRIGGER_MOUSE_CLICK,
 
 
 
-function manhattanDistance(point, goal){
-	return Math.abs(point.x - goal.x) + Math.abs(point.y- goal.y);
-}
-
-function findStraightPath(pathStart, pathEnd){
-	var result = []
-	var dx = pathEnd[0]-pathStart[0];
-	var dy = pathEnd[1]-pathStart[1];
-	if (!(dx == 0 || dy == 0)) return [];
-	for (var i=1; i<=Math.max(Math.abs(dx),Math.abs(dy)); i++){
-		var xi = pathStart[0]
-		var yi = pathStart[1]
-		if (dx == 0){
-			if (dy <0) yi -= i
-			else 	yi += i;
-		} else if (dy == 0){
-			if (dx <0) xi -= i
-			else 	xi+=i;
-		}
-		if (validWalk(xi,yi)){
-			result.push([xi,yi])
-		} else {
-			//console.log('breaking at', xi,yi)
-			break;
-		}
-
-	}
-	return result
-}
 
 function validWalk(x, y){
 	console.log()
@@ -1920,16 +1895,15 @@ function drawAnimation(dt){
 					a.unit.animy = move[1];
 
 
+
 					var event = {trigger: a.unit, location: move}
 					for (var j=0; j<game.props.length; j++){
 						if (game.props[j] && game.props[j].x == move[0] && game.props[j].y == move[1]){
 							game.props[j].fire('collision',event);
 						}
 					}
-
 					splice.push(i)
 					animation.push({type:'move unit', unit:a.unit, path:a.path , px:move[0], py:move[1], speed:a.speed, duration:200})
-
 				}
 			} else {
 				splice.push(i)

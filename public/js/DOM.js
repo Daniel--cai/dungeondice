@@ -39,6 +39,21 @@ function disableSpell(d){
 		//player.spell = util.EMPTY
 }
 
+function showUnitSpells(m){
+	for (var i = 0; i<4;i++){
+		if (m.spells[i]){
+			spellButton[i].innerHTML = m.spells[i].name
+			spellButton[i].hidden = false;
+			if (m.spells[i].type != "passive")
+			spellButton[i].disabled = false;
+		}
+	}
+	if (m.spells[4]){
+		passiveButton.innerHTML = game.monsters[m].spells[4].name
+		passiveButton.disabled = true
+	}
+}
+
 function disableButtons(a,b){
 		rollButton.disabled = a;
 		endturnButton.disabled = b;

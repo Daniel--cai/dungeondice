@@ -7,15 +7,15 @@ function Projectile(x,y,dx,dy,caster){
   this.dx = dx;
   this.dy = dy;
   this.size = 30
-  this.speed = 2;
+  this.speed = 5;
   this.dir = 0;
   this.img = IMAGES['Orb of Deception Sprite']
   this.caster = caster;
   this.collision = []
   this.delay = 0;
   this.clear = true;
+  this.target = false;
   this.update = function(dt){
-
     if (this.delay > 0) return;
     var dx = this.dx - this.x
     var dy = this.dy - this.y
@@ -25,11 +25,19 @@ function Projectile(x,y,dx,dy,caster){
     if (dy > 0) dy = 1;
 
     //console.log(dx,dy)
-
-    var m = game.board.getUnitAtLoc(Math.floor(this._x), Math.floor(this._y))
-    if (m != util.EMPTY && this.collision.indexOf(m) == util.EMPTY){
+    var x = Math.floor(this._x)
+    var y = Math.floor(this._y)
+    var m = game.board.getUnitAtLoc(x,y)
+    var p = game.prop
+    if (m != util.EMPTY && this.collision.indexOf(m) == util.EMPTY &&
+    ((this.target && this.dx == x && this.y == y) || !this.target)){
       this.collision.push(m)
-      console.log(m)
+      //console.log(m)
+      for (var i =0; i<game.monsters[m].buff.length; i++){
+        game.monsters[m].buff[i].fire('spell hit',{proj:this})
+      }
+      if (projectiles.indexOf(this) == util.EMPTY) return;
+
       this.fire('collision', {trigger:game.monsters[m], caster:this.caster})
     }
 

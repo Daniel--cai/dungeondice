@@ -103,6 +103,9 @@ BUFFS['Lightslinger'] = function(){
 
 BUFFS['Blinding Dart'] = function(){
 	var buff = new Buff("Blinding Dart", 1);
+	buff.on('apply', function(event){
+		DamageUnit(buff.owner, event.trigger.id, 10)
+	})
 	buff.on('attack', function(event){
 		//console.log(event)
 		game.combat.atkmodifier = 0;
@@ -155,6 +158,9 @@ BUFFS['Essence Theft'] = function(){
 			event.trigger.hp = Math.min(event.trigger.hp+20, event.trigger.maxhp);
 		}
 	}
+
+
+
 	buff.on('attack', function(event){
 		buff.effect(event)
 	})
@@ -196,6 +202,80 @@ BUFFS['Hemorrhage Passive'] = function(){
 
 	buff.on('attack', function(event){
 		buff.effect(event)
+	})
+	return buff;
+}
+
+BUFFS['Fleet of Foot'] = function(){
+	var buff = new Buff('Fleet of Foot', 1);
+	buff.on('apply',function(event){
+		event.trigger.impairment -= 1;
+	})
+
+	buff.on('move', function(event){
+		event.trigger.removeBuff(buff.name);
+	})
+
+	buff.on('expire',function(event){
+		event.trigger.impairment += 1;
+	})
+
+	return buff;
+}
+
+BUFFS['Fleet of Foot Passive'] = function(){
+	var buff = new Buff('Fleet of Foot Passive', 0);
+	buff.on('attack', function(event){
+		event.trigger.addBuff(event.trigger, BUFFS['Fleet of Foot']())
+	})
+	return buff;
+}
+
+BUFFS['Spell Shield'] = function(){
+	var buff = new Buff('Spell Shield',2);
+	buff.on('spell hit', function(event){
+			event.proj.destroy();
+			var owner = game.monsters[buff.owner]
+			animation.push({type:'text', text:'Blocked!', color:white, x:owner.x*squareSize,y:owner.y*squareSize+50, dy:-25, duration:0.75})
+			owner.removeBuff(buff.name)
+			owner.player.updatePool('CREST_MAGIC', 1);
+	})
+	return buff;
+}
+
+BUFFS['Way of the Wanderer'] = function(){
+	var buff = new Buff('Way of the Wanderer',0);
+	buff.stack = 0;
+	buff.on('move', function(event){
+		buff.stack += 1;
+		console.log('way =',buff.stack)
+		if (buff.stack == 3){
+			event.trigger.shield += 20;
+			buff.stack = 0;
+		}
+	})
+	return buff;
+}
+
+BUFFS['Steel Tempest'] = function(){
+	var buff = new Buff('Steel Tempest',0)
+	buff.stack = 0;
+	return buff;
+}
+
+BUFFS['Icathian Surprise'] = function(){
+	var buff = new Buff('Icathian Surprise',0);
+	buff.on('dies',function(event){
+		var units = []
+		units.push(game.board.getUnitAtLoc(event.trigger.x+1, event.trigger.y+1))
+		units.push(game.board.getUnitAtLoc(event.trigger.x+1, event.trigger.y-1))
+		units.push(game.board.getUnitAtLoc(event.trigger.x-1, event.trigger.y+1))
+		units.push(game.board.getUnitAtLoc(event.trigger.x-1, event.trigger.y-1))
+		for (var i=0; i<units.length; i++){
+			if (i != util.EMPTY)
+				DamageUnit(event.trigger, game.monsters[i], 20)
+		}
+
 	})
 	return buff;
 }
