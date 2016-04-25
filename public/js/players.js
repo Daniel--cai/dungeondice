@@ -2,7 +2,7 @@
 function Player(id){
 	this.id = id;
 	this.num;
-	this.pool = [5,5,0,5,5]
+	this.pool = [5,5,5,5,5]
 
 	this.state = util.GAME_STATE_END;
 	//this.actionstate = util.PLAYER_STATE_NEUTRAL;
@@ -115,7 +115,7 @@ function Player(id){
 				var buff = game.monsters[i].buff[j]
 				//console.log(game.monsters[i].type.name)
 				//console.log(game.monsters[buff.owner].type.name, this.num)
-				if (game.monsters[buff.owner].player.num != this.num) continue;
+				//if (game.monsters[buff.owner].player.num != this.num) continue;
 				if (buff.duration == 0) continue
 				buff.duration--;
 				buff.fire('turn',{trigger:game.monsters[i]})
@@ -127,7 +127,12 @@ function Player(id){
 		}
 		for (var i=0; i<game.props.length; i++){
 			var p = game.props[i];
-			if (p.unit != util.EMPTY && p.unit.player.num != player.num) return;
+			if (p.duration == 0) continue
+			p.duration --;
+			if (p.duration <= 0) {
+				p.destroy();
+			}
+			//if (p.unit != util.EMPTY && p.unit.player.num != player.num) return;
 			p.fire('turn',{trigger:p})
 		}
 

@@ -108,8 +108,8 @@ BUFFS['Blinding Dart'] = function(){
 	})
 	buff.on('attack', function(event){
 		//console.log(event)
-		game.combat.atkmodifier = 0;
-		event.status = 'miss'
+		event.combat.atkmodifier = 0;
+		event.combat.status = 'miss'
 		console.log('missed!')
 	})
 	return buff;
@@ -259,7 +259,7 @@ BUFFS['Way of the Wanderer'] = function(){
 
 BUFFS['Steel Tempest'] = function(){
 	var buff = new Buff('Steel Tempest',0)
-	buff.stack = 0;
+	buff.stack = 1;
 	return buff;
 }
 
@@ -267,15 +267,86 @@ BUFFS['Icathian Surprise'] = function(){
 	var buff = new Buff('Icathian Surprise',0);
 	buff.on('dies',function(event){
 		var units = []
-		units.push(game.board.getUnitAtLoc(event.trigger.x+1, event.trigger.y+1))
-		units.push(game.board.getUnitAtLoc(event.trigger.x+1, event.trigger.y-1))
-		units.push(game.board.getUnitAtLoc(event.trigger.x-1, event.trigger.y+1))
-		units.push(game.board.getUnitAtLoc(event.trigger.x-1, event.trigger.y-1))
+		units.push(game.board.getUnitAtLoc(event.trigger.x+1, event.trigger.y))
+		units.push(game.board.getUnitAtLoc(event.trigger.x-1, event.trigger.y))
+		units.push(game.board.getUnitAtLoc(event.trigger.x, event.trigger.y+1))
+		units.push(game.board.getUnitAtLoc(event.trigger.x, event.trigger.y-1))
+				console.log(units)
 		for (var i=0; i<units.length; i++){
-			if (i != util.EMPTY)
-				DamageUnit(event.trigger, game.monsters[i], 20)
+			if (units[i] != util.EMPTY)
+				DamageUnit(event.trigger.id, units[i], 20)
 		}
 
 	})
 	return buff;
+}
+
+BUFFS['Bio Arcane Barrage'] = function(){
+	var buff = new Buff('Bio Arcane Barrage',0)
+	buff.on ('attack',function(event){
+		event.combat.atkunguardable += 10;
+	})
+	return buff;
+}
+
+BUFFS['Living Artillery'] = function(){
+	var buff = new Buff('Living Artillery',4)
+	buff.stack = 0;
+	return buff;
+}
+
+BUFFS['Power Chord'] = function(){
+	var buff = new Buff('Power Chord',0)
+	buff.stack = 0;
+	return buff
+}
+
+BUFFS['Hymn of Valor'] = function(){
+	var buff = new Buff('Hymn of Valor',1)
+	buff.on('attack', function(event){
+		event.combat.atkmodifier += 10;
+	})
+	return buff
+}
+BUFFS['Aria of Perseverance'] = function(){
+	var buff = new Buff('Aria of Perseverance', 2);
+	buff.on('apply',function(event){
+		console.log('adding shield')
+		event.trigger.addShield(buff,10)
+	})
+	return buff;
+}
+
+BUFFS['Song of Celerity'] = function(){
+	var buff = new Buff('Song of Celerity',2)
+	buff.on('apply', function(event){
+		event.trigger.impairment -= 1;
+	})
+	buff.on('expire', function(event){
+		event.trigger.impairment += 1;
+	})
+	return buff;
+}
+
+BUFFS['Tailwind Passive'] = function(){
+	var buff = new Buff('Tailwind Passive',0)
+	return buff;
+}
+
+BUFFS['Tailwind'] = function(){
+	var buff = new Buff('Tailwind',1)
+	return buff;
+}
+
+BUFFS['Eye of the Storm'] = function(){
+	var buff = new Buff('Eye of the Storm',2);
+	buff.on('apply',function(event){
+		event.trigger.addShield(buff,20)
+		event.trigger.statmod[STAT_ATTACK] += 10
+	})
+
+	buff.on('expire',function(event){
+		event.trigger.statmod[STAT_ATTACK] -= 10
+	})
+	return buff
 }

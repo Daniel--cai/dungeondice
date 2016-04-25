@@ -12,17 +12,11 @@ PROPS['Spirit Fire'] = function (point, unit){
 	})
 
 	prop.on('turn', function(event){
-		prop.duration --;
-		if (prop.duration <= 0) {
-			prop.destroy();
-		}
 		var m = game.board.getUnitAtLoc(prop.x, prop.y)
 		if (m == util.EMPTY) return;
 		if (game.monsters[m].hasBuff('Spirit Fire') != util.EMPTY) return;
 		console.log('reapply')
 		ApplyBuff(prop.unit, game.monsters[m], BUFFS['Spirit Fire']())
-
-
 	})
 	return prop;
 }
@@ -50,6 +44,7 @@ function Prop(name,point,unit) {
 	this.clear = false;
 	this.exist = true;
 	this.callbacks = {}
+	this.duration = 0;
 
 	this.on = function(event, callback){
 

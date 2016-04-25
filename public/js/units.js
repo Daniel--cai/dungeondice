@@ -84,7 +84,7 @@ UNITS['Yasuo'] = {
 	name: 'Yasuo',
 	hp: 50,
 	atk:20,
-	def:20,
+	def:30,
 	spells:SPELLS['Yasuo']
 }
 
@@ -96,6 +96,31 @@ UNITS['Kogmaw'] = {
 	spells:SPELLS['Kogmaw']
 }
 
+UNITS['Kogmaw'] = {
+	name: "Kogmaw",
+	hp: 30,
+	atk:20,
+	def:20,
+	spells:SPELLS['Kogmaw']
+}
+
+UNITS['Sona'] = {
+	name: "Sona",
+	hp: 30,
+	atk:20,
+	def:20,
+	spells:SPELLS['Sona']
+}
+
+UNITS['Janna'] ={
+	name:"Janna",
+	hp: 30,
+	atk:20,
+	def:20,
+	spells:SPELLS['Janna']
+}
+
+
 function Unit(player, type, point, level) {
 	//idcounter++;
 	this.name = type.name;
@@ -105,7 +130,7 @@ function Unit(player, type, point, level) {
 	this.animx = point[0];
 	this.animy = point[1];
 	this.hp = type.hp;
-	this.shield = 0;
+	this.shield = [];
 	this.maxhp = type.hp;
 	this.atk = type.atk;
 	this.def = type.def;
@@ -122,6 +147,31 @@ function Unit(player, type, point, level) {
 	this.spells = type.spells;
 	this.animations = [];
 	this._buffer = []
+
+	this.addShield = function (source, hp){
+		this.shield.push([source,hp])
+	}
+
+	this.subtractShield = function(damage){
+
+		while(damage > 0 && this.shield.length>0){
+
+			var shield = this.shield.pop()
+			console.log(shield)
+			damage -= shield[1]
+			console.log('shielding ' , shield[1])
+			if (damage < 0){
+				shield[1] = -damage
+				console.log('leftover' , shield[1])
+				this.shield.push(shield)
+			} else {
+				console.log('no more shield')
+				this.removeBuff(shield[0].name)
+			}
+		}
+		if (damage < 0) damage = 0;
+		return damage
+	}
 
 	this.removeBuff = function(name){
 		//onsole.log('removing ',name)
@@ -154,11 +204,13 @@ function Unit(player, type, point, level) {
 	this.addBuff = function(caster, buff){
 		if (!caster) {console.log('caster null'); return false}
 		if (!buff) {console.log('buff null'); return false}
-		for (var i = 0; i<this.buff.length; i++){
-			if (this.buff[i].name == buff.name){
-				this.buff.splice(i,1);
-				break;
+		var index = this.hasBuff(buff.name)
+		var prevStacks = 0;
+		if (index != util.EMPTY){
+			if (this.buff[index].stack != null){
+				buff.stack = this.buff[index].stack + 1
 			}
+			this.buff.splice(index,1)
 		}
 		this.buff.push(buff);
 		buff.owner = caster.id;
@@ -227,19 +279,19 @@ function Unit(player, type, point, level) {
 		//var ubuffs =  this.buff.splice(0)
 
 		//var tbuffs =  target.buff.splice(0)
-		var event = {trigger:this, target:target}
+		var event = {trigger:this, target:target, combat:game.combat}
 		for (var i=this.buff.length-1; i>=0 ; i--){
 			this.buff[i].fire('attack',event);
 		}
 
-		game.combat.status.push(status)
+		//game.combat.status.push(status)
 
-		var event = {attacker: this, trigger: target}
+		var event = {attacker: this, trigger: target, combat:game.combat}
 		for (var i=target.buff.length-1; i>=0 ; i--){
 			target.buff[i].fire('attacked', event)
 		}
 
-		game.combat.status.push(status)
+		//game.combat.status.push(status)
 
 		if (sendSwitch){
 			conn.send({id:'attack', trigger:this.id, target:target.id, guard:util.getCrestPool(target.player,CREST_DEFENSE) > 0})
@@ -308,7 +360,7 @@ function Unit(player, type, point, level) {
 		//console.log(this.animx,this.animy)
 	}
 
-	this.movement = function(path){
+	this.movement = function(path, forced){
 			//console.log('exist is ', this.exist)
 			//var m = game.monsters[this.id]
 			if (!this.exist){
@@ -324,16 +376,16 @@ function Unit(player, type, point, level) {
 			//console.log(plen-1,'<=',this.impairment + util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//console.log(util.getCrestPool(this.player,util.CREST_MOVEMENT))
 			//if (plen > 1 && plen-1 <= this.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
-
-			var finish = function(m, path){
-				console.log('finished!')
-				var plen =  path.length;
-				var event = {trigger: m, x1:this.x, y1:m.y, x2:path[plen-1][0], y2:path[plen-1][1]}
-				for (var i=0; i<m.buff.length; i++){
-						m.buff[i].fire('move',event);
+			if (!forced){
+				var finish = function(m, path){
+					//console.log('finished!', path)
+					var plen =  path.length;
+					var event = {trigger: m, x1:this.x, y1:m.y, x2:path[plen-1][0], y2:path[plen-1][1]}
+					for (var i=0; i<m.buff.length; i++){
+							m.buff[i].fire('move',event);
+					}
 				}
 			}
-
 
 			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200, onfinish:finish, args:[this,path]})
 

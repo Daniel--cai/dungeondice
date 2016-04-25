@@ -89,6 +89,7 @@ SPELLS['Lucian'][2].on('cast', function(event){
 	player.movePath = player.movePath.concat(findStraightPath([x,y],[x-(buff.stack+1),y]))
 	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y-(buff.stack+1)]))
 	player.movePath = player.movePath.concat(findStraightPath([x,y],[x,y+buff.stack+1]))
+	return true;
 	//console.log(player.movePath)
 	//player.movePath.concat()
 
@@ -241,7 +242,7 @@ SPELLS['Ahri'][0].on('learn', function(event){
 SPELLS['Ahri'][1] = new Spell ("Orb of Deception", [CREST_MAGIC, 2], "target")
 SPELLS['Ahri'][1].on('effect', function(event){
 
-	if (!isOrthogonal(event.trigger.x,event.trigger.y,event.location[0],event.location[1])) return false
+	if (!isOrthogonal([event.trigger.x,event.trigger.y],event.location)) return false
 
 	var path = [];
 	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
@@ -281,7 +282,7 @@ SPELLS['Ahri'][2].on('effect', function(event){
 	var p = new Projectile(event.trigger.x , event.trigger.y,event.target.x , event.target.y, event.trigger)
 	p.on('collision', function(event){
 			if (event.trigger.id == p.caster.id) return
-			event.trigger.movement([[x,y]])
+			event.trigger.movement([[x,y]], true)
 			DamageUnit(p.caster.id, event.trigger.id, 10);
 			p.destroy()
 	})
@@ -305,7 +306,7 @@ SPELLS['Sivir'][0].on('learn', function(event){
 SPELLS['Sivir'][1] = new Spell ("Boomerang Blade", [CREST_MAGIC, 2], "target")
 SPELLS['Sivir'][1].on('effect', function(event){
 
-	if (!isOrthogonal(event.trigger.x,event.trigger.y,event.location[0],event.location[1])) return false
+	if (!isOrthogonal([event.trigger.x,event.trigger.y],event.location)) return false
 
 	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
 	var damage = 5;
@@ -351,6 +352,7 @@ function Spell(name, cost,type){
 			//event.trigger.buff[i].fire('spell', event)
 		}
 		//console.log('finishing spell')
+
 		event.trigger.player.updatePool(cost[0],-cost[1])
 		event.trigger.player.changeState(util.GAME_STATE_UNIT)
 	})
@@ -387,24 +389,25 @@ SPELLS['Yasuo'][0].on('learn', function(event){
 
 SPELLS['Yasuo'][1] = new Spell ('Steel Tempest', [CREST_ATTACK, 1], "target")
 SPELLS['Yasuo'][1].on('effect',function(event){
-	var index = event.trigger.hasBuff('Steel Tempest')
-	if (index == util.EMPTY){
-		event.trigger.addBuff(event.trigger, BUFFS['Steel Tempest']())
-		index = event.trigger.buff.length-1;
-	}
-	event.trigger.buff[index].stack += 1;
-	if (event.trigger.buff[index].stack == 3){
-		event.trigger.buff[index].stack = 0;
+	//var index = event.trigger.hasBuff('Steel Tempest')
+	//if (index == util.EMPTY){
+	var buff = BUFFS['Steel Tempest']()
+		event.trigger.addBuff(event.trigger, buff)
+	//}
+	//event.trigger.buff[index].stack += 1;
+	if (buff.stack == 3){
+		buff.stack = 0;
 		var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
 		p.on('collision', function(event){
 			event.trigger.addBuff(p.caster, BUFFS['Stunned']())
-			DamageUnit(p.owner, event.trigger, 10)
+			console.log()
+			DamageUnit(p.caster.id, event.trigger.id, 10)
 		})
 	} else {
 		var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
 		p.target = true;
 		p.on('collision', function(event){
-			DamageUnit(p.owner, event.trigger, 10)
+			DamageUnit(p.caster.id, event.trigger.id, 10)
 		})
 	}
 	return true;
@@ -420,7 +423,147 @@ SPELLS['Yasuo'][2].on('effect',function(event){
 })
 
 SPELLS['Kogmaw'] = []
-SPELLS['Kogmaw'][0] = new Spell ('Icathian Surprise' [CREST_ATTACK,0], "passive")
+SPELLS['Kogmaw'][0] = new Spell ('Icathian Surprise', [CREST_ATTACK,0], "passive")
 SPELLS['Kogmaw'][0].on('learn', function(event){
 	event.trigger.addBuff(event.trigger, BUFFS['Icathian Surprise']())
+})
+
+SPELLS['Kogmaw'][1] = new Spell('Bio Arcane Barrage', [CREST_MAGIC,2], "self")
+SPELLS['Kogmaw'][1].on('effect', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Bio Arcane Barrage']())
+})
+
+SPELLS['Kogmaw'][2] = new Spell ('Living Artillery', [CREST_MAGIC, 1], 'target')
+SPELLS['Kogmaw'][2].on('cast',function(event){
+
+	var index = event.trigger.hasBuff('Living Artillery')
+	if (index == util.EMPTY) return true;
+	//variable spell cost
+	if (event.trigger.player.pool[CREST_MAGIC] < event.trigger.buff[index].stack+1){
+		console.log('Not enough', CREST_TEXT[CREST_MAGIC], 'to cast Living Artillery')
+		return false;
+	}
+	console.log('cost is MAGIC ', event.trigger.buff[index].stack+1)
+	//event.trigger.spells[2].cost = [CREST_MAGIC, event.trigger.buff[index].stack]
+	return true;
+})
+SPELLS['Kogmaw'][2].on('effect',function(event){
+	if (!isOrthogonal([event.trigger.x,event.trigger.y],event.location)) return false
+	var index = event.trigger.hasBuff('Living Artillery')
+	console.log(index)
+	if (index == util.EMPTY){
+		index = event.trigger.buff.length;
+		event.trigger.addBuff(event.trigger, BUFFS['Living Artillery']())
+	}
+	event.trigger.buff[index].stack += 1;
+	event.trigger.buff[index].duration = 4;
+	if (event.trigger.buff[index].stack > 3) event.trigger.buff[index].stack = 3
+
+	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
+	p.target = true;
+	p.on('collision',function(event){
+		//console.log(p)
+		var index = p.caster.hasBuff('Living Artillery')
+		if (index == util.EMPTY) {
+			console.log('Living Artillery p.caster does not have buff!')
+			return;
+		}
+		var stack = p.caster.buff[index].stack;
+		console.log('stack is',stack)
+		DamageUnit(p.caster.id, event.trigger.id, 10*stack)
+	})
+	event.trigger.player.updatePool(CREST_MAGIC,-event.trigger.buff[index].stack+1)
+	return true;
+})
+
+SPELLS['Sona']= []
+SPELLS['Sona'][0] = new Spell ('Power Chord', [CREST_MAGIC,0], "passive")
+SPELLS['Sona'][0].on ('learn', function(event){
+	event.trigger.addBuff(event.trigger,BUFFS['Power Chord']())
+})
+
+SPELLS['Sona'][1] = new Spell('Hymn of Valor',[CREST_MAGIC,2], "self")
+SPELLS['Sona'][1].on('effect', function(event){
+	var units = []
+	event.trigger.buff[event.trigger.hasBuff('Power Chord')].stack += 1;
+	units.push(game.board.getUnitAtLoc(event.trigger.x+1,event.trigger.y))
+	units.push(game.board.getUnitAtLoc(event.trigger.x-1,event.trigger.y))
+	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y-1))
+	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y+1))
+	units.push(event.trigger.id)
+	for (var i=0; i<units.length; i++){
+		if (units[i] == util.EMPTY) continue
+		var m = game.monsters[units[i]]
+		if (m.player.num == event.trigger.player.num){
+			m.addBuff(event.trigger, BUFFS['Hymn of Valor']())
+		} else {
+			DamageUnit(event.trigger.id,m.id, 10)
+		}
+	}
+})
+
+SPELLS['Sona'][2] = new Spell('Aria of Perseverance',[CREST_MAGIC,2], "self")
+SPELLS['Sona'][2].on('effect', function(event){
+	var units = []
+	units.push(game.board.getUnitAtLoc(event.trigger.x+1,event.trigger.y))
+	units.push(game.board.getUnitAtLoc(event.trigger.x-1,event.trigger.y))
+	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y-1))
+	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y+1))
+	units.push(event.trigger.id)
+	event.trigger.buff[event.trigger.hasBuff('Power Chord')].stack += 1;
+
+	for (var i=0; i<units.length; i++){
+		if (units[i] == util.EMPTY) continue
+		var m = game.monsters[units[i]]
+		if (m.player.num == event.trigger.player.num){
+			m.addBuff(event.trigger, BUFFS['Aria of Perseverance']())
+			HealUnit(event.trigger.id,m.id, 10)
+		}
+	}
+})
+
+SPELLS['Sona'][3] = new Spell('Song of Celerity', [CREST_MAGIC,2], "self")
+SPELLS['Sona'][3].on('effect', function(event){
+	var units = []
+	units.push(game.board.getUnitAtLoc(event.trigger.x+1,event.trigger.y))
+	units.push(game.board.getUnitAtLoc(event.trigger.x-1,event.trigger.y))
+	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y-1))
+	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y+1))
+	units.push(event.trigger.id)
+	event.trigger.buff[event.trigger.hasBuff('Power Chord')].stack += 1;
+
+	for (var i=0; i<units.length; i++){
+		if (units[i] == util.EMPTY) continue
+		var m = game.monsters[units[i]]
+		if (m.player.num == event.trigger.player.num){
+			m.addBuff(event.trigger, BUFFS['Song of Celerity']())
+		}
+	}
+})
+
+SPELLS['Sona'][4] = new Spell('Crescendo', [CREST_MAGIC,4], "target")
+SPELLS['Sona'][4].on('effect', function(event){
+	if (!isOrthogonal([event.trigger.x, event.trigger.y], event.location))	return false
+	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
+	p.range = 3;
+	p.on('collision', function(event){
+		if (isAlly(event.trigger,p.caster)) return
+		event.trigger.addBuff(p.caster, BUFFS['Stunned']())
+	})
+	return true;
+})
+
+
+SPELLS['Janna'] = []
+SPELLS['Janna'][0] = new Spell('Tailwind', [CREST_MAGIC,0], "passive")
+SPELLS['Janna'][0].on('learn', function(event){
+	//event.trigger.addBuff(BUFFS['Tailwind Passive'](),0)
+})
+
+SPELLS['Janna'][1] = new Spell('Eye of the Storm', [CREST_MAGIC,0], "target")
+SPELLS['Janna'][1].on('effect',function(event){
+	if (!isAlly(event.trigger, event.target)) return false
+	if (!isOrthogonal([event.trigger.x, event.trigger.y], event.location))	return false
+	event.target.addBuff(event.trigger,BUFFS['Eye of the Storm'](),2)
+	return true;
 })

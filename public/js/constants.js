@@ -221,8 +221,17 @@ exports.getCrestPool = function(player, crest){
   return player.pool[crest]
 }
 
-function isOrthogonal(x1,y1,x2,y2){
-  return x1 == x2 || y1 == y2
+function isOrthogonal(location1,location2){
+  var boolean = location1.x == location2.x || location1.y == location2.y
+  if (!boolean) console.log('Not orthogonal')
+  return boolean
+}
+
+function isAlly(unit1, unit2){
+  console.assert(unit1 != null && unit1 != util.EMPTY && unit2 != null && unit2 != util.EMPTY, "isAlly null parameter")
+  var boolean = unit1.player.num == unit2.player.num;
+  if (!boolean ) console.log('Same ally')
+  return boolean
 }
 
 function manhattanDistance(point, goal){

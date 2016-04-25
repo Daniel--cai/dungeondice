@@ -38,8 +38,11 @@ function openConnection(c,num){
 			game.createUnit(opponent,UNITS['Sivir'],[4,16])
 			game.createUnit(opponent,UNITS['Ahri'],[6,17])
 			game.createUnit(opponent,UNITS['Yasuo'],[3,17])
-			game.createUnit(opponent,UNITS['Kogmaw'],[2,17])
-			game.createUnit(player,UNITS['Teemo'],[4,17])
+			game.createUnit(opponent,UNITS['Teemo'],[2,17])
+			game.createUnit(opponent,UNITS['Sona'],[1,17])
+			game.createUnit(opponent,UNITS['Janna'],[2,16])
+			console.log(game.board.getUnitAtLoc(2,16))
+			game.createUnit(player,UNITS['Kogmaw'],[4,17])
 			//sendSwitch = true
 		}
 
@@ -53,7 +56,7 @@ function openConnection(c,num){
 		if (data.id == 'move unit'){
 			//game.monsters[data.unit].moveUnit([data.x, data.y])
 			game.monsters[data.unit].movement(data.path)
-			opponent.updatePool(CREST_MOVEMENT,-data.path.length+1-game.monsters[data.unit].impairment)
+			opponent.updatePool(CREST_MOVEMENT,-Math.max(+data.path.length-1+game.monsters[data.unit].impairment,1))
 			opponent.animateDice(CREST_MOVEMENT)
 			opponent.changeState(util.GAME_STATE_UNIT)
 		} else if (data.id == 'select unit'){

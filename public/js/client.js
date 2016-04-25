@@ -124,6 +124,35 @@ function rotateShape(shape,rotate){
 	return cshape;
 }
 
+function HealUnit(trig,targ,damage){
+	if (targ == -1 || targ == null) {
+		console.log('DamageUnit null target')
+		return false;
+	}
+	if (trig == -1 || trig == null) {
+		console.log('DamageUnit null trigger')
+		return false;
+	}
+	var target = game.monsters[targ]
+	var trigger = game.monsters[trig]
+
+	if (!target.exist){
+		console.log('Damaging a dead unit')
+		return false;
+	}
+	if (damage <= 0) return false;
+	target.hp = Math.min(target.hp + damage,target.maxhp);
+
+	var tx = boardXPadding+target.x*squareSize;
+	var ty = boardYPadding+target.y*squareSize;
+	animation.push({type:'text', text:'+'+damage, color:green, x:tx,y:ty, dy:-25, duration:0.75})
+
+	var event = {trigger:target, source: trigger}
+	for (var i=0; i<target.buff.length ;i++){
+		target.buff[i].fire('heal', event)
+	}
+}
+
 function DamageUnit(trig, targ, damage){
 	if (targ == -1 || targ == null) {
 		console.log('DamageUnit null target')
@@ -137,6 +166,7 @@ function DamageUnit(trig, targ, damage){
 
 	var target = game.monsters[targ]
 	var trigger = game.monsters[trig]
+
 	if (!target.exist){
 		console.log('Damaging a dead unit')
 		return;
@@ -165,7 +195,7 @@ function DamageUnit(trig, targ, damage){
 		for (var i=0; i<trigger.buff.length ;i++){
 			trigger.buff[i].fire('kill', event)
 		}
-		var event = {attacker:trigger}
+		var event = {trigger: target, attacker:trigger}
 		for (var i=0; i<target.buff.length ;i++){
 			target.buff[i].fire('dies', event)
 		}
@@ -181,6 +211,7 @@ function Combat(unit, target){
 	this.unit = unit;
 	this.target = target;
 	this.atkmodifier = unit.atk;
+	this.atkunguardable = 0
 	this.defmodifier = 0;
 	this.guarded = false;
 	this.status = []
@@ -208,15 +239,18 @@ function Combat(unit, target){
 		//game = games[this.player.id]
 		//combat = game.combat;
 		var dmg = this.atkmodifier - this.defmodifier;
+		//console.log(this.atkunguardable)
+
 		if (dmg < 0) {
 			dmg = 0;
 		}
+		dmg += this.atkunguardable
 
 		//console.log('status',event.status)
 
 		//conn.send({id:'combat resolution', status:status})
 		//var game = games[this.unit.player.id]
-		game.combat = null
+
 		if (this.status.indexOf('miss') != -1){
 			console.log('mised!')
 			//game.update('miss', util.EMPTY, {trigger:this.unit.id, target:this.target.id})
@@ -228,15 +262,12 @@ function Combat(unit, target){
 			//if (this.target.hp <= 0){
 				//this.target.destroy()
 			//}
-			DamageUnit(this.unit.id,this.target.id,dmg)
 
-			//console.log("after attack " +this.target.hp)
-			//game.update('attack', util.EMPTY, {trigger:this.unit.id, target:this.target.id, damage:dmg, guard: this.guarded, status:event.status})
-			//sendAll(games[trigger.player.id], {id:'damage', trigger:trigger.id, target:target.id, remove: remove})
-
-			//updateCrest();
+			dmg = this.target.subtractShield(dmg)
+			if (dmg > 0)
+				DamageUnit(this.unit.id,this.target.id,dmg)
 		}
-
+		game.combat = null
 		this.unit.hasAttacked = true;
 		this.unit.player.updatePool(CREST_ATTACK, -this.unit.atkcost);
 		this.unit.player.animateDice(CREST_ATTACK)
@@ -479,7 +510,7 @@ function Board(){
 		//console.log(this.units)
 		console.assert(x != undefined, 'getUnitAtLoc: null X value')
 		console.assert(y != undefined,'getUnitAtLoc: null Y value')
-		if (!boundCursor(x,y)) return -1
+		if (!boundCursor(x,y)) return util.EMPTY
 
 		return this.units[y][x];
 	}
@@ -1021,7 +1052,8 @@ var blue    = "#000099";
 var red = "#990000";
 var purple  = "#990099";
 var white = "#ffffff";
-var black = "#000000"
+var black = "#000000";
+var green = "#00FF00";
 
 /*
 function validPlacement(player){
@@ -1155,7 +1187,6 @@ function spellButtonEffect(button){
 		return;
 	}
 	if (spell.type == "self"){
-		//socket.send(JSON.stringify({ id:'cast', data:button}));
 		console.log('no target spell')
 		var event = {trigger: game.monsters[player.unitSelected]};
 		conn.send({id:'spell effect', spell:button, location:[-1,-1], target:-1})
@@ -1165,11 +1196,12 @@ function spellButtonEffect(button){
 	} else {
 		player.spell = button;
 		//console.log('player spell now',player.spell)
+		var event = {trigger:game.monsters[player.unitSelected]}
+		if (game.monsters[player.unitSelected].spells[button].fire('cast', event)){
+			disableSpell(true)
+			cancelButton.hidden = false;
+		}
 
-
-		game.monsters[player.unitSelected].spells[button].fire('cast', {trigger:game.monsters[player.unitSelected]})
-		disableSpell(true)
-		cancelButton.hidden = false;
 
 	}
 
@@ -1198,15 +1230,18 @@ noButton.addEventListener("click", function(){
 })
 
 qButton.addEventListener("click", function(){
-	spellButtonEffect(0)
-})
-
-wButton.addEventListener("click", function(){
 	spellButtonEffect(1)
 })
 
-eButton.addEventListener("click", function(){
+wButton.addEventListener("click", function(){
 	spellButtonEffect(2)
+})
+
+eButton.addEventListener("click", function(){
+	spellButtonEffect(3)
+})
+rButton.addEventListener("click", function(){
+	spellButtonEffect(4)
 })
 
 cancelButton.addEventListener("click", function(){
@@ -1636,7 +1671,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 	 						m.movement(path)
 							conn.send({id:'move unit', unit:m.id, path:path})
 							console.log(m.impairment)
-							player.updatePool(CREST_MOVEMENT,-plen+1-m.impairment)
+							player.updatePool(CREST_MOVEMENT,-Math.max(plen-1+m.impairment,1))
 							player.animateDice(CREST_MOVEMENT)
 							player.changeState(util.GAME_STATE_UNIT)
 						}
@@ -1661,10 +1696,6 @@ new Event(TRIGGER_MOUSE_CLICK,
 		}
 		//render();
 	});
-
-
-
-
 
 
 function validWalk(x, y){
@@ -2156,10 +2187,10 @@ function drawUnitHUD(dt){
 				if (i<m.hp) ctx.drawImage(IMAGES['Heart'],415+290+(i/10)*(32)+60,10, 30,30 )
 		}
 
-		for (var i=0; i<1; i=i+10){
+		for (var i=0; i<m.atk; i=i+10){
 				ctx.drawImage(IMAGES['Sword'],415+290+(i/10)*(32)+60,0+42, 30,30 )
 		}
-		for (var i=0; i<1; i=i+10){
+		for (var i=0; i<m.def; i=i+10){
 				ctx.drawImage(IMAGES['Shield'],415+290+(i/10)*(32)+60,0+74, 30,30 )
 		}
 

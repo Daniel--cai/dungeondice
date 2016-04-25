@@ -15,6 +15,7 @@ function Projectile(x,y,dx,dy,caster){
   this.delay = 0;
   this.clear = true;
   this.target = false;
+  this.range = manhattanDistance({x:x, y:y}, {x:dx, y:dy});
   this.update = function(dt){
     if (this.delay > 0) return;
     var dx = this.dx - this.x
@@ -39,6 +40,9 @@ function Projectile(x,y,dx,dy,caster){
       if (projectiles.indexOf(this) == util.EMPTY) return;
 
       this.fire('collision', {trigger:game.monsters[m], caster:this.caster})
+      this.range--;
+      if (this.range < 0) this.destroy()
+
     }
 
     if (dx < 0 && this._x <= this.dx || dx > 0 && this._x >= this.dx || dy < 0 && this._y <= this.dy || dy > 0 && this._y >= this.dy ){

@@ -193,7 +193,7 @@ Power chord.
 Each time sona uses damage or heal build stacks. Every four ability the ability gains an extra passive ability
 
 Damage
-Deals damage to 1 around sona. Prioritises higher level monster. Target ally gains 10 attack damage the next time they attack
+Deals damage to 1 around sona. Sona and allies around sona gains 10 attack damage the next time they attack this turn
 
 Heal
 Heals sona and the lowest hp around sona for 5. Gain 5 shield until the end of the enemy next turn.
@@ -257,3 +257,22 @@ Each time Aatrox attacks he builds
 Toggle: Every 2 attack, he either
 -Deals 20 bonus damage and cost 10 health.
 -Recover 10health
+
+
+
+--new championstats_icons
+akali
+amumu
+anivia
+ashe
+azir
+bard
+brand
+caitlyn
+fiddlesticks
+elise
+diana
+cork
+cassiopeia
+dr mundo
+gangplank
