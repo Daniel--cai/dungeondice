@@ -1181,8 +1181,9 @@ function spellButtonEffect(button){
 	var spell = game.monsters[player.unitSelected].spells[button]
 	var name = game.monsters[player.unitSelected].name
 	if (!spell) return
-	if (player.pool[SPELLS[name][button].cost[0]] < SPELLS[name][button].cost[1]){
-		console.log('Not enough', CREST_TEXT[SPELLS[name][button].cost[0]], 'to cast', SPELLS[name][button].name)
+	var cost = SPELLS[name][button].cost()
+	if (player.pool[cost[0]] < cost[1]){
+		console.log('Not enough', CREST_TEXT[cost[0]], 'to cast', SPELLS[name][button].name)
 		player.spell = -1;
 		return;
 	}

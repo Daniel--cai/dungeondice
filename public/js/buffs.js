@@ -330,11 +330,32 @@ BUFFS['Song of Celerity'] = function(){
 
 BUFFS['Tailwind Passive'] = function(){
 	var buff = new Buff('Tailwind Passive',0)
+
+	buff.on('turn', function(event){
+		var m = game.monsters[buff.owner]
+		var units = getUnitsInRange(m.x,m.y,1)
+
+		for (var i=0; i<units.length; i++){
+			var u = game.monsters[units[i]]
+			if (!isAlly(u,m)) continue
+			if (m.id == u.id) continue
+			console.log('adding tailwind')
+			u.addBuff(m, BUFFS['Tailwind']())
+		}
+
+	})
 	return buff;
 }
 
 BUFFS['Tailwind'] = function(){
 	var buff = new Buff('Tailwind',1)
+	buff.on('apply',function(event){
+		event.trigger.impairment -= 1;
+	})
+
+	buff.on('expire', function(event){
+		event.trigger.impairment += 1;
+	})
 	return buff;
 }
 
@@ -349,4 +370,56 @@ BUFFS['Eye of the Storm'] = function(){
 		event.trigger.statmod[STAT_ATTACK] -= 10
 	})
 	return buff
+}
+
+
+BUFFS['Night Hunter'] = function(){
+	var buff = new Buff('Night Hunter', 1);
+	buff.on('apply',function(event){
+
+		event.trigger.impairment -= 1
+	})
+	buff.on('expire',function(event){
+		event.trigger.impairment += 1
+	})
+	return buff;
+}
+
+BUFFS['Night Hunter Passive'] = function(){
+	var buff = new Buff('Night Hunter Passive',0);
+	buff.on('turn', function(event){
+		var x = game.monsters[buff.owner].x;
+		var y= game.monsters[buff.owner].y;
+		var radius = 1;
+		var isEnemyInRange = false
+		var units = getUnitsInRange(x,y,radius)
+		//console.log(units)
+		for (var i = 0; i<units.length; i++){
+			var u = units[i]
+			//console.log(game.monsters[u].type.name)
+			if (isAlly(game.monsters[u],game.monsters[buff.owner])) continue
+			//console.log('enemy in rnage!')
+			game.monsters[buff.owner].addBuff(game.monsters[buff.owner],BUFFS['Night Hunter']())
+			break;
+		}
+	})
+	return buff;
+}
+BUFFS['Final Hour'] = function(){
+	var buff = new Buff('Final Hour',4);
+	return buff;
+}
+
+BUFFS['Pyromania'] = function(){
+	var buff = new Buff('Pyromania',0)
+	buff.stack = 0
+	return buff;
+}
+
+BUFFS['Molten Shield'] = function(){
+	var buff = new Buff('Molten Shield', 4)
+	buff.on('attacked',function(event){
+		DamageUnit(event.trigger.id, event.attacker.id, 10)
+	})
+	return buff;
 }

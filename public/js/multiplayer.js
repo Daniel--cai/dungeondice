@@ -23,29 +23,30 @@ function openConnection(c,num){
 		game.init()
 
 		if(num == 0){
+
+			game.createUnit(player,UNITS['Darius'],[6,18])
+			game.createUnit(player,UNITS['Nasus'],[7,18])
+			game.createUnit(player,UNITS['Lucian'],[8,18])
+			game.createUnit(player,UNITS['Soraka'],[5,17])
+			game.createUnit(player,UNITS['Braum'],[5,16])
+			game.createUnit(player,UNITS['Sivir'],[4,16])
+			game.createUnit(player,UNITS['Ahri'],[6,17])
+			game.createUnit(player,UNITS['Yasuo'],[3,17])
+			game.createUnit(player,UNITS['Teemo'],[2,17])
+			game.createUnit(player,UNITS['Sona'],[1,17])
+			game.createUnit(player,UNITS['Janna'],[2,16])
+			game.createUnit(player,UNITS['Vayne'],[3,16])
+			game.createUnit(player,UNITS['Annie'],[3,15])
+			game.createUnit(opponent,UNITS['Garen'],[1,16])
+			game.createUnit(opponent,UNITS['Kogmaw'],[4,17])
+
+			player.startTurn()
+
 			player.changeState(util.GAME_STATE_UNIT)
 		} else {
 			player.state = util.GAME_STATE_END
 			changeUIState(util.GAME_STATE_END)
 		}
-		if (num == 1){
-			//sendSwitch = false
-			game.createUnit(opponent,UNITS['Darius'],[6,18])
-			game.createUnit(opponent,UNITS['Nasus'],[7,18])
-			game.createUnit(opponent,UNITS['Lucian'],[8,18])
-			game.createUnit(opponent,UNITS['Soraka'],[5,17])
-			game.createUnit(opponent,UNITS['Braum'],[5,16])
-			game.createUnit(opponent,UNITS['Sivir'],[4,16])
-			game.createUnit(opponent,UNITS['Ahri'],[6,17])
-			game.createUnit(opponent,UNITS['Yasuo'],[3,17])
-			game.createUnit(opponent,UNITS['Teemo'],[2,17])
-			game.createUnit(opponent,UNITS['Sona'],[1,17])
-			game.createUnit(opponent,UNITS['Janna'],[2,16])
-			console.log(game.board.getUnitAtLoc(2,16))
-			game.createUnit(player,UNITS['Kogmaw'],[4,17])
-			//sendSwitch = true
-		}
-
 
 		//console.log(window.player)
 	});

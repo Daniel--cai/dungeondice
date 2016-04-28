@@ -230,8 +230,30 @@ function isOrthogonal(location1,location2){
 function isAlly(unit1, unit2){
   console.assert(unit1 != null && unit1 != util.EMPTY && unit2 != null && unit2 != util.EMPTY, "isAlly null parameter")
   var boolean = unit1.player.num == unit2.player.num;
-  if (!boolean ) console.log('Same ally')
+  //if (!boolean ) console.log('Same ally')
   return boolean
+}
+
+function getUnitsInRange(x,y,radius){
+  var units = []
+  for (var i=Math.max(0,x-radius); i<Math.min(util.boardSizeX,x+radius+1);i++){
+    for (var j=Math.max(0,y-radius); j<Math.min(util.boardSizeY,y+radius+1); j++){
+
+      if (game.board.getUnitAtLoc(i,j) == util.EMPTY) continue
+      units.push(game.board.getUnitAtLoc(i,j))
+    }
+  }
+  return units;
+
+}
+
+function getAdjacentUnits(unit){
+  var units = []
+  units.push(game.board.getUnitAtLoc(unit.x+1,unit.y))
+  units.push(game.board.getUnitAtLoc(unit.x-1,unit.y))
+  units.push(game.board.getUnitAtLoc(unit.x,unit.y-1))
+  units.push(game.board.getUnitAtLoc(unit.x,unit.y+1))
+  return units;
 }
 
 function manhattanDistance(point, goal){

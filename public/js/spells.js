@@ -335,9 +335,10 @@ SPELLS['Sivir'][2].on('effect', function(event){
 
 function Spell(name, cost,type){
 	this.name = name;
-	this.cost = cost;
+	this._cost = cost;
 	this.type = type
-	this.cooldown = 1;
+	this.cooldown = 1
+	this.discount = 0;
 	this.type = type
 	//this.onEffect = () => console.log(this.name+'onEffect not implemented')
 
@@ -345,8 +346,6 @@ function Spell(name, cost,type){
 	this.on = function(event, callback){
 		this.callbacks[event] = callback;
 	}
-
-
 	this.on('finish', function(event){
 		for (var i =0; i<event.trigger.buff.length; i++){
 			//event.trigger.buff[i].fire('spell', event)
@@ -381,6 +380,11 @@ function Spell(name, cost,type){
 	return this;
 }
 
+Spell.prototype.cost = function(){
+	var pnt = Math.max(this._cost[1]-this.discount,0)
+	return [this._cost[0], pnt]
+}
+
 SPELLS['Yasuo'] = []
 SPELLS['Yasuo'][0] = new Spell ("Way of the Wanderer", [CREST_MAGIC, 2], "passive")
 SPELLS['Yasuo'][0].on('learn', function(event){
@@ -398,6 +402,7 @@ SPELLS['Yasuo'][1].on('effect',function(event){
 	if (buff.stack == 3){
 		buff.stack = 0;
 		var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1], event.trigger)
+		p.range = 3;
 		p.on('collision', function(event){
 			event.trigger.addBuff(p.caster, BUFFS['Stunned']())
 			console.log()
@@ -524,11 +529,7 @@ SPELLS['Sona'][2].on('effect', function(event){
 
 SPELLS['Sona'][3] = new Spell('Song of Celerity', [CREST_MAGIC,2], "self")
 SPELLS['Sona'][3].on('effect', function(event){
-	var units = []
-	units.push(game.board.getUnitAtLoc(event.trigger.x+1,event.trigger.y))
-	units.push(game.board.getUnitAtLoc(event.trigger.x-1,event.trigger.y))
-	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y-1))
-	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y+1))
+	var units = getAdjacentUnits(event.trigger)
 	units.push(event.trigger.id)
 	event.trigger.buff[event.trigger.hasBuff('Power Chord')].stack += 1;
 
@@ -557,7 +558,7 @@ SPELLS['Sona'][4].on('effect', function(event){
 SPELLS['Janna'] = []
 SPELLS['Janna'][0] = new Spell('Tailwind', [CREST_MAGIC,0], "passive")
 SPELLS['Janna'][0].on('learn', function(event){
-	//event.trigger.addBuff(BUFFS['Tailwind Passive'](),0)
+	event.trigger.addBuff(event.trigger, BUFFS['Tailwind Passive'](),0)
 })
 
 SPELLS['Janna'][1] = new Spell('Eye of the Storm', [CREST_MAGIC,0], "target")
@@ -566,4 +567,46 @@ SPELLS['Janna'][1].on('effect',function(event){
 	if (!isOrthogonal([event.trigger.x, event.trigger.y], event.location))	return false
 	event.target.addBuff(event.trigger,BUFFS['Eye of the Storm'](),2)
 	return true;
+})
+
+SPELLS['Vayne'] = []
+SPELLS['Vayne'][0] = new Spell('Night Hunter', [CREST_MAGIC,0], "passive")
+SPELLS['Vayne'][0].on('learn', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Night Hunter Passive']())
+})
+
+SPELLS['Vayne'][1] = new Spell('Final Hour', [CREST_ATTACK,5], "self")
+SPELLS['Vayne'][1].on('effect', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Final Hour']())
+})
+
+
+SPELLS['Annie'] = []
+SPELLS['Annie'][0] = new Spell('Pyromania', [CREST_ATTACK,0], "passive")
+SPELLS['Annie'][0].on('learn', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Pyromania']())
+})
+
+SPELLS['Annie'][1] = new Spell ('Disintegrate', [CREST_ATTACK, 0], "target")
+SPELLS['Annie'][1].on('effect', function(event){
+	event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack += 1;
+	if (!event.target) return false;
+	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
+	p.target = true;
+	p.on('collision',function(event){
+		DamageUnit(p.caster.id, event.trigger.id, 20)
+		if (p.caster.buff[p.caster.hasBuff('Pyromania')].stack == 3){
+			p.caster.buff[p.caster.hasBuff('Pyromania')].stack = 0;
+			event.trigger.addBuff(p.caster, BUFFS['Stunned']())
+		}
+	})
+	return true;
+})
+
+SPELLS['Annie'][1] = new Spell('Molten Shield', [CREST_MAGIC,0], "self")
+SPELLS['Annie'][1].on('effect', function(event){
+	event.trigger.addBuff(event.trigger, BUFFS['Molten Shield']())
+	event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack += 1;
+	if (event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack > 3)
+		event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack = 3;
 })

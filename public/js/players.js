@@ -109,6 +109,17 @@ function Player(id){
 	}
 
 	this.startTurn = function(){
+		for (var i=0;i<game.monsters.length; i++){
+			for (var j=0; j<game.monsters[i].buff.length;j++){
+				var buff = game.monsters[i].buff[j]
+				buff.fire('turn',{trigger:game.monsters[i]})
+			}
+		}
+	}
+
+	this.endTurn = function (){
+		//sockets[this.id].send(JSON.stringify({data:'alert', data:"End Phase"}));
+		//console.log('end turn')
 
 		for (var i=0;i<game.monsters.length; i++){
 			for (var j=0; j<game.monsters[i].buff.length;j++){
@@ -116,13 +127,17 @@ function Player(id){
 				//console.log(game.monsters[i].type.name)
 				//console.log(game.monsters[buff.owner].type.name, this.num)
 				//if (game.monsters[buff.owner].player.num != this.num) continue;
-				if (buff.duration == 0) continue
-				buff.duration--;
-				buff.fire('turn',{trigger:game.monsters[i]})
-				if (buff.duration == 0){
-					console.log('removing', buff.name,'from',game.monsters[i].type.name)
-					game.monsters[i].removeBuff(buff.name)
+
+				if (buff.duration != 0) {
+					buff.duration--;
+					console.log('buff is now ', buff.duration)
+					if (buff.duration == 0){
+						console.log('removing', buff.name,'from',game.monsters[i].type.name)
+						game.monsters[i].removeBuff(buff.name)
+					}
 				}
+				//buff.fire('turn',{trigger:game.monsters[i]})
+
 			}
 		}
 		for (var i=0; i<game.props.length; i++){
@@ -141,11 +156,10 @@ function Player(id){
 			//console.log(p.delay)
 			p.delay--
 		}
-	}
 
-	this.endTurn = function (){
-		//sockets[this.id].send(JSON.stringify({data:'alert', data:"End Phase"}));
-		//console.log('end turn')
+
+
+
 		this.changeState(util.GAME_STATE_END);
 		this.rolled = false;
 		this.summon = [];

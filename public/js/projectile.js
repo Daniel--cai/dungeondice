@@ -31,9 +31,10 @@ function Projectile(x,y,dx,dy,caster){
     var m = game.board.getUnitAtLoc(x,y)
     var p = game.prop
     if (m != util.EMPTY && this.collision.indexOf(m) == util.EMPTY &&
-    ((this.target && this.dx == x && this.y == y) || !this.target)){
+    ((this.target && this.dx == x && this.dy == y) || !this.target)){
       this.collision.push(m)
       //console.log(m)
+      console.log(this.target, this.dx, this.y)
       for (var i =0; i<game.monsters[m].buff.length; i++){
         game.monsters[m].buff[i].fire('spell hit',{proj:this})
       }

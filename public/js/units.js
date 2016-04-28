@@ -120,6 +120,23 @@ UNITS['Janna'] ={
 	spells:SPELLS['Janna']
 }
 
+UNITS['Vayne'] ={
+	name:"Vayne",
+	hp: 30,
+	atk:30,
+	def:10,
+	spells:SPELLS['Vayne']
+}
+
+UNITS['Annie'] ={
+	name:"Annie",
+	hp: 30,
+	atk:10,
+	def:10,
+	spells:SPELLS['Annie']
+}
+
+
 
 function Unit(player, type, point, level) {
 	//idcounter++;
@@ -179,7 +196,7 @@ function Unit(player, type, point, level) {
 
 		for (var j=this.buff.length-1; j>=0;j--){
 			if(this.buff[j].name == name){
-				console.log('removing',this.buff[j].name)
+				//console.log('removing',this.buff[j].name)
 				this.buff[j].fire('expire', {trigger:this})
 				this.buff.splice(j,1)
 				break;
