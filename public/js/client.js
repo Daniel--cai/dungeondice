@@ -1,4 +1,4 @@
-1//var socket = io();
+//var socket = io();
 
 
 //var player1;
@@ -6,7 +6,6 @@
 
 var playernum = 0;
 
-var actionState = util.PLAYER_STATE_NEUTRAL
 var sendSwitch = true;
 //var movePath = []
 //var movementButton = document.getElementById("movement")
@@ -15,16 +14,13 @@ var ctx = canvas.getContext("2d");
 content.hidden = true;
 cancelButton.hidden = true
 
-var squareSize = 30;
-var boardXPadding = 0;
-var boardYPadding = 50;
 
 var animation = []
 var projectiles = []
 var controlLock = false;
 var initUnit = 0;
 
-//var util.boardSizeX = 13;
+//var boardSizeX = 13;
 canvas.width = 1200;
 canvas.height = 680;
 
@@ -58,7 +54,7 @@ var BUFF_root = new Buff("Root", 1);
 var BUFF_knock_up = new Buff("Knock Up", 1);
 
 function BUFF_SLOW(unit, movement){
-	//games[unit.player.id].update('impairment', util.EMPTY, {unit: unit.id, point:movement})
+	//games[unit.player.id].update('impairment', EMPTY, {unit: unit.id, point:movement})
 }
 /*
 function ApplyBuff (caster, target, buff){
@@ -98,7 +94,7 @@ var socketid;
 
 
 function rotateShape(shape,rotate){
-	shape = util.shapes[shape];
+	shape = shapes[shape];
 	cshape = [[0,0],[0,0],[0,0],[0,0], [0,0],[0,0]]
 	if (rotate == 0){
 		for (var i=0; i<6; i++){
@@ -185,7 +181,7 @@ function DamageUnit(trig, targ, damage){
 	}
 	//var remove = false
 
-	//games[trigger.player.id].update('damage', util.EMPTY, {trigger:trigger.id, target:target.id, damage:damage})
+	//games[trigger.player.id].update('damage', EMPTY, {trigger:trigger.id, target:target.id, damage:damage})
 	if (sendSwitch){
 		//conn.send({id:'damage unit', trigger:trig, target:targ, damage:damage,})
 	}
@@ -253,7 +249,7 @@ function Combat(unit, target){
 
 		if (this.status.indexOf('miss') != -1){
 			console.log('mised!')
-			//game.update('miss', util.EMPTY, {trigger:this.unit.id, target:this.target.id})
+			//game.update('miss', EMPTY, {trigger:this.unit.id, target:this.target.id})
 		} else {
 
 			//DamageUnit(this.unit, this.target, dmg)
@@ -271,8 +267,8 @@ function Combat(unit, target){
 		this.unit.hasAttacked = true;
 		this.unit.player.updatePool(CREST_ATTACK, -this.unit.atkcost);
 		this.unit.player.animateDice(CREST_ATTACK)
-		this.unit.player.changeState(util.GAME_STATE_UNIT)
-		//this.target.player.changeState(util.GAME_STATE_NEUTRAL);
+		this.unit.player.changeState(GAME_STATE_UNIT)
+		//this.target.player.changeState(GAME_STATE_NEUTRAL);
 		//update(game);
 	}
 
@@ -289,12 +285,13 @@ function Game(){
 	this.monsters =[];
 	this.combat = null;
 	this.props = [];
+	this.projectiles = []
 	//this.chain = [];
 
 	//this.timeout = false;
 
 	this.init = function (){
-		game.board = new Board();
+		this.board = new Board();
 		content.hidden =  false;
 		render()
 		canvas.addEventListener("mousemove", function(e){
@@ -358,7 +355,7 @@ function Game(){
 			if (sendSwitch){
 				conn.send({id:'make selection'})
 			}
-			player.changeState(util.GAME_STATE_UNIT)
+			player.changeState(GAME_STATE_UNIT)
 			return true;
 
 		}
@@ -371,13 +368,13 @@ function Game(){
 		console.assert(point[1] != undefined,'setUnitAtLoc: null Y value '+point[1])
 		this.board.units[point[1]][point[0]] = unit;
 		//console.log('setting points', point, unit)
-		if (unit != util.EMPTY){
+		if (unit != EMPTY){
 			this.monsters[unit].x = point[0]
 			this.monsters[unit].y = point[1]
 		}
 		//console.log('setting', unit,'to',point)
 
-		//this.update('unit location', util.EMPTY, {unit:unit, loc:point})
+		//this.update('unit location', EMPTY, {unit:unit, loc:point})
 	}
 
 	this.createUnit = function (player, id, point){
@@ -394,23 +391,14 @@ function Game(){
 				u.spells[i].fire('learn', {trigger:u})
 			}
 			sendSwitch = temp;
-/*
-			if (window.player.num == 1 && player.num == 0 && initUnit ==0){
-				initUnit = 1;
-				u.id = 0;
-				var temp = this.monsters[0]
-				this.monsters[0] = u;
-				this.monsters[1] = temp;
-				temp.id = 1;
-				this.setUnitAtLoc(temp.id, [this.monsters[1].x,this.monsters[1].y])
-			}*/
+
 			this.setUnitAtLoc(u.id, point)
 			if (sendSwitch){
 				//console.log(id, point)
 				conn.send({id:'create unit', unitid:id.name, point:point, player:player.num})
 			}
 			return u
-		//var unit2 = new unit(id1, 2, 2, util.PLAYER_2);
+		//var unit2 = new unit(id1, 2, 2, PLAYER_2);
 		}
 
 	this.update = function(type, playernum, data){
@@ -480,37 +468,36 @@ DICES['Garen'] = new Dice(UNITS['Garen'],
 function Board(){
 	this.tiles = [];
 	this.units = [];
-	this.boardSizeX = 13;
-	this.boardSizeY = 19
 
-	for (var i=0; i<this.boardSizeY;i++){
+
+	for (var i=0; i<boardSizeY;i++){
 		this.tiles[i] = [];
-		for (var j=0;j<this.boardSizeX; j++){
+		for (var j=0;j<boardSizeX; j++){
 			this.tiles[i].push(0);
-			//this.tiles[i].push(util.EMPTY);
+			//this.tiles[i].push(EMPTY);
 		}
 	}
 
-	for (var i=0; i<this.boardSizeY;i++){
+	for (var i=0; i<boardSizeY;i++){
 		this.units[i] = [];
-		for (var j=0;j<this.boardSizeX; j++){
-			this.units[i].push(util.EMPTY);
+		for (var j=0;j<boardSizeX; j++){
+			this.units[i].push(EMPTY);
 		}
 	}
 
-	this.tiles[0][6] = util.PLAYER_2;
-	this.tiles[18][6] = util.PLAYER_1;
-	//this.tiles[0][6] = util.PLAYER_2;
-	this.tiles[17][5] = util.PLAYER_1;
-	this.tiles[17][4] = util.PLAYER_1;
-	this.tiles[17][6] = util.PLAYER_1;
+	this.tiles[0][6] = PLAYER_2;
+	this.tiles[18][6] = PLAYER_1;
+	//this.tiles[0][6] = PLAYER_2;
+	this.tiles[17][5] = PLAYER_1;
+	this.tiles[17][4] = PLAYER_1;
+	this.tiles[17][6] = PLAYER_1;
 
 	this.getUnitAtLoc = function (x,y){
 	//console.log("unit at " + x +" " + y);
 		//console.log(this.units)
 		console.assert(x != undefined, 'getUnitAtLoc: null X value')
 		console.assert(y != undefined,'getUnitAtLoc: null Y value')
-		if (!boundCursor(x,y)) return util.EMPTY
+		if (!boundCursor(x,y)) return EMPTY
 
 		return this.units[y][x];
 	}
@@ -520,11 +507,27 @@ function Board(){
 	}
 
 	this.getTileState = function(x,y){
-		  if (exports.boundCursor(x,y)){
+		  if (boundCursor(x,y)){
 		    return this.tiles[y][x];
 		  } else {
-		    return exports.EMPTY;
+		    return EMPTY;
 		  }
+	}
+
+	this.colorPath = function(path){
+		for (var i=0;i<path.length;i++){
+			this.colorSquare(path[i][0],path[i][1])
+		}
+	}
+
+	this.colorSquare = function(x,y){
+		if (!boundCursor(x,y)) return
+		ctx.fillStyle= "#000000";
+		ctx.strokeStyle = "#303030";
+		ctx.lineWidth = 1;
+		ctx.globalAlpha = 0.5
+		drawSquare(x*squareSize, y*squareSize )
+		ctx.globalAlpha = 1
 	}
 
 	this.validPlacement = function(player){
@@ -543,8 +546,8 @@ function Board(){
 			//console.log(selection)
 			x = selection[i][0];
 			y = selection[i][1];
-			//console.log('hello ',x,y,this.tiles[18][6],util.getTileState(this,x,y));
-			if (!boundCursor(x,y) || this.getTileState(x,y) != util.EMPTY){
+			//console.log('hello ',x,y,this.tiles[18][6],getTileState(this,x,y));
+			if (!boundCursor(x,y) || this.getTileState(x,y) != EMPTY){
 				return false;
 			}
 			//adjacent
@@ -571,14 +574,14 @@ var flip = false;
 var shape = 0;
 var validpos = true;
 var monsters = [];
-var selectedUnit = util.EMPTY;
+var selectedUnit = EMPTY;
 
 
 var game;
 
 function changeUIState(state){
 	console.log('Phase',GAME_STATE_TEXT[state])
-	if (state == util.GAME_STATE_COMBAT){
+	if (state == GAME_STATE_COMBAT){
 			player.movePath = []
 			disableButtons(true,true)
 			return;
@@ -588,7 +591,7 @@ function changeUIState(state){
 	rollButton.hidden = true;
 
 	for (i=0;i<15;i++) DicePool[i].hidden = true;
-	if (state == util.GAME_STATE_ROLL){
+	if (state == GAME_STATE_ROLL){
 		rollButton.hidden = false;
 
 		for (i=0;i<15;i++) DicePool[i].reset();
@@ -599,7 +602,7 @@ function changeUIState(state){
 			}
 		}
 	}
-  if (state == util.GAME_STATE_END){
+  if (state == GAME_STATE_END){
   	disableButtons(true,true)
 		//for (i=0;i<15;i++) Buttons[i].reset();
 		DiceSelection = [];
@@ -612,7 +615,7 @@ function changeUIState(state){
 
 	disableButtons(true,true)
 
-	if (player.state == util.GAME_STATE_SUMMON ){
+	if (player.state == GAME_STATE_SUMMON ){
 		/*
 		for (i=0;i<15;i++) DicePool[i].reset();
 		console.log('summon', player.summon)
@@ -621,15 +624,15 @@ function changeUIState(state){
 			DicePool[player.summon[i]].focus = true;
 		}
 		*/
-	} else if (player.state == util.GAME_STATE_SELECT ||
-		player.state == util.GAME_STATE_UNIT) {
+	} else if (player.state == GAME_STATE_SELECT ||
+		player.state == GAME_STATE_UNIT) {
 		disableButtons(true,false)
 	}
 
 }
 
 function flipXY(x,y){
-	return [util.boardSizeX-x,util.boardSizeY-y]
+	return [boardSizeX-x,boardSizeY-y]
 }
 
 function drawSelection (player){
@@ -642,7 +645,7 @@ function drawSelection (player){
 
 	for (var i = 0; i<6; i++){
 		ctx.fillStyle = purple;
-		if (player.num == util.PLAYER_2){
+		if (player.num == PLAYER_2){
 		ctx.fillStyle = blue;
 		}
 
@@ -659,8 +662,8 @@ function drawSelection (player){
 		var x = selection[i][0]
 		var y = selection[i][1]
 		if (player.num == 1){
-			//x = util.boardSizeX-x-1
-			//y = util.boardSizeY-y-1
+			//x = boardSizeX-x-1
+			//y = boardSizeY-y-1
 			//console.log(x,y)
 		}
 
@@ -673,31 +676,19 @@ function drawSelection (player){
 
 function drawPath(){
 	//movePathSelection = player.movePath;
-	if (player.state != exports.GAME_STATE_SELECT) return;
+	if (player.state != GAME_STATE_SELECT) return;
 	//var movePathSelection = movePath;
 	//console.log(movePathSelection)
 
 	//if (movePathSelection.length > 1 && movePathSelection.length-1 <= player.pool.pool[CREST_MOVEMENT]) {
 	ctx.globalAlpha = 0.5;
-
 	for (var i=0; i<player.movePath.length; i++){
 		var x = player.movePath[i][0]
 		var y = player.movePath[i][1]
-		if (!boundCursor(x,y)) continue
-		if (player.num == 1){
-			//x = util.boardSizeX-x-1;
-			//y = util.boardSizeY-y-1
-		}
 		if (cursorX == x && cursorY == y) continue;
-		ctx.fillStyle= "#000000";
-		ctx.strokeStyle = "#303030";
-		ctx.lineWidth = 1;
-		drawSquare(x*squareSize, y*squareSize )
+		game.board.colorSquare(x,y)
 	}
 	ctx.globalAlpha = 1.0;
-
-	//};
-
 }
 
 var Buttons = [];
@@ -879,7 +870,7 @@ function Button(id, img, x, y,sx,sy,unit){
 		if (this.onFocus) this.onFocus();
 		this.focus = true;
 		//console.log(x,y, b.x, b.y, b.wx, b.hy)
-		if (player.state == util.GAME_STATE_ROLL){
+		if (player.state == GAME_STATE_ROLL){
 			//changeCursor("pointer")
 
 			//console.log(this.id)
@@ -897,7 +888,7 @@ function Button(id, img, x, y,sx,sy,unit){
 		//if (this.toggle) return;
 		//changeCursor("default")
 		//changeCursor("pointer")
-		if (player.state == util.GAME_STATE_ROLL){
+		if (player.state == GAME_STATE_ROLL){
 			//DicePattern = [];
 		}
 		//render();
@@ -925,15 +916,6 @@ var DiceSelection = []
 var DiceButtonSize = 40;
 var SummonPool = []
 
-var CREST_MOVEMENT = 0;
-var CREST_ATTACK = 1;
-var CREST_DEFENSE = 2;
-var CREST_MAGIC = 3;
-var CREST_TRAP = 4;
-var CREST_SUMMON = 5;
-
-var CREST_TEXT = ["MOVEMENT", "ATTACK","DEFENSE", "MAGIC", "TRAP", "SUMMON" ]
-
 
 for (var i=0; i<3; i++){
 	for (var j=0;j<5;j++){
@@ -948,7 +930,7 @@ for (var i=0; i<3; i++){
 
 		}
 		b.onFocus = function(){
-			//if (player.state != util.GAME_STATE_ROLL) return
+			//if (player.state != GAME_STATE_ROLL) return
 
 			player.diceButtonFocus = this.id
 			DicePattern = player.dices[this.id]
@@ -956,7 +938,7 @@ for (var i=0; i<3; i++){
 		}
 
 		b.onClick = function(x,y){
-			if (player.state != util.GAME_STATE_ROLL) return;
+			if (player.state != GAME_STATE_ROLL) return;
 			if (this.toggle){
 				this.toggle = false;
 				DiceSelection.splice(DiceSelection.indexOf(this),1);
@@ -995,7 +977,7 @@ for (var i=0; i<3; i++){
 
 			if (this.toggle){
 				ctx.globalAlpha = 0.5;
-				if (player.state == util.GAME_STATE_ROLL){
+				if (player.state == GAME_STATE_ROLL){
 					ctx.fillStyle = black;
 				}
 				ctx.fillRect(this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod);
@@ -1020,7 +1002,7 @@ for (var i=0; i<3; i++){
 for (var i=0;i<3;i++){
 	var b = new Button(i, IMAGES['New Crest'][CREST_SUMMON], 100+boardXPadding + 75*i,150+boardYPadding,50,50)
 	b.onClick = function(x,y){
-		if (player.state != util.GAME_STATE_SUMMON) return;
+		if (player.state != GAME_STATE_SUMMON) return;
 		if (player.tileSelected.length > 0 ) return;
 		player.summonchoice = DiceSelection[this.id].id;
 		console.log('summoinining', player.summonchoice)
@@ -1037,7 +1019,7 @@ for (var i=0;i<3;i++){
 		//console.log('summon buttons ',this.id, DiceSelection[this.id].id)
 	}
 	b.render = function(){
-		//if (player.state != util.GAME_STATE_SUMMON) return;
+		//if (player.state != GAME_STATE_SUMMON) return;
 		//var l = DiceSelection.length
 		//if (l <= this.id) return;
 		//drawText(player.dices[DiceSelection[this.id].id].type.name, '20px Arial bolder', 200+ 50*this.id,200)
@@ -1072,7 +1054,7 @@ function validPlacement(player){
 		//console.log(selection)
 		x = selection[i][0];
 		y = selection[i][1];
-		if (!boundCursor(x,y) || getBoardState(x,y) != util.EMPTY){
+		if (!boundCursor(x,y) || getBoardState(x,y) != EMPTY){
 			return false;
 		}
 		//adjacent
@@ -1092,7 +1074,7 @@ addEventListener("keypress", function(e){
 		//keysDown[e.keyCode] = true;
 		//console.log(e.charCode);
 		if (!game) return
-		if (player.state != util.GAME_STATE_SUMMON) return;
+		if (player.state != GAME_STATE_SUMMON) return;
 		if (e.charCode == 122){
 			socket.send(JSON.stringify({id:'rotate shape'}));
 		} else if (e.charCode == 99){
@@ -1113,7 +1095,7 @@ pageY = 0;
 var summonNames = [];
 
 var boundCursor = function(x, y){
-	if (x>= util.boardSizeX || y >= util.boardSizeY ||x < 0 || y < 0){
+	if (x>= boardSizeX || y >= boardSizeY ||x < 0 || y < 0){
     	return false
     }
     return true;
@@ -1122,28 +1104,19 @@ var boundCursor = function(x, y){
 
 
 var isUnitOnCursor = function(x, y){
-	return boundCursor(x,y) && getUnitAtLocation([x,y]) != util.EMPTY
+	return boundCursor(x,y) && game.board.getUnitAtLoc(x,y) != EMPTY
 }
 
 var getUnitOnCursor = function(x,y){
 	//console.log(getUnitAtLocation([x,y]))
 	if (isUnitOnCursor(x,y)) {
-		return game.monsters[getUnitAtLocation([x,y])];
+		return game.monsters[game.board.getUnitAtLoc(x,y)];
 	} else {
 		return null;
 	}
 }
 
-var getUnitById = function(id){
-	return monsters[id];
 
-}
-
-var getUnitAtLocation = function (l){
-	//console.log("unit at " + x +" " + y);
-	if (game)
-		return game.board.units[l[1]][l[0]];
-}
 /*
 var setUnitAtLocation = function (id, point){
 	game.board.units[point[1]][point[0]] = id;
@@ -1160,7 +1133,7 @@ function getBoardState(x,y){
 	if (boundCursor(x,y) && game){
 		return game.board.tiles[y][x];
 	} else {
-		return util.EMPTY;
+		return EMPTY;
 	}
 }
 
@@ -1177,7 +1150,7 @@ function updateCrest(pool){
 
 
 function spellButtonEffect(button){
-	if (player.state != util.GAME_STATE_SELECT) return;
+	if (player.state != GAME_STATE_SELECT) return;
 	var spell = game.monsters[player.unitSelected].spells[button]
 	var name = game.monsters[player.unitSelected].name
 	if (!spell) return
@@ -1250,7 +1223,7 @@ cancelButton.addEventListener("click", function(){
 	disableSpell(false)
 	cancelButton.hidden = true;
 	var m = game.monsters[player.unitSelected]
-	player.movePath = util.findPossiblePath(game.board,[m.x, m.y],exports.getCrestPool(player,CREST_MOVEMENT)-m.impairment)
+	player.movePath = findPossiblePath([m.x, m.y],player.getCrestPool(CREST_MOVEMENT)-m.impairment)
 })
 
 
@@ -1358,9 +1331,9 @@ rollButton.addEventListener("click", function(){
 
 */
 	if( player.summon != 0 ) {
-		player.changeState(util.GAME_STATE_SUMMON);
+		player.changeState(GAME_STATE_SUMMON);
 	} else {
-		player.changeState(util.GAME_STATE_UNIT)
+		player.changeState(GAME_STATE_UNIT)
 	}
     //socket.send(JSON.stringify({id:'c_roll', data:data}));
 })
@@ -1384,10 +1357,7 @@ function hideButton(button, boolean, point){
 
 }
 
-var drawSquare = function(x,y){
-	ctx.fillRect(x,y,squareSize,squareSize);
-	ctx.strokeRect(x,y,squareSize,squareSize);
-}
+
 
 var heartImg = "<img src='assets/img/heart.png' width = 15 height = 15;/>"
 
@@ -1424,32 +1394,32 @@ function drawBoard(){
 	var verticalFlip = player.num == 0;
 	var dx = dy = 0;
 	/*
-	for (var i= verticalFlip ? 0 : util.boardSizeX-1; verticalFlip ? i< util.boardSizeX : i>=0 ; verticalFlip ? i++:i--){
-		for (var j= verticalFlip ? 0 : util.boardSizeY-1; verticalFlip ? j< util.boardSizeY : j>=0 ; verticalFlip ? j++:j--){
+	for (var i= verticalFlip ? 0 : boardSizeX-1; verticalFlip ? i< boardSizeX : i>=0 ; verticalFlip ? i++:i--){
+		for (var j= verticalFlip ? 0 : boardSizeY-1; verticalFlip ? j< boardSizeY : j>=0 ; verticalFlip ? j++:j--){
 	*/
 
-	for (var i = 0; i< util.boardSizeX; i++ ){
-		for (var j = 0; j< util.boardSizeY; j++ ){
+	for (var i = 0; i< boardSizeX; i++ ){
+		for (var j = 0; j< boardSizeY; j++ ){
 			ctx.fillStyle = "#303030";
 			ctx.strokeStyle = white
 			drawSquare(i*squareSize,j*squareSize);
 		}
 	}
 
-	for (var i = 0; i< util.boardSizeX; i++ ){
-		for (var j = 0; j< util.boardSizeY; j++ ){
+	for (var i = 0; i< boardSizeX; i++ ){
+		for (var j = 0; j< boardSizeY; j++ ){
 			var x = i,y = j
 			if (player.num == 1){
-				//x = util.boardSizeX-x-1
-				//y = util.boardSizeY-y-1
+				//x = boardSizeX-x-1
+				//y = boardSizeY-y-1
 				//console.log(x,y)
 			}
 
-			if (getBoardState(i,j)== util.PLAYER_1){
+			if (getBoardState(i,j)== PLAYER_1){
 				ctx.fillStyle = purple;
 				ctx.strokeStyle = white
 				ctx.drawImage(IMAGES['Texture'],x*squareSize,y*squareSize, squareSize,squareSize)
-			} else if (getBoardState(i,j) == util.PLAYER_2){
+			} else if (getBoardState(i,j) == PLAYER_2){
 				ctx.fillStyle = blue;
 				ctx.strokeStyle = white
 				ctx.drawImage(IMAGES['Texture2'],x*squareSize,y*squareSize, squareSize,squareSize)
@@ -1484,80 +1454,21 @@ var drawProps = function() {
 
 		var p = game.props[i];
 		//p = getCurrentPlayer()
-		if (p.exist == false){
-			continue;
-		}
-		ctx.beginPath();
-		ctx.arc(p.x*squareSize+ squareSize/2, p.y*squareSize+ squareSize/2, squareSize/4, 0, 2 * Math.PI, false);
-		if (p.unit.player.num == 0){
-			ctx.fillStyle = "#008080";
-		} else {
-			ctx.fillStyle = "#808000";
-		}
-		ctx.fill();
-		ctx.lineWidth = 1;
-		ctx.strokeStyle = '#000000';
-		ctx.stroke();
-		}
+		if (p.exist == false)	continue;
+
+		p.render()
+
+	}
 }
 
-var drawUnits = function() {
+var drawUnits = function(dt) {
 	//console.l(game.monsters.length)
 	for(var i=0; i<game.monsters.length; i++) {
 		//console.log(game.monsters[i]);
 		var m = game.monsters[i];
 		if (!m.exist) continue
-		var w = 1;
-		//p = getCurrentPlayer()
-		var bordersize = 0;
-		if (player.unitSelected == m.id || opponent.unitSelected == m.id){
-			w = 3;
-			bordersize = 6;
-		}
-		var x = m.animx
-		var y = m.animy
-
-		ctx.fillStyle = black;
-		if (m.player.num == 1){
-			//ctx.fillStyle = blue;
-		}
-		if (player.num != m.player.num){
-			//x = util.boardSizeX-x-1
-			//y = util.boardSizeY-y-1
-			//ctx.fillStyle = purple;
-
-			//ctx.rotate(Math.PI/180);
-		}
-		//
-
-		if (IMAGES[m.name+'Square']){
-			var nx = x*squareSize+bordersize/2;
-			var ny = y*squareSize+bordersize/2
-			var s = squareSize-bordersize
-			var angle = Math.PI
-			//console.log(angle)
-			ctx.fillRect(x*squareSize,y*squareSize,squareSize,squareSize);
-			//ctx.strokeRect(x,y,squareSize,squareSize);
-			if (m.player.num == opponent.num){
-				ctx.translate(nx,ny)
-				ctx.rotate(angle);
-				ctx.drawImage(IMAGES[m.name+'Square'],-s,-s,s,s);
-				ctx.rotate(-angle);
-				ctx.translate(-nx,-ny)
-			} else {
-					ctx.drawImage(IMAGES[m.name+'Square'],nx,ny,s,s);
-			}
-		} else {
-			drawCircle(x, y,w, m.player);
-		}
-
-		if (player.num != m.player.num){
-			//x = util.boardSizeX-x-1
-			//y = util.boardSizeY-y-1
-			//ctx.fillStyle = purple;
-
-			//ctx.rotate(-Math.PI/180);
-		}
+		m.update(dt)
+		m.render()
 		//ctx.drawImage('assets/img/LucianSquare.png',x,y)
 		//
 
@@ -1618,7 +1529,7 @@ registerMoveEvent(
 
 		//remove comment
 		//if (game.turn%2 != player.num) return
-		if (player.state != util.GAME_STATE_SUMMON) return
+		if (player.state != GAME_STATE_SUMMON) return
 		if (boundCursor(cursorX,cursorY))
 		//player.cursorX = data.X;
 		//player.cursorY = data.Y;
@@ -1640,41 +1551,44 @@ new Event(TRIGGER_MOUSE_CLICK,
 		var x = cursorX;
 		var y = cursorY;
 		if (player.num == 1){
-			//x = util.boardSizeX-x-1
-			//y = util.boardSizeY-y-1
+			//x = boardSizeX-x-1
+			//y = boardSizeY-y-1
 		}
 		var u = game.board.getUnitAtLoc(x,y)
-		if (player.state == util.GAME_STATE_UNIT){
-			if (u == util.EMPTY) return;
+		if (player.state == GAME_STATE_UNIT){
+			if (u == EMPTY) return;
 			//console.log('unit select')
      		//socket.send(JSON.stringify({id:'mouse click', data:{state: 'select', loc:[x, y]}}))
    		player.selectUnit(x, y)
 
-    } else if (player.state == util.GAME_STATE_SELECT){
- 				if (player.spell != util.EMPTY){
+    } else if (player.state == GAME_STATE_SELECT){
+ 				if (player.spell != EMPTY){
      			console.log('cast',player.spell)
 					var spell = game.monsters[player.unitSelected].spells[player.spell]
 					var m = game.board.getUnitAtLoc(x,y)
-					var target = m != util.EMPTY ? game.monsters[m] : null
+					var target = m != EMPTY ? game.monsters[m] : null
 					//console.log(target.name)
 					var event = {trigger: game.monsters[player.unitSelected], location: [x,y], target:target};
 					conn.send({id:'spell effect', spell:player.spell, location:[x,y], target:m})
 					spell.fire('effect',event);
 
-     		} else if (u == util.EMPTY){
+     		} else if (u == EMPTY){
+					console.log('moving unit')
      			//socket.send(JSON.stringify({id:'mouse click', data:{state:'move', loc:[x, y]}}))
- 					if (game.board.getTileState(x, y) != util.EMPTY){
+ 					if (game.board.getTileState(x, y) != EMPTY){
 	 					//console.log('moving')
+									console.log('tile state')
 						var m = game.monsters[player.unitSelected]
-						var path = util.findPath(game.board,[m.x,m.y],[x,y]);
+						var path = findPath([m.x,m.y],[x,y]);
 						var plen = path.length
-						if (plen > 1 && plen-1 <= player.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
+						if (plen > 1 && plen-1 <= player.getCrestPool(CREST_MOVEMENT) - m.impairment) {
+
 	 						m.movement(path)
 							conn.send({id:'move unit', unit:m.id, path:path})
-							console.log(m.impairment)
+							//console.log(m.impairment)
 							player.updatePool(CREST_MOVEMENT,-Math.max(plen-1+m.impairment,1))
 							player.animateDice(CREST_MOVEMENT)
-							player.changeState(util.GAME_STATE_UNIT)
+							player.changeState(GAME_STATE_UNIT)
 						}
 					}
      		} else if (game.monsters[u].player.num == player.num){
@@ -1684,13 +1598,13 @@ new Event(TRIGGER_MOUSE_CLICK,
 					console.log('atacking')
 					game.monsters[player.unitSelected].attack(game.monsters[u])
 				}
-    } else if (player.state == util.GAME_STATE_SUMMON){
+    } else if (player.state == GAME_STATE_SUMMON){
 				if (game.makeSelection(player)){
 					game.createUnit(player,player.dices[player.summonchoice].type,[x,y])
 					//DicePool[player.summonchoice].hidden = true;
 					player.dices[player.summonchoice] = null;
 					//SummonPool = []
-					player.changeState(util.GAME_STATE_UNIT);
+					player.changeState(GAME_STATE_UNIT);
 
 				}
      		//socket.send(JSON.stringify({id:'tile place',data:{loc:[x, y]} }))
@@ -1699,99 +1613,6 @@ new Event(TRIGGER_MOUSE_CLICK,
 	});
 
 
-function validWalk(x, y){
-	console.log()
-	return boundCursor(x,y) && game.board.getUnitAtLoc(x,y) == util.EMPTY && util.getTileState(game.board,x,y) != util.EMPTY;
-}
-function findPath(pathStart, pathEnd) {
-
-	function Node(parent, point){
-
-		this.x = point.x;
-		this.y = point.y;
-				this.parent = parent;
-		this.value = point.x + point.y * util.boardSizeY;
-		this.f = 0;
-		this.g = 0;
-		return this;
-	}
-
-
-	function neighbours(x, y ){
-		var N = y-1;
-		var S = y+1;
-		var E = x+1;
-		var W = x-1;
-		result = [];
-		if (validWalk(x,N)) result.push({x:x, y:N});
-		if (validWalk(x,S)) result.push({x:x, y:S});
-		if (validWalk(E,y)) result.push({x:E, y:y});
-		if (validWalk(W,y)) result.push({x:W, y:y});
-		return result;
-	};
-
-
-	function calculatePath(){
-		var pathstart = new Node(null, {x:pathStart[0], y:pathStart[1]});
-		var pathend = new Node(null, {x:pathEnd[0], y:pathEnd[1]});
-		var astar = new Array(util.boardSizeX*util.boardSizeY);
-		var open = [pathstart];
-		var closed = [];
-		var result = [];
-		var neighcurr;
-		var nodecurr;
-		var path;
-		var length, max, min, i, j;
-
-		while (length = open.length){
-
-			max = util.boardSizeX*util.boardSizeY;
-			min = -1;
-			for(var i=0;i<length;i++){
-				if (open[i].f < max){
-					max = open[i].f;
-					min = i;
-				}
-			}
-			nodecurr = open.splice(min,1)[0];
-
-			if (nodecurr.value == pathend.value){
-				path = closed[closed.push(nodecurr)-1];
-				do {
-					result.push([path.x, path.y])
-				} while (path = path.parent);
-				astar = closed = open = [];
-				result.reverse();
-
-			} else {
-				neighcurr = neighbours(nodecurr.x, nodecurr.y);
-
-				for (var i=0, j=neighcurr.length; i<j; i++){
-					path = new Node(nodecurr, neighcurr[i]);
-					if (!astar[path.value]){
-						path.g = nodecurr.g + manhattanDistance(neighcurr[i], nodecurr);
-						path.f = path.g + manhattanDistance(neighcurr[i], pathend);
-						open.push(path);
-						astar[path.value] = true;
-					}
-				}
-				closed.push(nodecurr);
-			}
-		}
-		//console.log(result);
-		return result;
-	}
-	return calculatePath();
-
-}
-
-
-
-
-//setInterval("checkCursor()", 1000);
-//function checkCursor(){
-//    ;
-//}
 
 var middle = false;
 
@@ -1877,11 +1698,9 @@ function drawUIFrame(){
 }
 
 function drawProjectile(dt){
-	for (var i = projectiles.length-1; i>=0; i--){
-		var p = projectiles[i]
-		//console.log(i,p)
-		p.update(dt)
-		p.render()
+	for (var i = game.projectiles.length-1; i>=0; i--){
+		game.projectiles[i].update(dt)
+		game.projectiles[i].render()
 	}
 }
 
@@ -1898,7 +1717,6 @@ function drawAnimation(dt){
 		} else if (a.type == 'move unit'){
 			//console.log(a.path)
 			if (a.path.length > 0 && a.unit.exist){
-
 				var move = a.path[0];
 				var dx = move[0] - a.px;
 				var dy = move[1] - a.py ;
@@ -2088,7 +1906,7 @@ function drawText(msg, font, x,y){
 
 
 function drawDiceSelection(){
-	if (player.state != util.GAME_STATE_ROLL) return;
+	if (player.state != GAME_STATE_ROLL) return;
 	for (var i=0; i<DiceSelection.length; i++){
 		var l = DiceSelection.length
 		//100+boardXPadding + 75*i,150+boardYPadding
@@ -2136,7 +1954,7 @@ function drawUnitHUD(dt){
 		//setStatePanelText(m)
 		if (m.player.num == player.num){
 			canvas.style.cursor = "pointer";
-		} else if (player.state == util.GAME_STATE_SELECT){
+		} else if (player.state == GAME_STATE_SELECT){
 			canvas.style.cursor = "crosshair";
 		}
 
@@ -2225,8 +2043,8 @@ function drawUnitHUD(dt){
 
 function render(){
 
-	controlLock = true
-	if (animation.length == 0) controlLock = false
+	controlLock = false
+	if (animation.length != 0) controlLock = true
 	var now = new Date().getTime()
 	if (!time) time = now;
 	var dt = (now - time) / 1000.0
@@ -2240,7 +2058,7 @@ function render(){
 
 	ctx.translate(boardXPadding,boardYPadding)
 	drawBoard();
-	drawUnits();
+	drawUnits(dt);
 	drawProps();
 	drawButton()
 	drawDiceSelection();
@@ -2261,7 +2079,7 @@ function render(){
 	//var m = game.monsters[player.unitSelected]
 	//if (!m){
 
-	if (player.unitSelected != util.EMPTY){
+	if (player.unitSelected != EMPTY){
 		var m = game.monsters[player.unitSelected]
 		if (IMAGES[m.name]){
 				//ctx.drawImage(IMAGES[m.name],415,0);
@@ -2279,7 +2097,7 @@ function render(){
 		}
 	}*/
 
-	if (player.diceButtonFocus != util.EMPTY){
+	if (player.diceButtonFocus != EMPTY){
 		//console.log(player.diceButtonFocus)
 		m = player.dices[player.diceButtonFocus].type;
 		//DicePattern.push(player.dices[b.id]);

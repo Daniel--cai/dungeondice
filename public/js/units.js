@@ -136,40 +136,63 @@ UNITS['Annie'] ={
 	spells:SPELLS['Annie']
 }
 
+UNITS['Nunu'] ={
+	name:"Nunu",
+	hp: 50,
+	atk:20,
+	def:30,
+	spells:SPELLS['Nunu']
+}
+
+UNITS['Bard'] ={
+	name:"Bard",
+	hp: 60,
+	atk:10,
+	def:10,
+	spells:SPELLS['Bard']
+}
 
 
-function Unit(player, type, point, level) {
+class Unit {
 	//idcounter++;
-	this.name = type.name;
-	this.type = type;
-	this.x = point[0];
-	this.y = point[1];
-	this.animx = point[0];
-	this.animy = point[1];
-	this.hp = type.hp;
-	this.shield = [];
-	this.maxhp = type.hp;
-	this.atk = type.atk;
-	this.def = type.def;
-	this.statmod = [0,0,0]
-	this.player = player;
-	if (level) this.level = level;
-	this.hasAttacked = false;
-	this.canAttacked = true;
-	this.atkcost = 1;
-	this.atkrange = 1;
-	this.buff = []
-	this.exist = true;
-	this.impairment = 0;
-	this.spells = type.spells;
-	this.animations = [];
-	this._buffer = []
+	constructor(player,type,point,level){
+		this.player = player
+		this.type = type
+		this.name = type.name;
+		this.point = point
+		this.x = point[0];
+		this.y = point[1];
+		this.animx = point[0];
+		this.animy = point[1];
 
-	this.addShield = function (source, hp){
+		this.hp = type.hp;
+		this.shield = [];
+		this.maxhp = type.hp;
+		this.atk = type.atk;
+		this.def = type.def;
+		this.statmod = [0,0,0]
+		this.player = player;
+
+		this.hasAttacked = false;
+		this.canAttacked = true;
+		this.atkcost = 1;
+		this.atkrange = 1;
+		this.buff = []
+		this.exist = true;
+		this.impairment = 0;
+		this.spells = type.spells;
+		this._path = [];
+		this._buffer = []
+		this._path = []
+		if (level != null) this.level = level;
+	}
+
+
+	addShield(source, hp){
 		this.shield.push([source,hp])
 	}
 
-	this.subtractShield = function(damage){
+	subtractShield(damage){
 
 		while(damage > 0 && this.shield.length>0){
 
@@ -190,7 +213,7 @@ function Unit(player, type, point, level) {
 		return damage
 	}
 
-	this.removeBuff = function(name){
+	removeBuff(name){
 		//onsole.log('removing ',name)
 		//this._buffer.push(name)
 
@@ -204,7 +227,7 @@ function Unit(player, type, point, level) {
 		}
 	}
 
-	this.clearBuff = function(){
+	clearBuff(){
 
 		for (var i=0; i<this._buffer.length; i++){
 			for (var j=0; j<this.buff.length;j++){
@@ -218,12 +241,12 @@ function Unit(player, type, point, level) {
 		}
 	}
 
-	this.addBuff = function(caster, buff){
+	addBuff(caster, buff){
 		if (!caster) {console.log('caster null'); return false}
 		if (!buff) {console.log('buff null'); return false}
 		var index = this.hasBuff(buff.name)
 		var prevStacks = 0;
-		if (index != util.EMPTY){
+		if (index != EMPTY){
 			if (this.buff[index].stack != null){
 				buff.stack = this.buff[index].stack + 1
 			}
@@ -236,25 +259,25 @@ function Unit(player, type, point, level) {
 		return true
 	}
 
-	this.hasBuff = function(name){
+	hasBuff(name){
 			for (var i=0; i<this.buff.length;i++){
 				if(this.buff[i].name == name){
 					return i;
 				}
 			}
-			return util.EMPTY;
+			return EMPTY;
 	}
 
-	this.attack = function(target){
+	attack(target){
 
-		var d = util.manhattanDistance(this, target);
+		var d = manhattanDistance(this, target);
 
 		if (!target.exist){
 			console.log("Target is dead")
 			return false;
 		}
 
-		if (util.getCrestPool(this.player, CREST_ATTACK) < this.atkcost){
+		if (this.player.getCrestPool(CREST_ATTACK) < this.atkcost){
 			console.log("Not enough attack crest")
 			return false;
 		}
@@ -269,7 +292,7 @@ function Unit(player, type, point, level) {
 		}
 		if (this.hasAttacked) {
 			console.log("Already attack")
-			this.player.alert('Already attacked')
+
 
 			//var socket = sockets[this.player.id]
 			//socket.emit('alert', "Already attacked");
@@ -281,21 +304,10 @@ function Unit(player, type, point, level) {
 		if (this.player.num == target.player.num) {
 			console.log("Cannot attack allies")
 			this.player.alert("Cannot attack allies")
-
-			//var socket = sockets[this.player.id]
-			//socket.emit('alert', "Already attacked");
 			return false
 		}
 		game.combat = new Combat(this, target);
-		//sendAll(game, {id:'combat', data:game.combat})
 		console.log('attack')
-		//animation.combat = {attacker:this, target:target, dt:0, finish:false};
-		//animation.push({image:IMAGES[this.name], x:0, y:0, dx:500, effect:'pan', duration:0.5})
-
-		//var ubuffs = JSON.parse(JSON.stringify(this.buff))
-		//var ubuffs =  this.buff.splice(0)
-
-		//var tbuffs =  target.buff.splice(0)
 		var event = {trigger:this, target:target, combat:game.combat}
 		for (var i=this.buff.length-1; i>=0 ; i--){
 			this.buff[i].fire('attack',event);
@@ -311,11 +323,11 @@ function Unit(player, type, point, level) {
 		//game.combat.status.push(status)
 
 		if (sendSwitch){
-			conn.send({id:'attack', trigger:this.id, target:target.id, guard:util.getCrestPool(target.player,CREST_DEFENSE) > 0})
+			conn.send({id:'attack', trigger:this.id, target:target.id, guard:target.player.getCrestPool(CREST_DEFENSE) > 0})
 		}
-		if (util.getCrestPool(target.player,CREST_DEFENSE) > 0){
+		if (target.player.getCrestPool(CREST_DEFENSE) > 0){
 			console.log('waiting for opponent..guard')
-			player.changeState(util.GAME_STATE_COMBAT)
+			player.changeState(GAME_STATE_COMBAT)
 			//game.combat.guard();
 		} else {
 			console.log('post attack')
@@ -325,59 +337,142 @@ function Unit(player, type, point, level) {
 		return true;
 	}
 
-	this.destroy = function(){
+	destroy(){
 		console.log('Removing', this.name, this.id, 'hp:', this.hp)
 		//var game = games[this.player.id]
 
-		game.setUnitAtLoc(util.EMPTY, [this.x,this.y])
-		//console.log('destroy',[this.x,this.y],util.getTileState(game.board,this.x,this.y))
+		game.setUnitAtLoc(EMPTY, [this.x,this.y])
+		//console.log('destroy',[this.x,this.y],getTileState(game.board,this.x,this.y))
 		this.exist = false;
 		//console.log(game.board.getUnitAtLoc(this.x,this.y))
 		//game.monsters[this.id] = null
-		//game.update('destroy unit', util.EMPTY, {unit:this, loc:[this.x,this.y]})
+		//game.update('destroy unit', EMPTY, {unit:this, loc:[this.x,this.y]})
 	}
 
 
+	setLoc(x,y){
+		console.assert(x != undefined, 'setLoc: null X value '+x)
+		console.assert(y != undefined,'setLoc: null Y value '+y)
+		game.board.units[y][x] = this.id;
+		game.board.units[this.y][this.x] = EMPTY;
+		this.x = x;
+		this.y = y;
+	}
 
-	this.update = function(dt){
+	_finish(){
+		var move = this._path[0];
+		this.animx = move[0];
+		this.animy = move[1];
+		//this.x = move[0];
+		//this.y = move[1];
 
-		if (this.animations.length == 0) return
+		this.setLoc(move[0],move[1])
+		//game.setUnitAtLoc(EMPTY,[this.x, this.y])
+		//game.setUnitAtLoc(this.id,path[path.length-1])
 
-		var move = this.animations[0];
+		this._path.shift();
+
+		var event = {trigger: this, location: this.path}
+		for (var j=0; j<game.props.length; j++){
+			if (game.props[j] && game.props[j].x == move[0] && game.props[j].y == move[1]){
+				game.props[j].fire('collision',event);
+			}
+		}
+	//	console.log('_finish')
+	}
+
+	update(dt){
+		if (this._path.length == 0) return
+		controlLock = true
+		var move = this._path[0];
 		//console.log(move)
 		var dx = move[0]- this.animx;
 		var dy = move[1] -this.animy ;
-		var ms = 10;
-
-		//console.log(this.animx,move[0])
-		//console.log(this.y,move[1])
+		var ms = 2;
+		//console.log(this.x, this.y)
+	//	console.log('upating!')
 		if (dx != 0){
-				//console.log(dx/Math.abs(dx))
+
 				this.animx = this.animx + dx/Math.abs(dx)*ms*dt;
 				if (dx > 0 && this.animx >= move[0] || dx < 0 && this.animx <= move[0]){
-					this.animations.shift();
-					//this.x = move[0]
-					this.animx = move[0]
-					//console.log('popped!')
-
+					this._finish()
 				}
 		} else if (dy != 0){
 			this.animy = this.animy + dy/Math.abs(dy)*ms*dt;
 			if (dy > 0 && this.animy >= move[1] || dy < 0 && this.animy <= move[1]){
-				this.animations.shift();
-				//this.y = move[1]
-				this.animy = move[1]
-					//console.log('popped!')
+				this._finish()
 			}
 
 		} else {
-			console.log('shift!')
-			this.animations.shift();
+			this._finish()
 		}
 		//console.log(this.animx,this.animy)
 	}
 
-	this.movement = function(path, forced){
+	render(){
+		var w = 1;
+		//p = getCurrentPlayer()
+		var bordersize = 0;
+		if (player.unitSelected == this.id || opponent.unitSelected == this.id){
+			w = 3;
+			bordersize = 6;
+		}
+		var x = this.animx
+		var y = this.animy
+
+		ctx.fillStyle = black;
+		if (this.player.num == 1){
+			//ctx.fillStyle = blue;
+		}
+
+		//flip board
+		if (player.num != this.player.num){
+			//x = boardSizeX-x-1
+			//y = boardSizeY-y-1
+			//ctx.fillStyle = purple;
+
+			//ctx.rotate(Math.PI/180);
+		}
+
+
+			game.board.colorPath(this._path)
+
+
+
+
+		//
+		if (IMAGES[this.name+'Square']){
+			var nx = x*squareSize+bordersize/2;
+			var ny = y*squareSize+bordersize/2
+			var s = squareSize-bordersize
+			var angle = Math.PI
+			//console.log(angle)
+			ctx.fillRect(x*squareSize,y*squareSize,squareSize,squareSize);
+			//ctx.strokeRect(x,y,squareSize,squareSize);
+			if (this.player.num == opponent.num){
+				ctx.translate(nx,ny)
+				ctx.rotate(angle);
+				ctx.drawImage(IMAGES[this.name+'Square'],-s,-s,s,s);
+				ctx.rotate(-angle);
+				ctx.translate(-nx,-ny)
+			} else {
+					ctx.drawImage(IMAGES[this.name+'Square'],nx,ny,s,s);
+			}
+		} else {
+			drawCircle(x, y,w, this.player);
+		}
+
+		if (player.num != this.player.num){
+			//x = boardSizeX-x-1
+			//y = boardSizeY-y-1
+			//ctx.fillStyle = purple;
+
+			//ctx.rotate(-Math.PI/180);
+		}
+
+	}
+
+	movement(path, forced){
 			//console.log('exist is ', this.exist)
 			//var m = game.monsters[this.id]
 			if (!this.exist){
@@ -387,12 +482,12 @@ function Unit(player, type, point, level) {
 			//var game = games[this.player.id]
 			//console.log(this.x, this.y, loc)
 			var board = game.board
-			//var path = util.findPath(board,[m.x,m.y],loc);
+			//var path = findPath(board,[m.x,m.y],loc);
 			var plen = path.length;
 
-			//console.log(plen-1,'<=',this.impairment + util.getCrestPool(this.player,util.CREST_MOVEMENT))
-			//console.log(util.getCrestPool(this.player,util.CREST_MOVEMENT))
-			//if (plen > 1 && plen-1 <= this.getCrestPool(util.CREST_MOVEMENT) - m.impairment) {
+			//console.log(plen-1,'<=',this.impairment + getCrestPool(this.player,CREST_MOVEMENT))
+			//console.log(getCrestPool(this.player,CREST_MOVEMENT))
+			//if (plen > 1 && plen-1 <= this.getCrestPool(CREST_MOVEMENT) - m.impairment) {
 			if (!forced){
 				var finish = function(m, path){
 					//console.log('finished!', path)
@@ -403,31 +498,10 @@ function Unit(player, type, point, level) {
 					}
 				}
 			}
-
-			animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200, onfinish:finish, args:[this,path]})
-
-			game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
-
-			game.setUnitAtLoc(this.id,path[path.length-1])
-			/*
-			for (var i=1; i<path.length; i++){
-				//console.log(path[i])
-				this.moveUnit(path[i])
-					//console.log('moved!')
-			}
-
-			if (this.exist == false) return;
-			game.setUnitAtLoc(util.EMPTY,[this.x, this.y])
-			game.setUnitAtLoc(this.id,path[plen-1])
-			*/
-			//this.player.changeState(util.GAME_STATE_UNIT)
-
-				//return plen
-			//} else {
-			//	console.log('Illegal move',plen)
-			//	return 0;
-			//}
-
+			//animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200, onfinish:finish, args:[this,path]})
+			this._path = path;
+			//game.setUnitAtLoc(EMPTY,[this.x, this.y])
+			//game.setUnitAtLoc(this.id,path[path.length-1])
 	}
 
 }

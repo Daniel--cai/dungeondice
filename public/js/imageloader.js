@@ -106,3 +106,12 @@ ImageLoader('AnnieSquare', 'AnnieSquare.png')
 ImageLoader('Disintegrate', 'Disintegrate.png')
 ImageLoader('Pyromania', 'Pyromania.png')
 ImageLoader('Molten Shield', 'Molten_Shield.png')
+
+ImageLoader('Nunu','Nunu.jpg')
+ImageLoader('NunuSquare','NunuSquare.png')
+ImageLoader('Visionary','Visionary.png')
+ImageLoader('Ice Blast', 'Ice_Blast.png')
+
+ImageLoader('Bard', 'Bard.jpg')
+ImageLoader('BardSquare', 'Bard.png')
+ImageLoader('Magical Journey', 'Magical_Journey.png')

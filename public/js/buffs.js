@@ -423,3 +423,27 @@ BUFFS['Molten Shield'] = function(){
 	})
 	return buff;
 }
+
+BUFFS['Visionary'] = function(){
+	var buff = new Buff('Visionary',0)
+	buff.stack = 0;
+	buff.on('attack', function(event){
+		buff.stack += 1;
+		if (buff.stack == 3){
+			event.trigger.spells[1].discount = 2;
+		}
+	})
+	return buff;
+}
+
+BUFFS['Ice Blast'] = function(){
+	var buff = new Buff('Ice Blast', 2)
+	buff.on('apply', function(event){
+		event.trigger.impairment += 1;
+	})
+
+	buff.on('expire', function(event){
+		event.trigger.impairment -= 1;
+	})
+	return buff;
+}

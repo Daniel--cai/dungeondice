@@ -1,37 +1,39 @@
 
-function Player(id){
-	this.id = id;
-	this.num;
-	this.pool = [5,5,5,5,5]
+class Player {
+	constructor(id){
+		this.id = id;
+		this.num;
+		this.pool = [5,5,5,5,5]
 
-	this.state = util.GAME_STATE_END;
-	//this.actionstate = util.PLAYER_STATE_NEUTRAL;
-	this.summon = [];
-	this.summonlevel = 0;
-	this.summonchoice = util.EMPTY;
+		this.state = GAME_STATE_END;
+		//this.actionstate = PLAYER_STATE_NEUTRAL;
+		this.summon = [];
+		this.summonlevel = 0;
+		this.summonchoice = EMPTY;
 
-	this.shape = 0;
-	this.rotate = 0;
+		this.shape = 0;
+		this.rotate = 0;
 
-	this.cursorX;
-	this.cursorY;
+		this.cursorX;
+		this.cursorY;
 
-	this.tileSelected = []
-	this.unitSelected = util.EMPTY;
-	this.movePath = []
-	this.rolled = false;
-	this.spell = util.EMPTY;
+		this.tileSelected = []
+		this.unitSelected = EMPTY;
+		this.movePath = []
+		this.rolled = false;
+		this.spell = EMPTY;
 
-	this.valid = false;
-	this.dices = [DICES['Lucian'],DICES['Lucian'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],
-								DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],
-								DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen']];
+		this.valid = false;
+		this.dices = [DICES['Lucian'],DICES['Lucian'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],
+									DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],
+									DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen']];
 
-	this.diceButtonFocus = -1;
+		this.diceButtonFocus = -1;
 
-	this.spell = util.EMPTY;
+		this.spell = EMPTY;
+	}
 
-	this.animateDice = function(crest,delay){
+	animateDice(crest,delay){
 		var size = 25
 		var gap = 10
 		var x = 500
@@ -44,7 +46,7 @@ function Player(id){
 		})
 	}
 
-	this.updatePool = function(crest, point){
+	updatePool(crest, point){
 
 		this.pool[crest] += point;
 
@@ -55,8 +57,8 @@ function Player(id){
 		//games[this.id].update('pool', this.num, {crest:crest, point:point})
 	}
 
-	this.updateShape = function(x,y){
-		if (this.summonchoice == util.EMPTY) return;
+	updateShape(x,y){
+		if (this.summonchoice == EMPTY) return;
 
 		var shape = [];
 		var cshape = rotateShape(this.shape,this.rotate);
@@ -67,7 +69,7 @@ function Player(id){
 
 	}
 
-	this.updateTile = function(shape){
+	updateTile(shape){
 		this.tileSelected = shape;
 		if (this.tileSelected == null) this.tileSelected = []
 		//console.log('update tile')
@@ -79,36 +81,26 @@ function Player(id){
 		}
 	}
 
-	this.getCrestPool = function(crest){
+	getCrestPool(crest){
   		return this.pool[crest]
 	}
 
-
-
-
-
-	this.changeState = function(state){
+	changeState(state){
 		//var game = games[this.id]
 		//console.log('change state')
 		//console.log(game.combat)
 		this.state = state;
-		if (state != util.GAME_STATE_COMBAT){
-			this.unitSelected = util.EMPTY;
+		if (state != GAME_STATE_COMBAT){
+			this.unitSelected = EMPTY;
 		}
 		this.movePath = []
 		this.tileSelected = []
 		this.spell = -1;
-
-
 		changeUIState(state)
 
 	}
 
-	this.changeActionState = function(state){
-		this.actionstate = state;
-	}
-
-	this.startTurn = function(){
+	startTurn(){
 		for (var i=0;i<game.monsters.length; i++){
 			for (var j=0; j<game.monsters[i].buff.length;j++){
 				var buff = game.monsters[i].buff[j]
@@ -117,7 +109,7 @@ function Player(id){
 		}
 	}
 
-	this.endTurn = function (){
+	endTurn(){
 		//sockets[this.id].send(JSON.stringify({data:'alert', data:"End Phase"}));
 		//console.log('end turn')
 
@@ -147,7 +139,7 @@ function Player(id){
 			if (p.duration <= 0) {
 				p.destroy();
 			}
-			//if (p.unit != util.EMPTY && p.unit.player.num != player.num) return;
+			//if (p.unit != EMPTY && p.unit.player.num != player.num) return;
 			p.fire('turn',{trigger:p})
 		}
 
@@ -160,16 +152,16 @@ function Player(id){
 
 
 
-		this.changeState(util.GAME_STATE_END);
+		this.changeState(GAME_STATE_END);
 		this.rolled = false;
 		this.summon = [];
-		this.summonchoice = util.EMPTY;
+		this.summonchoice = EMPTY;
 		this.summonlevel = 0;
 		this.shape = 0;
 		this.rotate = 0;
 		this.valid = false;
-		this.spell = util.EMPTY
-		this.unitSelected = util.EMPTY
+		this.spell = EMPTY
+		this.unitSelected = EMPTY
 
 		for (var i=0; i<game.monsters.length;i++){
 			if (!game.monsters[i].exist) continue;
@@ -178,10 +170,10 @@ function Player(id){
 				game.monsters[i].canAttacked = true;
 			}
 		}
-		//this.changeState(util.GAME_STATE_ROLL);
+		//this.changeState(GAME_STATE_ROLL);
 	}
 
-	this.onRoll = function(data){
+	onRoll(data){
 		console.log(this.dices[2])
 		var summonlevel = 0;
 		var summon = [[],[],[],[],[]];
@@ -218,25 +210,23 @@ function Player(id){
 		return result;
 	}
 
-	this.alert = function(data){
-		//send(this.id, {id:'alert', data:data})
-	}
 
-	this.selectUnit = function(x,y){
+	selectUnit(x,y){
 		//var game = games[this.id]
 
 		var m = game.monsters[game.board.getUnitAtLoc(x,y)]
-		if (m.hasBuff('Stunned') != util.EMPTY) return;
+		if (m.hasBuff('Stunned') != EMPTY) return;
 
 		if (this.unitSelected == m.id) {
-			this.changeState(util.GAME_STATE_UNIT);
-			conn.send({id:'select unit', unit:util.EMPTY})
+
+			this.changeState(GAME_STATE_UNIT);
+			conn.send({id:'select unit', unit:EMPTY})
 
 		} else if (m.player.num==this.num){
-			this.changeState(util.GAME_STATE_SELECT);
+			this.changeState(GAME_STATE_SELECT);
 
-			player.movePath = util.findPossiblePath(game.board,[m.x, m.y],exports.getCrestPool(player,CREST_MOVEMENT)-m.impairment)
-
+			player.movePath = findPossiblePath([m.x, m.y],player.getCrestPool(CREST_MOVEMENT)-m.impairment)
+			console.log('impairment cost',player.getCrestPool(CREST_MOVEMENT)-m.impairment)
 			this.unitSelected = m.id;
 			conn.send({id:'select unit', unit:m.id})
 			//animation.push({type:'message', text:'End Phase', color:red,x:-200,y:250,speed:1000,  duration:2})
@@ -250,5 +240,5 @@ function Player(id){
 		return false;
 	}
 
-	return this;
+	//return this;
 }

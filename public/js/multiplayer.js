@@ -39,13 +39,13 @@ function openConnection(c,num){
 			game.createUnit(player,UNITS['Annie'],[3,15])
 			game.createUnit(opponent,UNITS['Garen'],[1,16])
 			game.createUnit(opponent,UNITS['Kogmaw'],[4,17])
-
+			game.createUnit(opponent,UNITS['Nunu'],[4,15])
 			player.startTurn()
 
-			player.changeState(util.GAME_STATE_UNIT)
+			player.changeState(GAME_STATE_UNIT)
 		} else {
-			player.state = util.GAME_STATE_END
-			changeUIState(util.GAME_STATE_END)
+			player.state = GAME_STATE_END
+			changeUIState(GAME_STATE_END)
 		}
 
 		//console.log(window.player)
@@ -59,14 +59,14 @@ function openConnection(c,num){
 			game.monsters[data.unit].movement(data.path)
 			opponent.updatePool(CREST_MOVEMENT,-Math.max(+data.path.length-1+game.monsters[data.unit].impairment,1))
 			opponent.animateDice(CREST_MOVEMENT)
-			opponent.changeState(util.GAME_STATE_UNIT)
+			opponent.changeState(GAME_STATE_UNIT)
 		} else if (data.id == 'select unit'){
 			opponent.unitSelected = data.unit
 		} else if (data.id == 'change state'){
 			opponent.changeState(data.state)
-			if (data.state == util.GAME_STATE_END){
-				player.changeState(util.GAME_STATE_ROLL)
-				changeUIState(util.GAME_STATE_ROLL)
+			if (data.state == GAME_STATE_END){
+				player.changeState(GAME_STATE_ROLL)
+				changeUIState(GAME_STATE_ROLL)
 			}
 		} else if (data.id == 'update pool'){
 			opponent.updatePool(data.crest, data.point)
@@ -89,14 +89,14 @@ function openConnection(c,num){
 		} else if (data.id == 'spell effect'){
 			console.log(opponent.unitSelected)
 			var spell = game.monsters[opponent.unitSelected].spells[data.spell]
-			var target = data.target != util.EMPTY ? game.monsters[data.target]: null
+			var target = data.target != EMPTY ? game.monsters[data.target]: null
 			var event = {trigger: game.monsters[opponent.unitSelected], location: data.location, target:game.monsters[data.target]};
 			spell.fire('effect',event);
 			//conn.send({id:'spell effect', spell:player.spell, location:[x,y]})
 		} else if (data.id == 'guard response'){
 			game.combat.guard(data.data)
 			game.combat.postattack()
-			changeUIState(util.GAME_STATE_UNIT)
+			changeUIState(GAME_STATE_UNIT)
 		} else if (data.id == 'damage unit'){
 			DamageUnit(data.trigger,data.target,data.damage)
 		} else if (data.id == 'apply buff'){
@@ -108,7 +108,7 @@ function openConnection(c,num){
 			opponent.endTurn();
 			game.turn++;
       player.startTurn()
-      player.changeState(util.GAME_STATE_UNIT)
+      player.changeState(GAME_STATE_UNIT)
 		}
 		sendSwitch = true;
 

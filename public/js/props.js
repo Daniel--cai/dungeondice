@@ -3,7 +3,7 @@ PROPS['Spirit Fire'] = function (point, unit){
 	var prop = new Prop("Spirit File", point,unit);
 	prop.duration = 3;
 	prop.on('collision', function(event){
-		if (event.trigger.hasBuff('Spirit Fire') != util.EMPTY) return;
+		if (event.trigger.hasBuff('Spirit Fire') != EMPTY) return;
 		ApplyBuff(prop.unit, event.trigger, BUFFS['Spirit Fire']())
 	})
 
@@ -13,8 +13,8 @@ PROPS['Spirit Fire'] = function (point, unit){
 
 	prop.on('turn', function(event){
 		var m = game.board.getUnitAtLoc(prop.x, prop.y)
-		if (m == util.EMPTY) return;
-		if (game.monsters[m].hasBuff('Spirit Fire') != util.EMPTY) return;
+		if (m == EMPTY) return;
+		if (game.monsters[m].hasBuff('Spirit Fire') != EMPTY) return;
 		console.log('reapply')
 		ApplyBuff(prop.unit, game.monsters[m], BUFFS['Spirit Fire']())
 	})
@@ -34,24 +34,37 @@ PROPS['Toxic Mushroom'] = function (point, unit){
 	return prop;
 }
 
-function Prop(name,point,unit) {
-	this.id = 0
-	//console.log(point)
-	this.x = point[0];
-	this.y = point[1];
-	this.name = name;
-	this.unit = unit ? unit : util.EMPTY;
-	this.clear = false;
-	this.exist = true;
-	this.callbacks = {}
-	this.duration = 0;
+PROPS['Magical Journey'] = function(point, unit){
+	var prop = new Prop("Magical Journey", point, unit)
+	prop.on('collision', function(event){
+		if (game.board.getUnitAtLoc(prop.final[0],prop.final[1]) != EMPTY) return false
 
-	this.on = function(event, callback){
+	})
+	return prop
+}
 
+class Prop {
+	constructor(name,point,unit){
+	//	this.id = 0
+		//console.log(point)
+
+		this.x = point[0];
+		this.y = point[1];
+		this.name = name;
+		this.unit = unit ? unit : EMPTY;
+		this.clear = false;
+		this.exist = true;
+		this.callbacks = {}
+		this.duration = 0;
+
+		this.id = game.props.length;
+		game.props.push(this)
+	}
+	on(event, callback){
 		this.callbacks[event] = callback;
 	}
 
-	this.fire = function(event){
+	fire (event){
 		if (this.exist == false) return;
 		if (!this.callbacks.hasOwnProperty(event)){
 			console.log(event, 'not implemented', this.name)
@@ -62,19 +75,35 @@ function Prop(name,point,unit) {
 		this.callbacks[event].apply(undefined, args)
 	}
 
-	this.destroy = function(){
+	destroy (){
 		//games[this.player.id].props.splice(games[this.player.id].props.indexOf(this),1)
-		//games[this.player.id].update('destroy prop', util.EMPTY, this)
+		//games[this.player.id].update('destroy prop', EMPTY, this)
 		this.exist = false;
 		this.fire('dies', {})
 		console.log('destroy')
 	}
 
-	this.id = game.props.length;
-	game.props.push(this)
-	if (player.num == game.turn%2){
-		//conn.send({id:'new prop', name:name, point:point,unit:unit.id})
+
+	render (){
+		ctx.beginPath();
+		ctx.arc(p.x*squareSize+ squareSize/2, p.y*squareSize+ squareSize/2, squareSize/4, 0, 2 * Math.PI, false);
+		if (p.unit.player.num == 0){
+			ctx.fillStyle = "#008080";
+		} else {
+			ctx.fillStyle = "#808000";
+		}
+		ctx.fill();
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = '#000000';
+		ctx.stroke();
 	}
 
-	return this;
+}
+
+function propsCollisionCheck(unit, x, y){
+	for (var j=0; j<game.props.length; j++){
+		if (game.props[j] && game.props[j].x == x && game.props[j].y == y){
+			game.props[j].fire('collision',event);
+		}
+	}
 }

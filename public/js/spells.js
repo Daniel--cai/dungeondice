@@ -1,4 +1,56 @@
+
+
+class Spell {
+	constructor(name, cost,type){
+		this.name = name;
+		this._cost = cost;
+		this.type = type
+		this.cooldown = 1
+		this.discount = 0;
+		this.type = type
+		//this.onEffect = () => console.log(this.name+'onEffect not implemented')
+		this.callbacks = {}
+	}
+
+	on(event, callback){
+		this.callbacks[event] = callback;
+	}
+
+	finish(event){
+		for (var i =0; i<event.trigger.buff.length; i++){
+			//event.trigger.buff[i].fire('spell', event)
+		}
+		//console.log('finishing spell')
+		console.log(this.cost())
+		event.trigger.player.updatePool(this.cost()[0],-this.cost()[1])
+		event.trigger.player.changeState(GAME_STATE_UNIT)
+	}
+
+	fire(event){
+		if (!this.callbacks.hasOwnProperty(event)){
+			if (event != 'learn' &&  event != 'apply'){
+				console.log(event, 'not implemented for', this.name)
+			}
+			return;
+
+		}
+		var args = Array.prototype.slice.call( arguments );
+		var topic = args.shift();
+		//console.log('topic is',topic)
+		var boolean = this.callbacks[event].apply(undefined, args)
+		if (event == 'effect'){
+			//console.log('finish',args[0], boolean)
+			if (boolean) this.finish(args[0])
+		}
+	}
+	cost(){
+		var pnt = Math.max(this._cost[1]-this.discount,0)
+		return [this._cost[0], pnt]
+	}
+}
+
 var SPELLS = {};
+
 SPELLS['Nasus'] = []
 SPELLS['Nasus'][0] = new Spell('Siphoning Strike', [CREST_ATTACK, 2], "self")
 SPELLS['Nasus'][0].on ('learn', function(event){
@@ -33,10 +85,10 @@ SPELLS['Nasus'][0].on ('learn', function(event){
 SPELLS['Lucian'] = []
 SPELLS['Lucian'][0] = new Spell("Piercing Light", [CREST_ATTACK, 2],"target")
 SPELLS['Lucian'][0].on('effect', function(event){
-	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) == util.EMPTY) return false
+	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) == EMPTY) return false
 
 	if (event.location[0] == event.trigger.x || event.location[1] == event.trigger.y){
-		//var path = util.findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
+		//var path = findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
 		var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
 		p.on('collision', function(event){
 			if (event.trigger.id == p.caster.id) return;
@@ -51,9 +103,9 @@ SPELLS['Lucian'][0].on('effect', function(event){
 
 SPELLS['Lucian'][1] = new Spell("Ardent Blaze", [CREST_MAGIC, 2],"target")
 SPELLS['Lucian'][1].on('effect',function(event){
-	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) == util.EMPTY) return false
+	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) == EMPTY) return false
 	if (event.location[0] == event.trigger.x || event.location[1] == event.trigger.y){
-		//var path = util.findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
+		//var path = findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
 		var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
 		p.on('collision', function(event){
 			if (event.trigger.id == p.caster.id) return;
@@ -74,7 +126,7 @@ SPELLS['Lucian'][2].on('learn', function(event){
 SPELLS['Lucian'][2].on('cast', function(event){
 //	console.log('casting relentless puruist')
 
-	var buff = util.EMPTY;
+	var buff = EMPTY;
 	for (var i=0; i< event.trigger.buff.length; i++){
 		if (event.trigger.buff[i].name == 'Relentless Pursuit'){
 			buff = event.trigger.buff[i];
@@ -98,12 +150,12 @@ SPELLS['Lucian'][2].on('cast', function(event){
 })
 
 SPELLS['Lucian'][2].on('effect', function(event){
-	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) != util.EMPTY) {
+	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) != EMPTY) {
 		console.log('Location not empty');
 		return false
 	}
 	var buff = event.trigger.hasBuff('Relentless Pursuit')
-	if (buff == util.EMPTY){
+	if (buff == EMPTY){
 		console.log('Unit has not learnt Relentless Pursuit');
 		return false
 	}
@@ -115,7 +167,7 @@ SPELLS['Lucian'][2].on('effect', function(event){
 	console.log('casting relentless pursuit', event.location[0],event.trigger.x ,event.location[1] , event.trigger.y)
 	if (!(event.location[0] == event.trigger.x || event.location[1] == event.trigger.y))  {console.log('Must target in a line'); return}
 
-	var path = util.findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
+	var path = findPath(game.board,[event.trigger.x,event.trigger.y],event.location);
 	console.log(path)
 	event.trigger.movement(path)
 	return true;
@@ -129,7 +181,7 @@ SPELLS['Teemo'][0] = new Spell("Blinding Dart", [CREST_ATTACK, 2],"target")
 
 SPELLS['Teemo'][0].on('effect',function(event){
 	var target = game.board.getUnitAtLoc(event.location[0],event.location[1]);
-	if (target == util.EMPTY) {console.log("Must target unit"); return false};
+	if (target == EMPTY) {console.log("Must target unit"); return false};
 	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
 	p.target = true;
 	p.on('collision', function(event){
@@ -333,57 +385,7 @@ SPELLS['Sivir'][2].on('effect', function(event){
 	return true;
 })
 
-function Spell(name, cost,type){
-	this.name = name;
-	this._cost = cost;
-	this.type = type
-	this.cooldown = 1
-	this.discount = 0;
-	this.type = type
-	//this.onEffect = () => console.log(this.name+'onEffect not implemented')
 
-	this.callbacks = {}
-	this.on = function(event, callback){
-		this.callbacks[event] = callback;
-	}
-	this.on('finish', function(event){
-		for (var i =0; i<event.trigger.buff.length; i++){
-			//event.trigger.buff[i].fire('spell', event)
-		}
-		//console.log('finishing spell')
-
-		event.trigger.player.updatePool(cost[0],-cost[1])
-		event.trigger.player.changeState(util.GAME_STATE_UNIT)
-	})
-
-	this.fire = function(event){
-		if (!this.callbacks.hasOwnProperty(event)){
-			if (event != 'learn' &&  event != 'apply'){
-				console.log(event, 'not implemented for', this.name)
-			}
-			return;
-
-		}
-		var args = Array.prototype.slice.call( arguments );
-		var topic = args.shift();
-		//console.log('topic is',topic)
-		var boolean = this.callbacks[event].apply(undefined, args)
-		if (event == 'effect'){
-			//console.log('finish',args[0], boolean)
-			if (boolean) this.fire('finish', args[0])
-		}
-	}
-
-	this.buff;
-	//SpellID++;
-
-	return this;
-}
-
-Spell.prototype.cost = function(){
-	var pnt = Math.max(this._cost[1]-this.discount,0)
-	return [this._cost[0], pnt]
-}
 
 SPELLS['Yasuo'] = []
 SPELLS['Yasuo'][0] = new Spell ("Way of the Wanderer", [CREST_MAGIC, 2], "passive")
@@ -394,7 +396,7 @@ SPELLS['Yasuo'][0].on('learn', function(event){
 SPELLS['Yasuo'][1] = new Spell ('Steel Tempest', [CREST_ATTACK, 1], "target")
 SPELLS['Yasuo'][1].on('effect',function(event){
 	//var index = event.trigger.hasBuff('Steel Tempest')
-	//if (index == util.EMPTY){
+	//if (index == EMPTY){
 	var buff = BUFFS['Steel Tempest']()
 		event.trigger.addBuff(event.trigger, buff)
 	//}
@@ -442,7 +444,7 @@ SPELLS['Kogmaw'][2] = new Spell ('Living Artillery', [CREST_MAGIC, 1], 'target')
 SPELLS['Kogmaw'][2].on('cast',function(event){
 
 	var index = event.trigger.hasBuff('Living Artillery')
-	if (index == util.EMPTY) return true;
+	if (index == EMPTY) return true;
 	//variable spell cost
 	if (event.trigger.player.pool[CREST_MAGIC] < event.trigger.buff[index].stack+1){
 		console.log('Not enough', CREST_TEXT[CREST_MAGIC], 'to cast Living Artillery')
@@ -456,7 +458,7 @@ SPELLS['Kogmaw'][2].on('effect',function(event){
 	if (!isOrthogonal([event.trigger.x,event.trigger.y],event.location)) return false
 	var index = event.trigger.hasBuff('Living Artillery')
 	console.log(index)
-	if (index == util.EMPTY){
+	if (index == EMPTY){
 		index = event.trigger.buff.length;
 		event.trigger.addBuff(event.trigger, BUFFS['Living Artillery']())
 	}
@@ -469,7 +471,7 @@ SPELLS['Kogmaw'][2].on('effect',function(event){
 	p.on('collision',function(event){
 		//console.log(p)
 		var index = p.caster.hasBuff('Living Artillery')
-		if (index == util.EMPTY) {
+		if (index == EMPTY) {
 			console.log('Living Artillery p.caster does not have buff!')
 			return;
 		}
@@ -497,7 +499,7 @@ SPELLS['Sona'][1].on('effect', function(event){
 	units.push(game.board.getUnitAtLoc(event.trigger.x,event.trigger.y+1))
 	units.push(event.trigger.id)
 	for (var i=0; i<units.length; i++){
-		if (units[i] == util.EMPTY) continue
+		if (units[i] == EMPTY) continue
 		var m = game.monsters[units[i]]
 		if (m.player.num == event.trigger.player.num){
 			m.addBuff(event.trigger, BUFFS['Hymn of Valor']())
@@ -518,7 +520,7 @@ SPELLS['Sona'][2].on('effect', function(event){
 	event.trigger.buff[event.trigger.hasBuff('Power Chord')].stack += 1;
 
 	for (var i=0; i<units.length; i++){
-		if (units[i] == util.EMPTY) continue
+		if (units[i] == EMPTY) continue
 		var m = game.monsters[units[i]]
 		if (m.player.num == event.trigger.player.num){
 			m.addBuff(event.trigger, BUFFS['Aria of Perseverance']())
@@ -534,7 +536,7 @@ SPELLS['Sona'][3].on('effect', function(event){
 	event.trigger.buff[event.trigger.hasBuff('Power Chord')].stack += 1;
 
 	for (var i=0; i<units.length; i++){
-		if (units[i] == util.EMPTY) continue
+		if (units[i] == EMPTY) continue
 		var m = game.monsters[units[i]]
 		if (m.player.num == event.trigger.player.num){
 			m.addBuff(event.trigger, BUFFS['Song of Celerity']())
@@ -587,13 +589,14 @@ SPELLS['Annie'][0].on('learn', function(event){
 	event.trigger.addBuff(event.trigger, BUFFS['Pyromania']())
 })
 
-SPELLS['Annie'][1] = new Spell ('Disintegrate', [CREST_ATTACK, 0], "target")
+SPELLS['Annie'][1] = new Spell ('Disintegrate', [CREST_MAGIC, 1], "target")
 SPELLS['Annie'][1].on('effect', function(event){
 	event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack += 1;
 	if (!event.target) return false;
 	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
 	p.target = true;
 	p.on('collision',function(event){
+		console.log('colision')
 		DamageUnit(p.caster.id, event.trigger.id, 20)
 		if (p.caster.buff[p.caster.hasBuff('Pyromania')].stack == 3){
 			p.caster.buff[p.caster.hasBuff('Pyromania')].stack = 0;
@@ -603,10 +606,43 @@ SPELLS['Annie'][1].on('effect', function(event){
 	return true;
 })
 
-SPELLS['Annie'][1] = new Spell('Molten Shield', [CREST_MAGIC,0], "self")
-SPELLS['Annie'][1].on('effect', function(event){
+SPELLS['Annie'][2] = new Spell('Molten Shield', [CREST_MAGIC,0], "self")
+SPELLS['Annie'][2].on('effect', function(event){
 	event.trigger.addBuff(event.trigger, BUFFS['Molten Shield']())
 	event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack += 1;
 	if (event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack > 3)
 		event.trigger.buff[	event.trigger.hasBuff('Pyromania')].stack = 3;
+})
+
+SPELLS['Nunu'] = []
+SPELLS['Nunu'][0] = new Spell('Visionary', ['CREST_MAGIC',1], "passive")
+SPELLS['Nunu'][0].on('learn', function(event){
+	event.trigger.addBuff(event.trigger,BUFFS['Visionary']())
+})
+
+SPELLS['Nunu'][1] = new Spell('Ice Blast', [CREST_MAGIC,2],"target")
+SPELLS['Nunu'][1].on('effect', function(event){
+	if (!event.target) return false;
+	var p = new Projectile(event.trigger.x,event.trigger.y,event.location[0],event.location[1],event.trigger )
+	p.target = true;
+	console.log(event.trigger.spells[1].cost())
+	p.on('collision',function(event){
+			DamageUnit(p.caster.id, event.trigger.id, 10)
+			event.trigger.addBuff(p.caster, BUFFS['Ice Blast']())
+			var buff = p.caster.buff[p.caster.hasBuff('Visionary')]
+			if (buff.stack == 3){
+				p.caster.spells[1].discount = 0;
+				buff.stack = 0
+			}
+
+	})
+
+	return true;
+})
+
+SPELLS['Bard'] = []
+SPELLS['Bard'][0] = new Spell ('Magical Journey', [CREST_MOVEMENT,2], "target")
+SPELLS['Bard'][0].on('effect', function(event){
+	if (game.board.getUnitAtLoc(event.location[0],event.location[1]) != EMPTY) return false;
+
 })

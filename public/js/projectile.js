@@ -1,22 +1,28 @@
-function Projectile(x,y,dx,dy,caster){
 
-  this.x = x;
-  this.y = y;
-  this._x = x;
-  this._y = y;
-  this.dx = dx;
-  this.dy = dy;
-  this.size = 30
-  this.speed = 5;
-  this.dir = 0;
-  this.img = IMAGES['Orb of Deception Sprite']
-  this.caster = caster;
-  this.collision = []
-  this.delay = 0;
-  this.clear = true;
-  this.target = false;
-  this.range = manhattanDistance({x:x, y:y}, {x:dx, y:dy});
-  this.update = function(dt){
+class Projectile{
+  constructor(x,y,dx,dy,caster){
+    this.x = x;
+    this.y = y;
+    this._x = x;
+    this._y = y;
+    this.dx = dx;
+    this.dy = dy;
+    this.size = 30
+    this.speed = 5;
+    this.dir = 0;
+    this.img = IMAGES['Orb of Deception Sprite']
+    this.caster = caster;
+    this.collision = []
+    this.delay = 0;
+    this.clear = true;
+    this.target = false;
+    this.range = manhattanDistance({x:x, y:y}, {x:dx, y:dy});
+    this.callbacks = {}
+    game.projectiles.push(this)
+  }
+
+
+  update(dt){
     if (this.delay > 0) return;
     var dx = this.dx - this.x
     var dy = this.dy - this.y
@@ -30,7 +36,7 @@ function Projectile(x,y,dx,dy,caster){
     var y = Math.floor(this._y)
     var m = game.board.getUnitAtLoc(x,y)
     var p = game.prop
-    if (m != util.EMPTY && this.collision.indexOf(m) == util.EMPTY &&
+    if (m != EMPTY && this.collision.indexOf(m) == EMPTY &&
     ((this.target && this.dx == x && this.dy == y) || !this.target)){
       this.collision.push(m)
       //console.log(m)
@@ -38,7 +44,7 @@ function Projectile(x,y,dx,dy,caster){
       for (var i =0; i<game.monsters[m].buff.length; i++){
         game.monsters[m].buff[i].fire('spell hit',{proj:this})
       }
-      if (projectiles.indexOf(this) == util.EMPTY) return;
+      if (game.projectiles.indexOf(this) == EMPTY) return;
 
       this.fire('collision', {trigger:game.monsters[m], caster:this.caster})
       this.range--;
@@ -58,12 +64,12 @@ function Projectile(x,y,dx,dy,caster){
 
   }
 
-	this.callbacks = {}
-	this.on = function(event, callback){
+
+	on(event, callback){
 		this.callbacks[event] = callback;
 	}
 
-	this.fire = function(event){
+	fire(event){
 		if (!this.callbacks.hasOwnProperty(event)){
 			return;
 		}
@@ -73,14 +79,11 @@ function Projectile(x,y,dx,dy,caster){
 		var boolean = this.callbacks[event].apply(undefined, args)
 	}
 
-  this.render = function(){
+  render(){
     ctx.drawImage(this.img, this._x*squareSize, this._y*squareSize, this.size,this.size)
   }
 
-  this.destroy = function(){
-    window.projectiles.splice(window.projectiles.indexOf(this),1)
+  destroy(){
+    game.projectiles.splice(window.projectiles.indexOf(this),1)
   }
-
-  window.projectiles.push(this)
-  return this
 }
