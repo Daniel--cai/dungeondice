@@ -83,8 +83,7 @@ function openConnection(c,num){
 			game.monsters[data.trigger].attack(game.monsters[data.target])
 			if (data.guard){
 				console.log('block damage?')
-				yesButton.hidden = false;
-				noButton.hidden = false;
+	 			disableConfirmButtons(false)
 			}
 		} else if (data.id == 'spell effect'){
 			console.log(opponent.unitSelected)
@@ -108,7 +107,7 @@ function openConnection(c,num){
 			opponent.endTurn();
 			game.turn++;
       player.startTurn()
-      player.changeState(GAME_STATE_UNIT)
+      player.changeState(GAME_STATE_ROLL)
 		}
 		sendSwitch = true;
 

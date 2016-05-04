@@ -24,18 +24,22 @@ var dicePanel = document.getElementById("diceroll");
 var playerPanel = document.getElementById("players")
 var content = document.getElementById("content")
 
+var moveButton = document.getElementById("move");
+var attackButton = document.getElementById("attack");
 
 function disableSpell(d){
-		pButton.hidden = d;
-		qButton.hidden = d;
-		wButton.hidden = d;
-		eButton.hidden = d;
-		rButton.hidden = d;
 		pButton.disabled = d;
 		qButton.disabled = d;
 		wButton.disabled = d;
 		eButton.disabled = d;
 		rButton.disabled = d;
+		d = d == true ? 'hidden': 'visible'
+		pButton.style.visibility = d;
+		qButton.style.visibility = d;
+		wButton.style.visibility = d;
+		eButton.style.visibility = d;
+		rButton.style.visibility = d;
+
 		//player.spell = util.EMPTY
 }
 
@@ -43,7 +47,7 @@ function showUnitSpells(m){
 	for (var i = 0; i<5;i++){
 		if (m.spells[i]){
 			spellButton[i].innerHTML = m.spells[i].name
-			spellButton[i].hidden = false;
+			spellButton[i].style.visibility = 'visible';
 			if (m.spells[i].type != "passive")
 			spellButton[i].disabled = false;
 		}
@@ -57,6 +61,14 @@ function showUnitSpells(m){
 }
 
 function disableButtons(a,b){
-		rollButton.disabled = a;
-		endturnButton.disabled = b;
+	a = a == true ? 'hidden' : 'visible'
+	b = b == true ? 'hidden' : 'visible'
+	rollButton.style.visibility = a;
+	endturnButton.style.visibility = b;
+}
+
+function disableConfirmButtons(a){
+	a = a == true ? 'hidden' : 'visible'
+	yesButton.style.visibility = a
+	noButton.style.visibility = a
 }

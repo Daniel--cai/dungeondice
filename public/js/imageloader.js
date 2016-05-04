@@ -13,10 +13,14 @@ for (var i=0; i<6;i++){
 	IMAGES['New Crest'].push(image)
 }
 
+
+ImageLoader('HUD', 'buttons/rollhud.png')
+
 ImageLoader('Heart', 'Health_Potion_item.png')
 ImageLoader('Sword', 'Long_Sword.png')
 ImageLoader('Heart Grey',  'Health_Potion_item_grey.png')
 ImageLoader('Shield','dshield.png')
+ImageLoader('ButtonHUD','buttons/button.png')
 
 ImageLoader('Crest', 'championstats_icons.jpg')
 ImageLoader('Lucian', 'lucian.jpg')

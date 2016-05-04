@@ -435,10 +435,7 @@ class Unit {
 		}
 
 
-			game.board.colorPath(this._path)
-
-
-
+		game.board.colorPath(this._path)
 
 		//
 		if (IMAGES[this.name+'Square']){
@@ -458,9 +455,12 @@ class Unit {
 			} else {
 					ctx.drawImage(IMAGES[this.name+'Square'],nx,ny,s,s);
 			}
+			ctx.drawImage(IMAGES['ButtonHUD'],nx,ny,s,s);
+
 		} else {
 			drawCircle(x, y,w, this.player);
 		}
+
 
 		if (player.num != this.player.num){
 			//x = boardSizeX-x-1

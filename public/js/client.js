@@ -468,19 +468,20 @@ DICES['Garen'] = new Dice(UNITS['Garen'],
 function Board(){
 	this.tiles = [];
 	this.units = [];
+	this.boardSizeX = 13;
+	this.boardSizeY = 19
 
-
-	for (var i=0; i<boardSizeY;i++){
+	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
-		for (var j=0;j<boardSizeX; j++){
-			this.tiles[i].push(0);
-			//this.tiles[i].push(EMPTY);
+		for (var j=0;j<this.boardSizeX; j++){
+			//this.tiles[i].push(0);
+			this.tiles[i].push(EMPTY);
 		}
 	}
 
-	for (var i=0; i<boardSizeY;i++){
+	for (var i=0; i<this.boardSizeY;i++){
 		this.units[i] = [];
-		for (var j=0;j<boardSizeX; j++){
+		for (var j=0;j<this.boardSizeX; j++){
 			this.units[i].push(EMPTY);
 		}
 	}
@@ -609,8 +610,7 @@ function changeUIState(state){
 	}
 
 	//UI
-	yesButton.hidden = true;
-	noButton.hidden = true;
+ disableConfirmButtons(true)
 
 
 	disableButtons(true,true)
@@ -633,6 +633,12 @@ function changeUIState(state){
 
 function flipXY(x,y){
 	return [boardSizeX-x,boardSizeY-y]
+}
+
+function drawHUD(){
+	ctx.globalAlpha = 1
+	ctx.drawImage(IMAGES['HUD'], 50,175, 400,300)
+		ctx.globalAlpha = 1
 }
 
 function drawSelection (player){
@@ -1191,8 +1197,8 @@ function responseButton(button){
 	game.combat.guard(button)
 	game.combat.postattack()
 	sendSwitch = true;
-	yesButton.hidden = true;
-	noButton.hidden = true;
+	disableConfirmButtons(true)
+
 	//socket.send(JSON.stringify({ id:'guard response', data:button}));
 }
 yesButton.addEventListener("click", function(){
@@ -1397,15 +1403,16 @@ function drawBoard(){
 	for (var i= verticalFlip ? 0 : boardSizeX-1; verticalFlip ? i< boardSizeX : i>=0 ; verticalFlip ? i++:i--){
 		for (var j= verticalFlip ? 0 : boardSizeY-1; verticalFlip ? j< boardSizeY : j>=0 ; verticalFlip ? j++:j--){
 	*/
-
+	ctx.globalAlpha = 0.5
 	for (var i = 0; i< boardSizeX; i++ ){
 		for (var j = 0; j< boardSizeY; j++ ){
 			ctx.fillStyle = "#303030";
 			ctx.strokeStyle = white
+
 			drawSquare(i*squareSize,j*squareSize);
 		}
 	}
-
+		ctx.globalAlpha = 1
 	for (var i = 0; i< boardSizeX; i++ ){
 		for (var j = 0; j< boardSizeY; j++ ){
 			var x = i,y = j
@@ -1422,14 +1429,13 @@ function drawBoard(){
 			} else if (getBoardState(i,j) == PLAYER_2){
 				ctx.fillStyle = blue;
 				ctx.strokeStyle = white
-				ctx.drawImage(IMAGES['Texture2'],x*squareSize,y*squareSize, squareSize,squareSize)
+				ctx.drawImage(IMAGES['Texture'],x*squareSize,y*squareSize, squareSize,squareSize)
 			} else {
 				continue;
 			}
-
-
 		}
 	}
+
 
 
 }
@@ -1547,7 +1553,9 @@ registerMoveEvent(
 new Event(TRIGGER_MOUSE_CLICK,
 	function(){
 		//if (game.turn%2 != player.num) return
+				console.log('check lock')
 		if (controlLock) return;
+		console.log('helsdf')
 		var x = cursorX;
 		var y = cursorY;
 		if (player.num == 1){
@@ -1555,6 +1563,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 			//y = boardSizeY-y-1
 		}
 		var u = game.board.getUnitAtLoc(x,y)
+		console.log(u, EMPTY)
 		if (player.state == GAME_STATE_UNIT){
 			if (u == EMPTY) return;
 			//console.log('unit select')
@@ -1646,7 +1655,8 @@ function drawCrest(crest, x,y, sx, sy){
 		}
 	};
 	*/
-		ctx.drawImage(IMAGES['Crest'], CrestCoord[crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
+		ctx.drawImage(IMAGES['New Crest'][crest],x,y,sx,sy)
+		//ctx.drawImage(IMAGES['Crest'][crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
 	/*
 	if (crest == CREST_SUMMON){
 		ctx.drawImage(IMAGES['Crest'],143,229,35,35, x, y, sx, sy);
@@ -1671,7 +1681,7 @@ var time;
 
 function drawUIFrame(){
 	ctx.globalAlpha = 1
-	ctx.drawImage(IMAGES['Runeterra'], 0,0, canvas.width,canvas.height)
+	//ctx.drawImage(IMAGES['Runeterra'], 0,0, canvas.width,canvas.height)
 	ctx.globalAlpha = 1
 	var w = 20;
 	/*
@@ -1699,6 +1709,7 @@ function drawUIFrame(){
 
 function drawProjectile(dt){
 	for (var i = game.projectiles.length-1; i>=0; i--){
+		var p =
 		game.projectiles[i].update(dt)
 		game.projectiles[i].render()
 	}
@@ -1883,11 +1894,11 @@ function drawCrestPool(player,x,y){
 	ctx.globalAlpha = 0.6
 	ctx.fillRect(-20,-20, 100,200)
 	ctx.globalAlpha = 1
+	ctx.lineWidth =1
 	ctx.strokeRect(-20,-20, 100,200)
 	for (var i=0; i<5; i++){
 		drawCrest(i,0,i*(size+gap), size,size)
 		ctx.fillStyle = white
-
 
 		ctx.font = ""+textsize+"px Arial"
 		ctx.fillText(player.pool[i], size+10,i*(size+gap)+textsize+5)
@@ -1949,15 +1960,16 @@ function wrapText(text, x, y, maxWidth, lineHeight) {
 }
 
 function drawUnitHUD(dt){
-	var	m = getUnitOnCursor(cursorX,cursorY);
-	if (m){
+	if (player.unitSelected != EMPTY){
+		var	m = game.monsters[player.unitSelected];
 		//setStatePanelText(m)
+		/*
 		if (m.player.num == player.num){
 			canvas.style.cursor = "pointer";
 		} else if (player.state == GAME_STATE_SELECT){
 			canvas.style.cursor = "crosshair";
 		}
-
+		*/
 		//buffs
 		var skip = 0;
 		for (var i =0; i<m.buff.length; i++){
@@ -1981,6 +1993,7 @@ function drawUnitHUD(dt){
 		if (IMAGES[m.name]){
 				ctx.drawImage(IMAGES[m.name],415+150,0);
 		}
+		ctx.drawImage(IMAGES['ButtonHUD'],415+150,0,110,200)
 
 		ctx.strokeStyle = white;
 		ctx.fillStyle = black
@@ -2018,6 +2031,7 @@ function drawUnitHUD(dt){
 			if (IMAGES[m.spells[i].name]){
 					//console.log(i)
 					ctx.drawImage(IMAGES[m.spells[i].name],415+150,200+i*60+20,40,40)
+					ctx.drawImage(IMAGES['ButtonHUD'],415+150,200+i*60+20,40,40)
 					ctx.fillStyle = black;
 					ctx.strokeStyle = white;
 					ctx.globalAlpha = 0.6
@@ -2060,6 +2074,7 @@ function render(){
 	drawBoard();
 	drawUnits(dt);
 	drawProps();
+	if (player.state == GAME_STATE_ROLL) drawHUD()
 	drawButton()
 	drawDiceSelection();
 	drawDicePattern();
