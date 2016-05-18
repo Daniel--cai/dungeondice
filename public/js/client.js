@@ -474,8 +474,8 @@ function Board(){
 	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
-			//this.tiles[i].push(0);
-			this.tiles[i].push(EMPTY);
+			this.tiles[i].push(0);
+			//this.tiles[i].push(EMPTY);
 		}
 	}
 
@@ -1224,6 +1224,15 @@ rButton.addEventListener("click", function(){
 	spellButtonEffect(4)
 })
 
+moveButton.addEventListener("click", function(){
+	player.changeActionState(ACTION_STATE_MOVE)
+})
+
+attackButton.addEventListener("click", function(){
+	player.changeActionState(ACTION_STATE_ATTACK)
+})
+
+
 cancelButton.addEventListener("click", function(){
 	player.spell = -1;
 	disableSpell(false)
@@ -1372,21 +1381,6 @@ function setDicePanelText(text){
 	dicePanel.innerHTML = text;
 }
 
-function setStatePanelText(m){
-	var text = "";
-	if (m){
-		//var mt = m.type;
-		var hpheart = "";
-		for (var i=0;i<m.hp;i=i+10){
-			hpheart += heartImg;
-		}
-		text =  "<b>"+ m.name + "</b><br>" +
-				"<b>HP</b> : "  + hpheart +"<br>" +
-				"<b>ATK</b> : " + m.atk +"<br>" +
-				"<b>DEF</b> : " + m.def +"<br>"
-	}
-	statPanel.innerHTML = text;
-}
 
 
 function drawBoard(){
@@ -1553,24 +1547,18 @@ registerMoveEvent(
 new Event(TRIGGER_MOUSE_CLICK,
 	function(){
 		//if (game.turn%2 != player.num) return
-				console.log('check lock')
 		if (controlLock) return;
-		console.log('helsdf')
+		console.log('check lock')
 		var x = cursorX;
 		var y = cursorY;
 		if (player.num == 1){
 			//x = boardSizeX-x-1
 			//y = boardSizeY-y-1
 		}
-		var u = game.board.getUnitAtLoc(x,y)
-		console.log(u, EMPTY)
-		if (player.state == GAME_STATE_UNIT){
-			if (u == EMPTY) return;
-			//console.log('unit select')
-     		//socket.send(JSON.stringify({id:'mouse click', data:{state: 'select', loc:[x, y]}}))
-   		player.selectUnit(x, y)
-
-    } else if (player.state == GAME_STATE_SELECT){
+		console.log(ActionClass[player.actionstate])
+		ActionClass[player.actionstate].fire('click',{})
+		/*
+    if (player.state == GAME_STATE_SELECT){
  				if (player.spell != EMPTY){
      			console.log('cast',player.spell)
 					var spell = game.monsters[player.unitSelected].spells[player.spell]
@@ -1618,6 +1606,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 				}
      		//socket.send(JSON.stringify({id:'tile place',data:{loc:[x, y]} }))
 		}
+		*/
 		//render();
 	});
 
@@ -2090,7 +2079,6 @@ function render(){
 
 	//====
 	canvas.style.cursor = "default";
-	setStatePanelText("")
 	//var m = game.monsters[player.unitSelected]
 	//if (!m){
 
@@ -2116,24 +2104,15 @@ function render(){
 		//console.log(player.diceButtonFocus)
 		m = player.dices[player.diceButtonFocus].type;
 		//DicePattern.push(player.dices[b.id]);
-		setStatePanelText(m)
+		//setStatePanelText(m)
 	}
 	ctx.translate(-boardXPadding,-boardYPadding)
 	drawAnimation(dt);
 
 }
 
-
-
-//socket.on('guard trigger', function(){
-//	console.log("to guarding");
-//})
-
 var PLAYER_ID = -1;
 
-//if (PLAYER_ID.isPlaying()) {
-//	//PLAYER_ID.nextState();
-//}
 var main = function(){
 	//requestAnimationFrame(main);
 	//printCursor();

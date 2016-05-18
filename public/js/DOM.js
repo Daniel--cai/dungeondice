@@ -16,16 +16,29 @@ var qButton = document.getElementById('button2');
 var wButton = document.getElementById('button3');
 var eButton = document.getElementById('button4');
 var rButton = document.getElementById('button5');
+
+var attackButton = document.getElementById('attack');
+var attackButton = document.getElementById('move');
+
 var spellButton = [pButton, qButton, wButton, eButton, rButton]
 
 var statPanel = document.getElementById("stat");
 var crestPanel = document.getElementById("crest");
 var dicePanel = document.getElementById("diceroll");
 var playerPanel = document.getElementById("players")
-var content = document.getElementById("content")
+var content = document.getElementById("uipanel")
 
 var moveButton = document.getElementById("move");
 var attackButton = document.getElementById("attack");
+
+
+function disableAction(boolean){
+	d = boolean == false ? 'hidden': 'visible'
+	moveButton.style.visibility = d
+	attackButton.style.visibility = d
+	d = boolean == true ? 'hidden': 'visible'
+	cancelButton.style.visibility = d
+}
 
 function disableSpell(d){
 		pButton.disabled = d;

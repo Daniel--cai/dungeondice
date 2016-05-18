@@ -23,6 +23,8 @@ class Player {
 		this.rolled = false;
 		this.spell = EMPTY;
 
+		this.actionstate = 0
+
 		this.valid = false;
 		this.dices = [DICES['Lucian'],DICES['Lucian'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],
 									DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],
@@ -31,6 +33,11 @@ class Player {
 		this.diceButtonFocus = -1;
 
 		this.spell = EMPTY;
+	}
+
+	changeActionState(state){
+		this.actionstate = state;
+		console.log('Action:',state)
 	}
 
 	animateDice(crest,delay){

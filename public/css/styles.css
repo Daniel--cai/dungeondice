@@ -14,7 +14,8 @@
 }
 
 body {
- background:url(../assets/img/runeterra.png)
+ background:url(../assets/img/runeterra.png);
+ margin: 0;
 }
 
 
@@ -27,7 +28,7 @@ td {
 	/*width:200px;*/
 }
 .ui {
-	width: 100px;
+	/*width: 100px;*/
 }
 
 

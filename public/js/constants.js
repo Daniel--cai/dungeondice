@@ -52,6 +52,11 @@ GAME_STATE_SELECT = 4;
 GAME_STATE_END = 5;
 GAME_STATE_NEUTRAL = 6;
 
+ACTION_STATE_NEUTRAL = 0;
+ACTION_STATE_ATTACK = 1;
+ACTION_STATE_MOVE = 2;
+ACTION_STATE_SPELL = 3;
+
 PLAYER_1 = 0;
 PLAYER_2 = 1;
 
@@ -284,6 +289,10 @@ function findStraightPath(pathStart, pathEnd){
 function drawSquare(x,y){
 	ctx.fillRect(x,y,squareSize,squareSize);
 	ctx.strokeRect(x,y,squareSize,squareSize);
+}
+
+function getPixel(x,y){
+  return [x*squareSize, y*squareSize]
 }
 
 validPlacement = function(player,selection){

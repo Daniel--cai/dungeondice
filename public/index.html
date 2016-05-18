@@ -9,48 +9,31 @@
 <body>
 	<div id= "players"></div>
  	<div id= "diceroll"></div>
-	 <table id="content">
-	 	<tr><td colspan="3">
-	 	<canvas id="games" width="640" height="640" style="border:1px solid #000000;"></canvas></td></tr>
-    <button type="button" id= "attack" class="button button-orange">Attack</button>
-    <button type="button" id= "move" class="button button-orange">Move</button>
+  	<canvas id="games" style="border:1px solid #000000;"></canvas>
 
-	  <tr>
-	  	<td id="uipanel"><table id='hudpanel'>
+	  	<div id="uipanel">
+	    <button type="button" id= "roll" class="button button-orange">Roll</button>
+	    <button type="button" id= "endturn" class="button button-orange">End</button>
+	    <button type="button" id= "yesguard" class="button button-orange">Yes</button>
+	    <button type="button" id= "noguard" class="button button-orange">No</button>
 
-	    	<tr><td><button type="button" id= "roll" class="button button-orange">Roll</button></td></tr>
-	    	<tr><td><button type="button" id= "endturn" class="button button-orange">End</button></td></tr>
-	    	<tr>
-	    		<td><button type="button" id= "yesguard" class="button button-orange">Yes</button></td>
-	    		<td><button type="button" id= "noguard" class="button button-orange">No</button></td>
-	    	</tr>
-	    	<tr>
-	    		<td colspan="3">
-          <button type="button" id= "button1" class="button button-orange">1</button>
-	    		<button type="button" id= "button2" class="button button-orange">2</button>
-	    		<button type="button" id= "button3" class="button button-orange">3</button>
-	    		<button type="button" id= "button4" class="button button-orange">4</button>
-	    		<button type="button" id= "button5" class="button button-orange">5</button></td>
-	    	</tr>
-	    	<tr>
-	    		<td><button type="button" id= "cancel" class="ui">Cancel</button></td>
-	    	</tr>
-	    	</table></td>
-	    <td>
-	    	<div id= "crest"></div>
+      <button type="button" id= "button1" class="button button-orange">1</button>
+  		<button type="button" id= "button2" class="button button-orange">2</button>
+  		<button type="button" id= "button3" class="button button-orange">3</button>
+  		<button type="button" id= "button4" class="button button-orange">4</button>
+  		<button type="button" id= "button5" class="button button-orange">5</button>
 
-	    </td>
-	    <td>
-	    	<div id= "stat"></div>
-	    </td>
 
-	  </tr>
-	</table>
+      <button type="button" id= "move" class="button button-orange">Move</button>
+      <button type="button" id= "cancel" class="button button-orange">Cancel</button>
+      <button type="button" id= "attack" class="button button-orange">Attack</button>
+  </div>
 	<script src="js/peer.min.js"></script>
-
+  <script src="js/constants.js"></script>
   <script src="js/multiplayer.js"></script>
+  <script src="js/actions.js"></script>
   <script src="js/DOM.js"></script>
-	<script src="js/constants.js"></script>
+
   <script src="js/spelldescriptions.js"></script>
   <script src="js/projectile.js"></script>
   <script src="js/players.js"></script>
