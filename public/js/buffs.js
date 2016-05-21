@@ -1,6 +1,30 @@
 
 var BUFFS = {}
 
+function Buff(name, duration){
+	this.name = name;
+	this.duration = duration;
+	//this.durationcounter = duration;
+	this.owner = null;
+	this.callbacks = {}
+	this.on = function(event, callback){
+		this.callbacks[event] = callback;
+	}
+
+	this.fire = function(event){
+		if (!this.callbacks.hasOwnProperty(event)){
+			//if (event != 'apply')
+			//console.log(event, 'not implemented for', this.name)
+			return;
+
+		}
+		var args = Array.prototype.slice.call( arguments );
+		var topic = args.shift();
+		this.callbacks[event].apply(undefined, args)
+	}
+	return this;
+}
+
 BUFFS['Stunned'] = function(){
 	var buff = new Buff('Stunned', 2);
 	return buff;

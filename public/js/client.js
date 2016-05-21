@@ -1,9 +1,3 @@
-//var socket = io();
-
-
-//var player1;
-//var player2;
-
 var playernum = 0;
 
 var sendSwitch = true;
@@ -12,113 +6,23 @@ var sendSwitch = true;
 
 var ctx = canvas.getContext("2d");
 content.hidden = true;
-cancelButton.hidden = true
-
+//cancelButton.hidden = true
 
 var animation = []
-var projectiles = []
 var controlLock = false;
-var initUnit = 0;
 
 //var boardSizeX = 13;
 canvas.width = 1200;
 canvas.height = 680;
-
-function Buff(name, duration){
-	this.name = name;
-	this.duration = duration;
-	//this.durationcounter = duration;
-	this.owner = null;
-	this.callbacks = {}
-	this.on = function(event, callback){
-		this.callbacks[event] = callback;
-	}
-
-	this.fire = function(event){
-		if (!this.callbacks.hasOwnProperty(event)){
-			//if (event != 'apply')
-			//console.log(event, 'not implemented for', this.name)
-			return;
-
-		}
-		var args = Array.prototype.slice.call( arguments );
-		var topic = args.shift();
-		this.callbacks[event].apply(undefined, args)
-	}
-	return this;
-}
-
-var BUFF_stun = new Buff("Stunned", 1);
-var BUFF_silence = new Buff("Silenced", 1);
-var BUFF_root = new Buff("Root", 1);
-var BUFF_knock_up = new Buff("Knock Up", 1);
-
-function BUFF_SLOW(unit, movement){
-	//games[unit.player.id].update('impairment', EMPTY, {unit: unit.id, point:movement})
-}
-/*
-function ApplyBuff (caster, target, buff){
-	if (!caster) {console.log('caster null'); return false}
-	if (!target) {console.log('target null'); return false}
-	if (!buff) {console.log('buff null'); return false}
-	for (var i = 0; i<target.buff.length; i++){
-		if (target.buff[i].name == buff.name){
-			target.buff.splice(i,1);
-			break;
-		}
-	}
-	target.buff.push(buff);
-	buff.owner = caster.id;
-	if (sendSwitch){
-		//conn.send({id:'apply buff', caster:caster.id, target:target.id, buff: buff.name})
-	}
-	return true
-	//console.log(buff.name)
-	//games[target.player.id].update('buff unit',target.player.num, {target:target, buff:buff.name})
-}
-*/
 
 
 function getRandomInt(min, max) {
 	return Math.floor(Math.random() * (max - min)) + min;
 }
 
-
-
-
-
-
-//var socket = new WebSocket(location.origin.replace(/^http/, 'ws'));
 var socketid;
 
 
-
-function rotateShape(shape,rotate){
-	shape = shapes[shape];
-	cshape = [[0,0],[0,0],[0,0],[0,0], [0,0],[0,0]]
-	if (rotate == 0){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = shape[i][0];
-			cshape[i][1] = shape[i][1];
-		}
-	} else if (rotate == 1){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = -shape[i][1];
-			cshape[i][1] = -shape[i][0]
-		}
-	} else if (rotate == 2){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = -shape[i][0];
-			cshape[i][1] = -shape[i][1];
-		}
-	} else if (rotate == 3){
-		for (var i=0; i<6; i++){
-			cshape[i][0] = shape[i][1];
-			cshape[i][1] = shape[i][0]
-		}
-	}
-	return cshape;
-}
 
 function HealUnit(trig,targ,damage){
 	if (targ == -1 || targ == null) {
@@ -301,36 +205,26 @@ function Game(){
 			cursorX = Math.floor((e.pageX-boardXPadding)/squareSize);
 		  cursorY = Math.floor((e.pageY-boardYPadding)/squareSize);
 
-		    Event_Button_Focus(e.pageX-boardXPadding, e.pageY-boardYPadding);
+		  EventButtonFocus(e.pageX-boardXPadding, e.pageY-boardYPadding);
 
 			if (prevX == cursorX && prevY == cursorY){
 				return;
 			}
 
-			for (var i=0; i< EVENT_LIST.length; i++){
-				//console.log(EVENT_LIST[i].action);
-				if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_MOVE) {
-					//render();
-					EVENT_LIST[i].action();
 
-					//render();
-				}
-			}
+
+			var event = {unit:getUnitById(game.board.getUnitAtLoc(cursorX,cursorY)), location: [cursorX,cursorY]}
+
+			ActionClass[player.actionstate].fire('move', event)
 		});
 		canvas.addEventListener("click", function(e){
 			//if (PLAYER_ID.id != currentPlayer.id)
 			//	return;
-			Event_Button_Click(e.pageX- boardXPadding, e.pageY-boardYPadding);
+			EventButtonClick(e.pageX- boardXPadding, e.pageY-boardYPadding);
 
-			for (var i=0; i<EVENT_LIST.length; i++){
-				//console.log(EVENT_LIST[i].action);
-				if (EVENT_LIST[i].enabled && EVENT_LIST[i].trigger == TRIGGER_MOUSE_CLICK) {
-					//render();
-					EVENT_LIST[i].action();
-					//render()
-					//render();
-				}
-			}
+			//ActionClass[player.actionstate].fire('click',{location:[e.pageX- boardXPadding, e.pageY-boardYPadding]})
+			var event = {unit:getUnitById(game.board.getUnitAtLoc(cursorX,cursorY)), location: [cursorX,cursorY]}
+			ActionClass[player.actionstate].fire('click', event)
 		});
 
 		//var u1 = game.createUnit(player, UNIT_IDS[0], [4,16]) //teemo
@@ -474,8 +368,8 @@ function Board(){
 	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
-			this.tiles[i].push(0);
-			//this.tiles[i].push(EMPTY);
+			//this.tiles[i].push(0);
+			this.tiles[i].push(EMPTY);
 		}
 	}
 
@@ -590,19 +484,8 @@ function changeUIState(state){
 
 	disableSpell(true)
 	rollButton.hidden = true;
-
+	ActionClass[ACTION_STATE_ROLL].fire('enter')
 	for (i=0;i<15;i++) DicePool[i].hidden = true;
-	if (state == GAME_STATE_ROLL){
-		rollButton.hidden = false;
-
-		for (i=0;i<15;i++) DicePool[i].reset();
-		for (i=0; i<15; i++){
-			//console.log(i)
-			if (player.dices[i]){
-				DicePool[i].hidden = false;
-			}
-		}
-	}
   if (state == GAME_STATE_END){
   	disableButtons(true,true)
 		//for (i=0;i<15;i++) Buttons[i].reset();
@@ -697,7 +580,7 @@ function drawPath(){
 	ctx.globalAlpha = 1.0;
 }
 
-var Buttons = [];
+
 
 //var AlertText = "";
 
@@ -807,116 +690,16 @@ function drawDicePattern(){
 
 }
 function changeCursor(cursor){
-	console.log("sdf");
 	canvas.style.cursor = cursor;
 
-	//body.cursor = cursor;
-}
-
-var Event_Button_Focus = function(x,y){
-	//player.diceButtonFocus = -1
-	for (var i=0;i<Buttons.length; i++){
-		var b = Buttons[i];
-		if (b.hidden) continue;
-		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
-			b._onFocus(x,y);
-		} else {
-			b._onUnfocus(x,y);
-
-		}
-
-	}
-	//render();
-
 }
 
 
 
-var Event_Button_Click = function(x,y){
 
-	for (var i=0;i<Buttons.length; i++){
-		var b = Buttons[i];
-		if (b.hidden) continue;
-		if (x >= b.x && x <= b.sx+b.x && y >= b.y && y <= b.sy+b.y) {
-			if (b.onClick) b.onClick(x,y)
-		}
-	}
 
-}
 
 var summonToggle;
-
-function Button(id, img, x, y,sx,sy,unit){
-	this.rx = x;
-	this.ry = y;
-	this.x = x;
-	this.y = y;
-
-	this.sx = sx;
-	this.sy = sy;
-	//console.log(this.sx,this.sy)
-	this.hidden = false;
-	this.toggle = false;
-	this.focus = false;
-	this.unfocus = false;
-	this.id = id;
-	this.img = img;
-	this.unit = unit;
-	//this.unit = unit;
-
-	this.reset = function(){
-		this.toggle = false;
-		this.focus = false;
-		this.unfocus = false
-		//icePattern = [];
-	}
-
-	this._onFocus = function(x,y){
-		if (this.focus) return;
-		if (this.onFocus) this.onFocus();
-		this.focus = true;
-		//console.log(x,y, b.x, b.y, b.wx, b.hy)
-		if (player.state == GAME_STATE_ROLL){
-			//changeCursor("pointer")
-
-			//console.log(this.id)
-			//DicePattern = [];
-			//DicePattern.push(player.dices[0])
-
-		}
-		//render();
-
-	}
-	this._onUnfocus = function(x,y){
-		if (!this.focus) return;
-		if (this.onUnfocus) this.onUnfocus()
-		this.focus = false;
-		//if (this.toggle) return;
-		//changeCursor("default")
-		//changeCursor("pointer")
-		if (player.state == GAME_STATE_ROLL){
-			//DicePattern = [];
-		}
-		//render();
-	}
-
-	this.img = img;
-	//this
-			//ctx.drawImage(IMAGES['ButtonFrame'],this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod)
-		//} else {
-			/*
-			drawCrest(CREST_SUMMON, this.rx,this.ry, this.sx, this.sy)
-			ctx.fillStyle = black;
-			var lvl = player.dices[this.id].pattern[0][1]
-			ctx.fillText(lvl,this.rx+15,this.ry+21);
-			ctx.drawImage(IMAGES['ButtonFrame'],this.rx,this.ry,this.sx, this.sy)
-			*/
-		//}
-		//ctx.globalAlpha = 1;
-	Buttons.push(this);
-	return this;
-}
-
 var DicePool = []
 var DiceSelection = []
 var DiceButtonSize = 40;
@@ -1179,7 +962,7 @@ function spellButtonEffect(button){
 		var event = {trigger:game.monsters[player.unitSelected]}
 		if (game.monsters[player.unitSelected].spells[button].fire('cast', event)){
 			disableSpell(true)
-			cancelButton.hidden = false;
+			//cancelButton.hidden = false;
 		}
 
 
@@ -1209,36 +992,28 @@ noButton.addEventListener("click", function(){
 	responseButton(0)
 })
 
-qButton.addEventListener("click", function(){
-	spellButtonEffect(1)
-})
-
-wButton.addEventListener("click", function(){
-	spellButtonEffect(2)
-})
-
-eButton.addEventListener("click", function(){
-	spellButtonEffect(3)
-})
-rButton.addEventListener("click", function(){
-	spellButtonEffect(4)
-})
 
 moveButton.addEventListener("click", function(){
-	player.changeActionState(ACTION_STATE_MOVE)
+	ActionClass[ACTION_STATE_MOVE].fire('button')
+	//player.changeActionState(ACTION_STATE_MOVE)
 })
 
 attackButton.addEventListener("click", function(){
-	player.changeActionState(ACTION_STATE_ATTACK)
+	ActionClass[ACTION_STATE_ATTACK].fire('button')
+	//player.changeActionState(ACTION_STATE_ATTACK)
 })
 
 
 cancelButton.addEventListener("click", function(){
 	player.spell = -1;
 	disableSpell(false)
-	cancelButton.hidden = true;
-	var m = game.monsters[player.unitSelected]
-	player.movePath = findPossiblePath([m.x, m.y],player.getCrestPool(CREST_MOVEMENT)-m.impairment)
+
+	//cancelButton.hidden = true;
+	//var m = game.monsters[player.unitSelected]
+	player.movePath = []
+	player.changeActionState(ACTION_STATE_NEUTRAL)
+	disableAction(false,false,true)
+	//player.movePath = findPossiblePath([m.x, m.y],player.getCrestPool(CREST_MOVEMENT)-m.impairment)
 })
 
 
@@ -1347,8 +1122,10 @@ rollButton.addEventListener("click", function(){
 */
 	if( player.summon != 0 ) {
 		player.changeState(GAME_STATE_SUMMON);
+		player.changeActionState(ACTION_STATE_SUMMON)
 	} else {
 		player.changeState(GAME_STATE_UNIT)
+		player.changeActionState(ACTION_STATE_NEUTRAL)
 	}
     //socket.send(JSON.stringify({id:'c_roll', data:data}));
 })
@@ -1505,10 +1282,6 @@ function Event(trigger, action){
 }
 
 
-function registerClickEvent(action){
-	return new Event(TRIGGER_MOUSE_CLICK,action)
-}
-
 function registerMoveEvent(condition, action){
 	return new Event(TRIGGER_MOUSE_MOVE,action)
 }
@@ -1549,14 +1322,15 @@ new Event(TRIGGER_MOUSE_CLICK,
 		//if (game.turn%2 != player.num) return
 		if (controlLock) return;
 		console.log('check lock')
-		var x = cursorX;
-		var y = cursorY;
+		//var x = cursorX;
+		//var y = cursorY;
 		if (player.num == 1){
 			//x = boardSizeX-x-1
 			//y = boardSizeY-y-1
 		}
-		console.log(ActionClass[player.actionstate])
-		ActionClass[player.actionstate].fire('click',{})
+		//console.log(ActionClass[player.actionstate])
+	//	var event = {unit:getUnitById(game.board.getUnitAtLoc(cursorX,cursorY)), location: [cursorX,cursorY]}
+	//	ActionClass[player.actionstate].fire('click', event)
 		/*
     if (player.state == GAME_STATE_SELECT){
  				if (player.spell != EMPTY){
@@ -1703,6 +1477,8 @@ function drawProjectile(dt){
 		game.projectiles[i].render()
 	}
 }
+
+
 
 function drawAnimation(dt){
 	var splice = [];
@@ -1904,7 +1680,7 @@ function drawText(msg, font, x,y){
 	ctx.fillText(msg,x,y);
 }
 
-
+/*
 function drawDiceSelection(){
 	if (player.state != GAME_STATE_ROLL) return;
 	for (var i=0; i<DiceSelection.length; i++){
@@ -1926,7 +1702,7 @@ function drawDiceSelection(){
 		ctx.fillText(lvl,x+txgap,y+tygap);
 	}
 }
-
+*/
 
 function wrapText(text, x, y, maxWidth, lineHeight) {
   var words = text.split(' ');
@@ -2065,7 +1841,8 @@ function render(){
 	drawProps();
 	if (player.state == GAME_STATE_ROLL) drawHUD()
 	drawButton()
-	drawDiceSelection();
+	ActionClass[player.actionstate].fire('render')
+	//drawDiceSelection();
 	drawDicePattern();
 	drawSelection(player);
 	drawSelection(opponent);
@@ -2112,9 +1889,3 @@ function render(){
 }
 
 var PLAYER_ID = -1;
-
-var main = function(){
-	//requestAnimationFrame(main);
-	//printCursor();
-
-}

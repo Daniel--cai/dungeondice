@@ -11,16 +11,9 @@ var noButton = document.getElementById('noguard');
 //var attackButton = document.getElementById('attack');
 //var abilityButton = document.getElementById('ability');
 var cancelButton = document.getElementById('cancel');
-var pButton = document.getElementById('button1');
-var qButton = document.getElementById('button2');
-var wButton = document.getElementById('button3');
-var eButton = document.getElementById('button4');
-var rButton = document.getElementById('button5');
-
-var attackButton = document.getElementById('attack');
-var attackButton = document.getElementById('move');
-
-var spellButton = [pButton, qButton, wButton, eButton, rButton]
+var spellButton = [0,1,2,3,4].map(function (i){
+	return document.getElementById('button'+i);
+})
 
 var statPanel = document.getElementById("stat");
 var crestPanel = document.getElementById("crest");
@@ -32,28 +25,25 @@ var moveButton = document.getElementById("move");
 var attackButton = document.getElementById("attack");
 
 
-function disableAction(boolean){
-	d = boolean == false ? 'hidden': 'visible'
-	moveButton.style.visibility = d
-	attackButton.style.visibility = d
-	d = boolean == true ? 'hidden': 'visible'
-	cancelButton.style.visibility = d
+for (let i = 1; i < spellButton.length; i++){
+	spellButton[i].addEventListener("click", function(){
+		spellButtonEffect(i)
+	})
 }
 
-function disableSpell(d){
-		pButton.disabled = d;
-		qButton.disabled = d;
-		wButton.disabled = d;
-		eButton.disabled = d;
-		rButton.disabled = d;
-		d = d == true ? 'hidden': 'visible'
-		pButton.style.visibility = d;
-		qButton.style.visibility = d;
-		wButton.style.visibility = d;
-		eButton.style.visibility = d;
-		rButton.style.visibility = d;
+function disableAction(move,attack,cancel){
+	moveButton.style.visibility = move == true ? 'hidden': 'visible'
+	attackButton.style.visibility = attack == true ? 'hidden': 'visible'
+	cancelButton.style.visibility = cancel == true ? 'hidden': 'visible'
+}
 
-		//player.spell = util.EMPTY
+
+function disableSpell(d){
+		var hidden = d == true ? 'hidden': 'visible'
+		for (var i = 0; i<5; i++){
+			spellButton[i].disabled = d;
+			spellButton[i].style.visibility = hidden;
+		}
 }
 
 function showUnitSpells(m){
@@ -65,12 +55,6 @@ function showUnitSpells(m){
 			spellButton[i].disabled = false;
 		}
 	}
-	/*
-	if (m.spells[4]){
-		passiveButton.innerHTML = game.monsters[m].spells[4].name
-		passiveButton.disabled = true
-	}
-	*/
 }
 
 function disableButtons(a,b){

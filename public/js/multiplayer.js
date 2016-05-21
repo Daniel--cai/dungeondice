@@ -42,7 +42,9 @@ function openConnection(c,num){
 			game.createUnit(opponent,UNITS['Nunu'],[4,15])
 			player.startTurn()
 
-			player.changeState(GAME_STATE_UNIT)
+
+			player.changeState(GAME_STATE_ROLL)
+			player.changeActionState(ACTION_STATE_ROLL)
 		} else {
 			player.state = GAME_STATE_END
 			changeUIState(GAME_STATE_END)
@@ -108,6 +110,7 @@ function openConnection(c,num){
 			game.turn++;
       player.startTurn()
       player.changeState(GAME_STATE_ROLL)
+			player.changeActionState(ACTION_STATE_ROLL)
 		}
 		sendSwitch = true;
 

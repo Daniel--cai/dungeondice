@@ -37,6 +37,8 @@ class Player {
 
 	changeActionState(state){
 		this.actionstate = state;
+		disableAction(true,true,true)
+		ActionClass[state].fire('enter')
 		console.log('Action:',state)
 	}
 
@@ -66,7 +68,6 @@ class Player {
 
 	updateShape(x,y){
 		if (this.summonchoice == EMPTY) return;
-
 		var shape = [];
 		var cshape = rotateShape(this.shape,this.rotate);
 		for (var i=0; i<cshape.length; i++){
@@ -104,7 +105,7 @@ class Player {
 		this.tileSelected = []
 		this.spell = -1;
 		changeUIState(state)
-
+		this.changeActionState(ACTION_STATE_NEUTRAL)
 	}
 
 	startTurn(){
@@ -117,8 +118,6 @@ class Player {
 	}
 
 	endTurn(){
-		//sockets[this.id].send(JSON.stringify({data:'alert', data:"End Phase"}));
-		//console.log('end turn')
 
 		for (var i=0;i<game.monsters.length; i++){
 			for (var j=0; j<game.monsters[i].buff.length;j++){
@@ -136,7 +135,6 @@ class Player {
 					}
 				}
 				//buff.fire('turn',{trigger:game.monsters[i]})
-
 			}
 		}
 		for (var i=0; i<game.props.length; i++){
@@ -150,13 +148,11 @@ class Player {
 			p.fire('turn',{trigger:p})
 		}
 
-		for (var i=0;i<projectiles.length;i++){
-			var p = projectiles[i]
+		for (var i=0;i<game.projectiles.length;i++){
+			var p = game.projectiles[i]
 			//console.log(p.delay)
 			p.delay--
 		}
-
-
 
 
 		this.changeState(GAME_STATE_END);
@@ -223,25 +219,22 @@ class Player {
 
 		var m = game.monsters[game.board.getUnitAtLoc(x,y)]
 		if (m.hasBuff('Stunned') != EMPTY) return;
-
 		if (this.unitSelected == m.id) {
 
 			this.changeState(GAME_STATE_UNIT);
 			conn.send({id:'select unit', unit:EMPTY})
 
-		} else if (m.player.num==this.num){
+		} else {
 			this.changeState(GAME_STATE_SELECT);
-
-			player.movePath = findPossiblePath([m.x, m.y],player.getCrestPool(CREST_MOVEMENT)-m.impairment)
-			console.log('impairment cost',player.getCrestPool(CREST_MOVEMENT)-m.impairment)
 			this.unitSelected = m.id;
+
 			conn.send({id:'select unit', unit:m.id})
-			//animation.push({type:'message', text:'End Phase', color:red,x:-200,y:250,speed:1000,  duration:2})
-			disableSpell(true)
-			if (player.num == this.num){
-				showUnitSpells(m)
-			}
 			console.log('Unit selected:', m.id)
+			if (m.player.num == this.num){
+				disableSpell(true)
+				showUnitSpells(m)
+				disableAction(false,false,true)
+			}
 			return true
 		}
 		return false;

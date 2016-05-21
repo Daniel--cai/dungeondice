@@ -56,6 +56,10 @@ ACTION_STATE_NEUTRAL = 0;
 ACTION_STATE_ATTACK = 1;
 ACTION_STATE_MOVE = 2;
 ACTION_STATE_SPELL = 3;
+ACTION_STATE_ROLL = 4;
+ACTION_STATE_SUMMON = 5;
+ACTION_STATE_RESPONSE = 6;
+ACTION_STATE_AWAITING = 7;
 
 PLAYER_1 = 0;
 PLAYER_2 = 1;
@@ -112,6 +116,10 @@ getTileState = function (x,y){
 //  game.board.tiles[point[1]][point[0]] = state;
 //}
 
+getUnitById = function(id){
+  if (id == EMPTY) return null
+  return game.monsters[id]
+}
 
 
 validWalk = function(x, y){
@@ -246,6 +254,10 @@ function getUnitsInRange(x,y,radius){
 
 }
 
+function getAdjacentTiles(x,y){
+  return [[x+1,y],[x-1,y], [x,y+1],[x,y-1]]
+}
+
 function getAdjacentUnits(unit){
   var units = []
   units.push(game.board.getUnitAtLoc(unit.x+1,unit.y))
@@ -296,40 +308,59 @@ function getPixel(x,y){
 }
 
 validPlacement = function(player,selection){
-  //var cshape;
-  //if (!selection){
-  //  cshape = rotateShape(shape,rotate)
-  //} else {
-  //  cshape = selection;
-  //  console.log("known selection")
-  //}
-    //var selection = player.tileSelected;
-    if (!selection){
-      return false;
-    }
-
-    if (selection.length <= 0){
-      return false;
-    }
-
-    var valid = false;
-    for (var i=0; i<6; i++){
-      //boundaries
-      //console.log(selection)
-      x = selection[i][0];
-      y = selection[i][1];
-      //console.log('hello ',x,y,this.tiles[18][6],util.getTileState(this,x,y));
-      if (!boundCursor(x,y) || getTileState(x,y) != EMPTY){
-        return false;
-      }
-      //adjacent
-      if (getTileState(x+1,y) == player.num ||
-        getTileState(x-1,y) == player.num ||
-        getTileState(x,y-1) == player.num ||
-        getTileState(x,y+1) == player.num ){
-        valid = true;
-      }
-    }
-
-    return valid;
+  if (!selection){
+    return false;
   }
+
+  if (selection.length <= 0){
+    return false;
+  }
+
+  var valid = false;
+  for (var i=0; i<6; i++){
+    //boundaries
+    //console.log(selection)
+    x = selection[i][0];
+    y = selection[i][1];
+    //console.log('hello ',x,y,this.tiles[18][6],util.getTileState(this,x,y));
+    if (!boundCursor(x,y) || getTileState(x,y) != EMPTY){
+      return false;
+    }
+    //adjacent
+    if (getTileState(x+1,y) == player.num ||
+      getTileState(x-1,y) == player.num ||
+      getTileState(x,y-1) == player.num ||
+      getTileState(x,y+1) == player.num ){
+      valid = true;
+    }
+  }
+
+  return valid;
+}
+
+function rotateShape(shape,rotate){
+	shape = shapes[shape];
+	cshape = [[0,0],[0,0],[0,0],[0,0], [0,0],[0,0]]
+	if (rotate == 0){
+		for (var i=0; i<6; i++){
+			cshape[i][0] = shape[i][0];
+			cshape[i][1] = shape[i][1];
+		}
+	} else if (rotate == 1){
+		for (var i=0; i<6; i++){
+			cshape[i][0] = -shape[i][1];
+			cshape[i][1] = -shape[i][0]
+		}
+	} else if (rotate == 2){
+		for (var i=0; i<6; i++){
+			cshape[i][0] = -shape[i][0];
+			cshape[i][1] = -shape[i][1];
+		}
+	} else if (rotate == 3){
+		for (var i=0; i<6; i++){
+			cshape[i][0] = shape[i][1];
+			cshape[i][1] = shape[i][0]
+		}
+	}
+	return cshape;
+}
