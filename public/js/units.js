@@ -181,9 +181,8 @@ class Unit {
 		this.exist = true;
 		this.impairment = 0;
 		this.spells = type.spells;
-		this._path = [];
+		this.path = [];
 		this._buffer = []
-		this._path = []
 		if (level != null) this.level = level;
 	}
 
@@ -359,57 +358,7 @@ class Unit {
 		this.y = y;
 	}
 
-	_finish(){
-		var move = this._path[0];
-		this.animx = move[0];
-		this.animy = move[1];
-		//this.x = move[0];
-		//this.y = move[1];
-
-		this.setLoc(move[0],move[1])
-		//game.setUnitAtLoc(EMPTY,[this.x, this.y])
-		//game.setUnitAtLoc(this.id,path[path.length-1])
-
-		this._path.shift();
-
-		var event = {trigger: this, location: this.path}
-		for (var j=0; j<game.props.length; j++){
-			if (game.props[j] && game.props[j].x == move[0] && game.props[j].y == move[1]){
-				game.props[j].fire('collision',event);
-			}
-		}
-	//	console.log('_finish')
-	}
-
-	update(dt){
-		if (this._path.length == 0) return
-		controlLock = true
-		var move = this._path[0];
-		//console.log(move)
-		var dx = move[0]- this.animx;
-		var dy = move[1] -this.animy ;
-		var ms = 2;
-		//console.log(this.x, this.y)
-	//	console.log('upating!')
-		if (dx != 0){
-
-				this.animx = this.animx + dx/Math.abs(dx)*ms*dt;
-				if (dx > 0 && this.animx >= move[0] || dx < 0 && this.animx <= move[0]){
-					this._finish()
-				}
-		} else if (dy != 0){
-			this.animy = this.animy + dy/Math.abs(dy)*ms*dt;
-			if (dy > 0 && this.animy >= move[1] || dy < 0 && this.animy <= move[1]){
-				this._finish()
-			}
-
-		} else {
-			this._finish()
-		}
-		//console.log(this.animx,this.animy)
-	}
-
-	render(){
+	render(x,y){
 		var w = 1;
 		//p = getCurrentPlayer()
 		var bordersize = 0;
@@ -417,8 +366,8 @@ class Unit {
 			w = 3;
 			bordersize = 6;
 		}
-		var x = this.animx
-		var y = this.animy
+		//var x = this.animx
+		//var y = this.animy
 
 		ctx.fillStyle = black;
 		if (this.player.num == 1){
@@ -435,7 +384,7 @@ class Unit {
 		}
 
 
-		game.board.colorPath(this._path)
+		game.board.colorPath(this.path)
 
 		//
 		if (IMAGES[this.name+'Square']){
@@ -472,6 +421,26 @@ class Unit {
 
 	}
 
+	setBoardXY(x,y){
+		console.assert(x != undefined, 'setBoardXY: null X value',x)
+		console.assert(y != undefined,'setBoardXY: null Y value',y)
+		game.board.units[y][x] = this.id;
+	}
+
+	setXY(x,y){
+		//console.log(x,y)
+		this.x = x
+		this.y = y
+		this.animx = x
+		this.animy = y
+		var event = {trigger: this, location: [x,y]}
+		for (var j=0; j<game.props.length; j++){
+			if (game.props[j] && game.props[j].x == x && game.props[j].y == y){
+				game.props[j].fire('collision',event);
+			}
+		}
+	}
+
 	movement(path, forced){
 			//console.log('exist is ', this.exist)
 			//var m = game.monsters[this.id]
@@ -481,13 +450,13 @@ class Unit {
 			}
 			//var game = games[this.player.id]
 			//console.log(this.x, this.y, loc)
-			var board = game.board
+
 			//var path = findPath(board,[m.x,m.y],loc);
-			var plen = path.length;
 
 			//console.log(plen-1,'<=',this.impairment + getCrestPool(this.player,CREST_MOVEMENT))
 			//console.log(getCrestPool(this.player,CREST_MOVEMENT))
 			//if (plen > 1 && plen-1 <= this.getCrestPool(CREST_MOVEMENT) - m.impairment) {
+			/*
 			if (!forced){
 				var finish = function(m, path){
 					//console.log('finished!', path)
@@ -497,11 +466,11 @@ class Unit {
 							m.buff[i].fire('move',event);
 					}
 				}
-			}
+			}*/
 			//animation.push({type:'move unit', unit:this, path:path , px:this.x, py:this.y, speed:5, duration:200, onfinish:finish, args:[this,path]})
-			this._path = path;
-			//game.setUnitAtLoc(EMPTY,[this.x, this.y])
-			//game.setUnitAtLoc(this.id,path[path.length-1])
+			new Move(this, path)
+			this.path = path;
+
 	}
 
 }

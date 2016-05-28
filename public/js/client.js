@@ -171,8 +171,7 @@ function Combat(unit, target){
 		this.unit.hasAttacked = true;
 		this.unit.player.updatePool(CREST_ATTACK, -this.unit.atkcost);
 		this.unit.player.animateDice(CREST_ATTACK)
-		this.unit.player.changeState(GAME_STATE_UNIT)
-		//this.target.player.changeState(GAME_STATE_NEUTRAL);
+		this.unit.player.changeActionState(ACTION_STATE_NEUTRAL)
 		//update(game);
 	}
 
@@ -246,12 +245,8 @@ function Game(){
 				this.board.setTileState([x,y],player.num);
 			}
 			//this.tileSelected = [];
-			if (sendSwitch){
-				conn.send({id:'make selection'})
-			}
-			player.changeState(GAME_STATE_UNIT)
+			player.tileSelected = []
 			return true;
-
 		}
 		//console.log('return fasle')
 		return false
@@ -368,8 +363,8 @@ function Board(){
 	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
-			//this.tiles[i].push(0);
-			this.tiles[i].push(EMPTY);
+			this.tiles[i].push(0);
+			//this.tiles[i].push(EMPTY);
 		}
 	}
 
@@ -476,53 +471,21 @@ var game;
 
 function changeUIState(state){
 	console.log('Phase',GAME_STATE_TEXT[state])
-	if (state == GAME_STATE_COMBAT){
-			player.movePath = []
-			disableButtons(true,true)
-			return;
-	}
 
 	disableSpell(true)
 	rollButton.hidden = true;
-	ActionClass[ACTION_STATE_ROLL].fire('enter')
 	for (i=0;i<15;i++) DicePool[i].hidden = true;
-  if (state == GAME_STATE_END){
-  	disableButtons(true,true)
-		//for (i=0;i<15;i++) Buttons[i].reset();
-		DiceSelection = [];
-	}
 
 	//UI
- disableConfirmButtons(true)
-
-
+ 	disableConfirmButtons(true)
 	disableButtons(true,true)
-
-	if (player.state == GAME_STATE_SUMMON ){
-		/*
-		for (i=0;i<15;i++) DicePool[i].reset();
-		console.log('summon', player.summon)
-		for (i=0;i<player.summon.length;i++) {
-			DicePool[player.summon[i]].toggle = true;
-			DicePool[player.summon[i]].focus = true;
-		}
-		*/
-	} else if (player.state == GAME_STATE_SELECT ||
-		player.state == GAME_STATE_UNIT) {
-		disableButtons(true,false)
-	}
-
 }
 
 function flipXY(x,y){
 	return [boardSizeX-x,boardSizeY-y]
 }
 
-function drawHUD(){
-	ctx.globalAlpha = 1
-	ctx.drawImage(IMAGES['HUD'], 50,175, 400,300)
-		ctx.globalAlpha = 1
-}
+
 
 function drawSelection (player){
 	var selection = player.tileSelected;
@@ -565,7 +528,7 @@ function drawSelection (player){
 
 function drawPath(){
 	//movePathSelection = player.movePath;
-	if (player.state != GAME_STATE_SELECT) return;
+
 	//var movePathSelection = movePath;
 	//console.log(movePathSelection)
 
@@ -637,58 +600,12 @@ function drawAlert(){
 	ctx.globalAlpha = 1;
 }
 
-function drawButton(){
-	/*
-	var grd = ctx.createLinearGradient(0, 0.000,0, 300);
-	grd.addColorStop(0.3, 'rgba(255, 235, 204, 1.000)');
-	grd.addColorStop(1.000, 'rgba(255, 153, 0,1)');
-
-	//ctx.fillStyle = grd;
-	ctx.strokeStyle = white;
-	ctx.fillRect(0,200,canvas.width*0.5,canvas.height*0.4);
-	ctx.strokeRect(0,200,canvas.width*0.5,canvas.height*0.4)
-		*/
-
-	for (var i=0;i<Buttons.length;i++){
-		ctx.globalAlpha = 1
-		if (!Buttons[i].hidden) Buttons[i].render()
-	}
-
-}
 
 
 
 var DicePattern;
 
-function drawDicePattern(){
-	var count = 0
-	var xpad = 110;
-	var ypad = 260
-	var xgap = 30;
-	var txgap =9;
-	var tygap =20;
-	if (DicePattern == null) return;
-	for (var j=0; j<6; j++){
-		var p = DicePattern.pattern[j];
-		//console.log(p[0])
 
-		//drawCrest(p[0], xpad +j*30, ypad + i*30, 25, 25)
-		ctx.fillStyle = white
-		ctx.strokeStyle = black
-		ctx.drawImage(IMAGES['New Crest'][p[0]],xpad +j*xgap, ypad, 25, 25)
-		ctx.font = "bolder 20px Arial ";
-		ctx.lineWidth = 1;
-		//if (p[0] == 5) {
-			ctx.fillText(p[1],xpad + j* xgap+txgap ,ypad+ tygap);
-			ctx.strokeText(p[1],xpad + j* xgap+txgap ,ypad + tygap);
-		//} else {
-		//	ctx.fillText("x"+p[1],xpad + j* 28+20,ypad+35);
-		//	ctx.strokeText("x"+p[1],xpad + j* 28+20,ypad+35);
-		//}
-
-	}
-
-}
 function changeCursor(cursor){
 	canvas.style.cursor = cursor;
 
@@ -714,20 +631,19 @@ for (var i=0; i<3; i++){
 		b.onUnfocus = function(){
 			if (player.diceButtonFocus == this.id){
 				player.diceButtonFocus = -1
-				DicePattern = null
+				player.dicePattern = null
 			}
 
 		}
 		b.onFocus = function(){
-			//if (player.state != GAME_STATE_ROLL) return
 
 			player.diceButtonFocus = this.id
-			DicePattern = player.dices[this.id]
+			player.dicePattern = player.dices[this.id]
 			//console.log(DicePattern)
 		}
 
 		b.onClick = function(x,y){
-			if (player.state != GAME_STATE_ROLL) return;
+			if (player.actionstate != ACTION_STATE_ROLL) return;
 			if (this.toggle){
 				this.toggle = false;
 				DiceSelection.splice(DiceSelection.indexOf(this),1);
@@ -766,7 +682,7 @@ for (var i=0; i<3; i++){
 
 			if (this.toggle){
 				ctx.globalAlpha = 0.5;
-				if (player.state == GAME_STATE_ROLL){
+				if (player.actionstate == ACTION_STATE_ROLL){
 					ctx.fillStyle = black;
 				}
 				ctx.fillRect(this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod);
@@ -791,7 +707,7 @@ for (var i=0; i<3; i++){
 for (var i=0;i<3;i++){
 	var b = new Button(i, IMAGES['New Crest'][CREST_SUMMON], 100+boardXPadding + 75*i,150+boardYPadding,50,50)
 	b.onClick = function(x,y){
-		if (player.state != GAME_STATE_SUMMON) return;
+		if (player.actionstate != ACTION_STATE_SUMMON) return;
 		if (player.tileSelected.length > 0 ) return;
 		player.summonchoice = DiceSelection[this.id].id;
 		console.log('summoinining', player.summonchoice)
@@ -863,7 +779,7 @@ addEventListener("keypress", function(e){
 		//keysDown[e.keyCode] = true;
 		//console.log(e.charCode);
 		if (!game) return
-		if (player.state != GAME_STATE_SUMMON) return;
+		if (player.actionstate != ACTION_STATE_SUMMON) return;
 		if (e.charCode == 122){
 			socket.send(JSON.stringify({id:'rotate shape'}));
 		} else if (e.charCode == 99){
@@ -939,7 +855,6 @@ function updateCrest(pool){
 
 
 function spellButtonEffect(button){
-	if (player.state != GAME_STATE_SELECT) return;
 	var spell = game.monsters[player.unitSelected].spells[button]
 	var name = game.monsters[player.unitSelected].name
 	if (!spell) return
@@ -970,26 +885,12 @@ function spellButtonEffect(button){
 
 }
 
-function responseButton(button){
-	conn.send({id:'guard response', data:button})
-	sendSwitch = false;
-	if (!game.combat){
-		console.log('Error: null combat')
-		return;
-	}
-	game.combat.guard(button)
-	game.combat.postattack()
-	sendSwitch = true;
-	disableConfirmButtons(true)
-
-	//socket.send(JSON.stringify({ id:'guard response', data:button}));
-}
 yesButton.addEventListener("click", function(){
-	responseButton(1)
+	ActionClass[ACTION_STATE_RESPONSE].fire('response',{response:1, combat: game.combat})
 })
 
 noButton.addEventListener("click", function(){
-	responseButton(0)
+	ActionClass[ACTION_STATE_RESPONSE].fire('response',{response:0, combat: game.combat})
 })
 
 
@@ -1071,7 +972,7 @@ rollButton.addEventListener("click", function(){
 			SummonPool[i].hidden = false;
 		}
 
-		for (var i =0; i <3; i++){
+		for (let i =0; i <3; i++){
 			animation.push({
 				effect:'grow', image:IMAGES['New Crest'][result[i][0]],
 				x:x+i*dx,y:y, dx:0,dy:0, sx:size, sy:size,
@@ -1121,10 +1022,8 @@ rollButton.addEventListener("click", function(){
 
 */
 	if( player.summon != 0 ) {
-		player.changeState(GAME_STATE_SUMMON);
 		player.changeActionState(ACTION_STATE_SUMMON)
 	} else {
-		player.changeState(GAME_STATE_UNIT)
 		player.changeActionState(ACTION_STATE_NEUTRAL)
 	}
     //socket.send(JSON.stringify({id:'c_roll', data:data}));
@@ -1244,9 +1143,9 @@ var drawUnits = function(dt) {
 		//console.log(game.monsters[i]);
 		var m = game.monsters[i];
 		if (!m.exist) continue
-		m.update(dt)
-		m.render()
+		//m.update(dt)
 		//ctx.drawImage('assets/img/LucianSquare.png',x,y)
+		m.render(m.animx, m.animy)
 		//
 
 	}
@@ -1302,7 +1201,7 @@ registerMoveEvent(
 
 		//remove comment
 		//if (game.turn%2 != player.num) return
-		if (player.state != GAME_STATE_SUMMON) return
+		if (player.actionstate != ACTION_STATE_SUMMON) return
 		if (boundCursor(cursorX,cursorY))
 		//player.cursorX = data.X;
 		//player.cursorY = data.Y;
@@ -1316,7 +1215,7 @@ registerMoveEvent(
 
 
 
-
+/*
 new Event(TRIGGER_MOUSE_CLICK,
 	function(){
 		//if (game.turn%2 != player.num) return
@@ -1331,7 +1230,7 @@ new Event(TRIGGER_MOUSE_CLICK,
 		//console.log(ActionClass[player.actionstate])
 	//	var event = {unit:getUnitById(game.board.getUnitAtLoc(cursorX,cursorY)), location: [cursorX,cursorY]}
 	//	ActionClass[player.actionstate].fire('click', event)
-		/*
+
     if (player.state == GAME_STATE_SELECT){
  				if (player.spell != EMPTY){
      			console.log('cast',player.spell)
@@ -1380,10 +1279,10 @@ new Event(TRIGGER_MOUSE_CLICK,
 				}
      		//socket.send(JSON.stringify({id:'tile place',data:{loc:[x, y]} }))
 		}
-		*/
+
 		//render();
 	});
-
+*/
 
 
 var middle = false;
@@ -1478,11 +1377,22 @@ function drawProjectile(dt){
 	}
 }
 
-
-
 function drawAnimation(dt){
-	var splice = [];
+	if (Animation.list == null) return
+	for (let i = Animation.list.length-1; i>=0; i--){
+		var anim = Animation.list[i]
+		if (anim.finished()){
+			Animation.list.splice(i,1)
+			continue
+		}
+		anim.update(dt)
+		anim.render()
+	}
+}
 
+function drawAnimations(dt){
+
+	var splice = [];
 	for (var i=0;i<animation.length;i++){
 		var a = animation[i];
 		if (a.delay) a.delay -= dt;
@@ -1490,50 +1400,6 @@ function drawAnimation(dt){
 
 		if (a.type == 'tile place'){
 			//console.log(player.tileSelected)
-		} else if (a.type == 'move unit'){
-			//console.log(a.path)
-			if (a.path.length > 0 && a.unit.exist){
-				var move = a.path[0];
-				var dx = move[0] - a.px;
-				var dy = move[1] - a.py ;
-				//console.log(dx,dy)
-				//console.log(this.animx,move[0])
-				//console.log(this.y,move[1])
-				var finish = false;
-				if (dx != 0){
-						a.unit.animx = a.unit.animx + dx/Math.abs(dx)*a.speed*dt;
-						//console.log(dx/Math.abs(dx)*a.speed*dt)
-						if (dx > 0 && a.unit.animx >= move[0] || dx < 0 && a.unit.animx <= move[0]){
-							finish = true;
-						}
-				} else if (dy != 0){
-					a.unit.animy = a.unit.animy + dy/Math.abs(dy)*a.speed*dt;
-					if (dy > 0 && a.unit.animy >= move[1] || dy < 0 && a.unit.animy <= move[1]){
-							finish = true;
-					}
-				} else {
-					console.log('same location')
-					finish = true;
-				}
-				if (finish){
-					a.path.shift();
-					a.unit.animx = move[0];
-					a.unit.animy = move[1];
-
-
-
-					var event = {trigger: a.unit, location: move}
-					for (var j=0; j<game.props.length; j++){
-						if (game.props[j] && game.props[j].x == move[0] && game.props[j].y == move[1]){
-							game.props[j].fire('collision',event);
-						}
-					}
-					splice.push(i)
-					animation.push({type:'move unit', unit:a.unit, path:a.path , px:move[0], py:move[1], speed:a.speed, duration:200})
-				}
-			} else {
-				splice.push(i)
-			}
 		} else if (a.type == 'dice'){
 			//animation.push({id:'dice', speed:0.1, accel:1, x:50,y:50, size:50,delay:0.5, duration:2, index:0)
 				if (a.speed < 20)
@@ -1839,11 +1705,8 @@ function render(){
 	drawBoard();
 	drawUnits(dt);
 	drawProps();
-	if (player.state == GAME_STATE_ROLL) drawHUD()
-	drawButton()
 	ActionClass[player.actionstate].fire('render')
 	//drawDiceSelection();
-	drawDicePattern();
 	drawSelection(player);
 	drawSelection(opponent);
 	drawPath();
@@ -1853,6 +1716,7 @@ function render(){
 	drawCrestPool(opponent,425,400);
 	//updateCrest(player.pool);
 	drawProjectile(dt)
+
 
 	//====
 	canvas.style.cursor = "default";
@@ -1877,12 +1741,6 @@ function render(){
 		}
 	}*/
 
-	if (player.diceButtonFocus != EMPTY){
-		//console.log(player.diceButtonFocus)
-		m = player.dices[player.diceButtonFocus].type;
-		//DicePattern.push(player.dices[b.id]);
-		//setStatePanelText(m)
-	}
 	ctx.translate(-boardXPadding,-boardYPadding)
 	drawAnimation(dt);
 

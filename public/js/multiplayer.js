@@ -40,14 +40,14 @@ function openConnection(c,num){
 			game.createUnit(opponent,UNITS['Garen'],[1,16])
 			game.createUnit(opponent,UNITS['Kogmaw'],[4,17])
 			game.createUnit(opponent,UNITS['Nunu'],[4,15])
+			//var a = new Move(game.monsters[10], [[2,16],[2,15],[2,14],[2,13],[2,12]])
 			player.startTurn()
 
 
-			player.changeState(GAME_STATE_ROLL)
-			player.changeActionState(ACTION_STATE_ROLL)
+			//player.changeState(GAME_STATE_UNIT)
+			player.changeActionState(ACTION_STATE_NEUTRAL)
 		} else {
-			player.state = GAME_STATE_END
-			changeUIState(GAME_STATE_END)
+			player.changeActionState(ACTION_STATE_END)
 		}
 
 		//console.log(window.player)
@@ -61,15 +61,9 @@ function openConnection(c,num){
 			game.monsters[data.unit].movement(data.path)
 			opponent.updatePool(CREST_MOVEMENT,-Math.max(+data.path.length-1+game.monsters[data.unit].impairment,1))
 			opponent.animateDice(CREST_MOVEMENT)
-			opponent.changeState(GAME_STATE_UNIT)
+			opponent.changeActionState(GAME_STATE_NEUTRAL)
 		} else if (data.id == 'select unit'){
 			opponent.unitSelected = data.unit
-		} else if (data.id == 'change state'){
-			opponent.changeState(data.state)
-			if (data.state == GAME_STATE_END){
-				player.changeState(GAME_STATE_ROLL)
-				changeUIState(GAME_STATE_ROLL)
-			}
 		} else if (data.id == 'update pool'){
 			opponent.updatePool(data.crest, data.point)
 		} else if (data.id == 'update tile'){
@@ -109,7 +103,6 @@ function openConnection(c,num){
 			opponent.endTurn();
 			game.turn++;
       player.startTurn()
-      player.changeState(GAME_STATE_ROLL)
 			player.changeActionState(ACTION_STATE_ROLL)
 		}
 		sendSwitch = true;

@@ -47,12 +47,19 @@ function disableSpell(d){
 }
 
 function showUnitSpells(m){
-	for (var i = 0; i<5;i++){
-		if (m.spells[i]){
-			spellButton[i].innerHTML = m.spells[i].name
-			spellButton[i].style.visibility = 'visible';
-			if (m.spells[i].type != "passive")
-			spellButton[i].disabled = false;
+	if (!m){
+
+		for (var i =0; i<5; i++){
+			spellButton[i].style.visibility = 'hidden';
+		}
+	} else {
+		for (var i = 0; i<5;i++){
+			if (m.spells[i]){
+				spellButton[i].innerHTML = m.spells[i].name
+				spellButton[i].style.visibility = 'visible';
+				if (m.spells[i].type != "passive")
+				spellButton[i].disabled = false;
+			}
 		}
 	}
 }

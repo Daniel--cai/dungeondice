@@ -42,7 +42,7 @@ black = "#000000"
 //boardSizeY= 19;
 
 const boardSizeX = 13;
-const boardSizeY= 19;
+const boardSizeY = 19;
 
 GAME_STATE_ROLL = 0;
 GAME_STATE_SUMMON = 1;
@@ -60,6 +60,7 @@ ACTION_STATE_ROLL = 4;
 ACTION_STATE_SUMMON = 5;
 ACTION_STATE_RESPONSE = 6;
 ACTION_STATE_AWAITING = 7;
+ACTION_STATE_END = 8
 
 PLAYER_1 = 0;
 PLAYER_2 = 1;

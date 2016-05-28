@@ -22,6 +22,7 @@ class Player {
 		this.movePath = []
 		this.rolled = false;
 		this.spell = EMPTY;
+		this.dicePattern
 
 		this.actionstate = 0
 
@@ -35,12 +36,6 @@ class Player {
 		this.spell = EMPTY;
 	}
 
-	changeActionState(state){
-		this.actionstate = state;
-		disableAction(true,true,true)
-		ActionClass[state].fire('enter')
-		console.log('Action:',state)
-	}
 
 	animateDice(crest,delay){
 		var size = 25
@@ -93,21 +88,37 @@ class Player {
   		return this.pool[crest]
 	}
 
+	resetState(){
+		this.movePath = []
+		this.tileSelected = []
+		this.spell = -1;
+
+		showUnitSpells()
+		disableSpell(true)
+		disableAction(true,true,true)
+		disableConfirmButtons(true)
+	}
+
+	changeActionState(state){
+		this.actionstate = state;
+		this.resetState()
+		ActionClass[state].fire('enter')
+		console.log('Action:',ActionClass[state]._name)
+
+	}
+
+
+	/*
 	changeState(state){
-		//var game = games[this.id]
-		//console.log('change state')
-		//console.log(game.combat)
+
 		this.state = state;
 		if (state != GAME_STATE_COMBAT){
 			this.unitSelected = EMPTY;
 		}
-		this.movePath = []
-		this.tileSelected = []
-		this.spell = -1;
-		changeUIState(state)
-		this.changeActionState(ACTION_STATE_NEUTRAL)
+		//changeUIState(state)
+		this.changeActionState(state)
 	}
-
+*/
 	startTurn(){
 		for (var i=0;i<game.monsters.length; i++){
 			for (var j=0; j<game.monsters[i].buff.length;j++){
@@ -155,7 +166,7 @@ class Player {
 		}
 
 
-		this.changeState(GAME_STATE_END);
+		this.changeActionState(ACTION_STATE_END);
 		this.rolled = false;
 		this.summon = [];
 		this.summonchoice = EMPTY;
@@ -173,7 +184,6 @@ class Player {
 				game.monsters[i].canAttacked = true;
 			}
 		}
-		//this.changeState(GAME_STATE_ROLL);
 	}
 
 	onRoll(data){
@@ -220,21 +230,15 @@ class Player {
 		var m = game.monsters[game.board.getUnitAtLoc(x,y)]
 		if (m.hasBuff('Stunned') != EMPTY) return;
 		if (this.unitSelected == m.id) {
-
-			this.changeState(GAME_STATE_UNIT);
+			this.unitSelected = EMPTY
+			this.changeActionState(ACTION_STATE_NEUTRAL);
 			conn.send({id:'select unit', unit:EMPTY})
 
 		} else {
-			this.changeState(GAME_STATE_SELECT);
 			this.unitSelected = m.id;
-
 			conn.send({id:'select unit', unit:m.id})
 			console.log('Unit selected:', m.id)
-			if (m.player.num == this.num){
-				disableSpell(true)
-				showUnitSpells(m)
-				disableAction(false,false,true)
-			}
+			ActionClass[ACTION_STATE_NEUTRAL].fire('button',{unit:m})
 			return true
 		}
 		return false;

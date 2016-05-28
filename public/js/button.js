@@ -33,13 +33,6 @@ class Button {
 		if (this.onFocus) this.onFocus();
 		this.focus = true;
 		//console.log(x,y, b.x, b.y, b.wx, b.hy)
-		if (player.state == GAME_STATE_ROLL){
-			//changeCursor("pointer")
-
-			//console.log(this.id)
-			//DicePattern = [];
-			//DicePattern.push(player.dices[0])
-		}
 		//render();
 
 	}
@@ -69,7 +62,6 @@ var EventButtonFocus = function(x,y){
 			b.onFocus(x,y);
 		} else {
 			b.onUnfocus(x,y);
-
 		}
 	}
 }
