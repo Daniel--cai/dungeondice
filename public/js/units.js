@@ -326,7 +326,7 @@ class Unit {
 		}
 		if (target.player.getCrestPool(CREST_DEFENSE) > 0){
 			console.log('waiting for opponent..guard')
-			player.changeState(GAME_STATE_COMBAT)
+			player.changeActionState(ACTION_STATE_RESPONSE)
 			//game.combat.guard();
 		} else {
 			console.log('post attack')

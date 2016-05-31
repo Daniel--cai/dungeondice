@@ -91,7 +91,7 @@ function openConnection(c,num){
 		} else if (data.id == 'guard response'){
 			game.combat.guard(data.data)
 			game.combat.postattack()
-			changeUIState(GAME_STATE_UNIT)
+			//changeUIState(GAME_STATE_UNIT)
 		} else if (data.id == 'damage unit'){
 			DamageUnit(data.trigger,data.target,data.damage)
 		} else if (data.id == 'apply buff'){

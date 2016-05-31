@@ -5,7 +5,7 @@ class Player {
 		this.num;
 		this.pool = [5,5,5,5,5]
 
-		this.state = GAME_STATE_END;
+		//this.state = GAME_STATE_END;
 		//this.actionstate = PLAYER_STATE_NEUTRAL;
 		this.summon = [];
 		this.summonlevel = 0;

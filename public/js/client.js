@@ -469,6 +469,7 @@ var selectedUnit = EMPTY;
 
 var game;
 
+/*
 function changeUIState(state){
 	console.log('Phase',GAME_STATE_TEXT[state])
 
@@ -480,7 +481,7 @@ function changeUIState(state){
  	disableConfirmButtons(true)
 	disableButtons(true,true)
 }
-
+*/
 function flipXY(x,y){
 	return [boardSizeX-x,boardSizeY-y]
 }
@@ -1213,78 +1214,6 @@ registerMoveEvent(
 
 	});
 
-
-
-/*
-new Event(TRIGGER_MOUSE_CLICK,
-	function(){
-		//if (game.turn%2 != player.num) return
-		if (controlLock) return;
-		console.log('check lock')
-		//var x = cursorX;
-		//var y = cursorY;
-		if (player.num == 1){
-			//x = boardSizeX-x-1
-			//y = boardSizeY-y-1
-		}
-		//console.log(ActionClass[player.actionstate])
-	//	var event = {unit:getUnitById(game.board.getUnitAtLoc(cursorX,cursorY)), location: [cursorX,cursorY]}
-	//	ActionClass[player.actionstate].fire('click', event)
-
-    if (player.state == GAME_STATE_SELECT){
- 				if (player.spell != EMPTY){
-     			console.log('cast',player.spell)
-					var spell = game.monsters[player.unitSelected].spells[player.spell]
-					var m = game.board.getUnitAtLoc(x,y)
-					var target = m != EMPTY ? game.monsters[m] : null
-					//console.log(target.name)
-					var event = {trigger: game.monsters[player.unitSelected], location: [x,y], target:target};
-					conn.send({id:'spell effect', spell:player.spell, location:[x,y], target:m})
-					spell.fire('effect',event);
-
-     		} else if (u == EMPTY){
-					console.log('moving unit')
-     			//socket.send(JSON.stringify({id:'mouse click', data:{state:'move', loc:[x, y]}}))
- 					if (game.board.getTileState(x, y) != EMPTY){
-	 					//console.log('moving')
-									console.log('tile state')
-						var m = game.monsters[player.unitSelected]
-						var path = findPath([m.x,m.y],[x,y]);
-						var plen = path.length
-						if (plen > 1 && plen-1 <= player.getCrestPool(CREST_MOVEMENT) - m.impairment) {
-
-	 						m.movement(path)
-							conn.send({id:'move unit', unit:m.id, path:path})
-							//console.log(m.impairment)
-							player.updatePool(CREST_MOVEMENT,-Math.max(plen-1+m.impairment,1))
-							player.animateDice(CREST_MOVEMENT)
-							player.changeState(GAME_STATE_UNIT)
-						}
-					}
-     		} else if (game.monsters[u].player.num == player.num){
-					//console.log('u not null')
-     			player.selectUnit(x, y)
-				} else if (game.monsters[u].player.num != player.num){
-					console.log('atacking')
-					game.monsters[player.unitSelected].attack(game.monsters[u])
-				}
-    } else if (player.state == GAME_STATE_SUMMON){
-				if (game.makeSelection(player)){
-					game.createUnit(player,player.dices[player.summonchoice].type,[x,y])
-					//DicePool[player.summonchoice].hidden = true;
-					player.dices[player.summonchoice] = null;
-					//SummonPool = []
-					player.changeState(GAME_STATE_UNIT);
-
-				}
-     		//socket.send(JSON.stringify({id:'tile place',data:{loc:[x, y]} }))
-		}
-
-		//render();
-	});
-*/
-
-
 var middle = false;
 
 
@@ -1299,41 +1228,7 @@ var then
 
 var CrestCoord = [[290,100],[72,32],[217,35],[144,34],[217,163],[143,229]]
 function drawCrest(crest, x,y, sx, sy){
-	//var size = wx;
-	/*
-	if (img_crest_rdy) {
-		if (crest == CREST_SUMMON){
-			ctx.drawImage(img_crest,0,0,58,58, x, y, sx, sy);
-		} else if (crest == CREST_MOVEMENT){
-			ctx.drawImage(img_crest,55,0,59,58, x, y, sx, sy);
-		} else if (crest == CREST_MAGIC){
-			ctx.drawImage(img_crest,112,0,59,58, x, y, sx, sy);
-		} else if (crest == CREST_ATTACK){
-			ctx.drawImage(img_crest,169,0,59,58, x, y, sx, sy);
-		} else if (crest == CREST_DEFENSE){
-			ctx.drawImage(img_crest,227,0,59,58, x, y, sx, sy);
-		} else if (crest == CREST_TRAP){
-			ctx.drawImage(img_crest,284,0,59,58, x, y, sx, sy);
-		}
-	};
-	*/
 		ctx.drawImage(IMAGES['New Crest'][crest],x,y,sx,sy)
-		//ctx.drawImage(IMAGES['Crest'][crest][0],CrestCoord[crest][1],35,35,x,y,sx,sy)
-	/*
-	if (crest == CREST_SUMMON){
-		ctx.drawImage(IMAGES['Crest'],143,229,35,35, x, y, sx, sy);
-	} else if (crest == CREST_MOVEMENT){
-		ctx.drawImage(IMAGES['Crest'],290,100,35,35, x, y, sx, sy);
-	} else if (crest == CREST_MAGIC){
-		ctx.drawImage(IMAGES['Crest'],144,34,35,35, x, y, sx, sy);
-	} else if (crest == CREST_ATTACK){
-		ctx.drawImage(IMAGES['Crest'],72,32,35,35, x, y, sx, sy);
-	} else if (crest == CREST_DEFENSE){
-		ctx.drawImage(IMAGES['Crest'],217,35,35,35, x, y, sx, sy);
-	} else if (crest == CREST_TRAP){
-		ctx.drawImage(IMAGES['Crest'],217,163,35,35, x, y, sx, sy);
-	}
-	*/
 }
 
 
@@ -1689,7 +1584,7 @@ function drawUnitHUD(dt){
 function render(){
 
 	controlLock = false
-	if (animation.length != 0) controlLock = true
+	//if (Animation.list.length != 0) controlLock = true
 	var now = new Date().getTime()
 	if (!time) time = now;
 	var dt = (now - time) / 1000.0
@@ -1723,15 +1618,7 @@ function render(){
 	//var m = game.monsters[player.unitSelected]
 	//if (!m){
 
-	if (player.unitSelected != EMPTY){
-		var m = game.monsters[player.unitSelected]
-		if (IMAGES[m.name]){
-				//ctx.drawImage(IMAGES[m.name],415,0);
-		}
-	}
-
-	if (!controlLock)
-		drawUnitHUD(dt)
+	drawUnitHUD(dt)
 
 	/*
 	if (game.combat){
