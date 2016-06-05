@@ -14,7 +14,6 @@ class Projectile{
     this.caster = caster;
     this.collision = []
     this.delay = 0;
-    this.clear = true;
     this.target = false;
     this.range = manhattanDistance({x:x, y:y}, {x:dx, y:dy});
     this.callbacks = {}
@@ -26,44 +25,47 @@ class Projectile{
     if (this.delay > 0) return;
     var dx = this.dx - this.x
     var dy = this.dy - this.y
-    if (dx < 0) dx = -1;
-    if (dx > 0) dx = 1;
-    if (dy < 0) dy = -1;
-    if (dy > 0) dy = 1;
+
+    var x = this._x;
+    var y = this._y;
+
+    if (dx < 0) dx = -1
+
+    if (dx > 0) dx = 1
+
+    if (dy < 0) dy = -1
+
+    if (dy > 0)  dy = 1
+
+    x = positionAdjustment(x, dx)
+    y = positionAdjustment(y, dy)
 
     //console.log(dx,dy)
-    var x = Math.floor(this._x)
-    var y = Math.floor(this._y)
+    //var x = Math.floor(this._x)
+    //var y = Math.floor(this._y)
+
     var m = game.board.getUnitAtLoc(x,y)
+
     var p = game.prop
-    if (m != EMPTY && this.collision.indexOf(m) == EMPTY &&
-    ((this.target && this.dx == x && this.dy == y) || !this.target)){
+    if ((m != EMPTY && this.collision.indexOf(m) == EMPTY) || (this.target &&  this.dx == x && this.dy == y)){
       this.collision.push(m)
-      //console.log(m)
-      console.log(this.target, this.dx, this.y)
+      console.log(this.target, this.dx, this.y, this.range,m, x,y)
+
       for (var i =0; i<game.monsters[m].buff.length; i++){
         game.monsters[m].buff[i].fire('spell hit',{proj:this})
       }
       if (game.projectiles.indexOf(this) == EMPTY) return;
 
       this.fire('collision', {trigger:game.monsters[m], caster:this.caster})
-      this.range--;
-      if (this.range < 0) this.destroy()
-
     }
 
-    if (dx < 0 && this._x <= this.dx || dx > 0 && this._x >= this.dx || dy < 0 && this._y <= this.dy || dy > 0 && this._y >= this.dy ){
+    if (this.target || this.dx == x && this.dy == y){
       this.fire('finish', {})
-      if (this.clear)
-        this.destroy()
+      this.destroy()
     }
-
     this._x += dx*dt*this.speed
     this._y += dy*dt*this.speed
-
-
   }
-
 
 	on(event, callback){
 		this.callbacks[event] = callback;
@@ -84,6 +86,7 @@ class Projectile{
   }
 
   destroy(){
-    game.projectiles.splice(window.projectiles.indexOf(this),1)
+
+    game.projectiles.splice(game.projectiles.indexOf(this),1)
   }
 }

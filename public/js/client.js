@@ -76,7 +76,8 @@ function DamageUnit(trig, targ, damage){
 	var ty = boardYPadding+target.y*squareSize;
 	//console.log(tx,ty)
 	if (damage > 0){
-		animation.push({type:'text', text:'-'+damage, color:white, x:tx,y:ty, dy:-25, duration:0.75})
+		new FloatText('-'+damage, tx,ty)
+		//animation.push({type:'text', text:'-'+damage, color:white, x:tx,y:ty, dy:-25, duration:0.75})
 
 	}
 	var event = {trigger:trigger, target:target}
@@ -873,14 +874,14 @@ function spellButtonEffect(button){
 		spell.fire('finish', {trigger:event.trigger})
 
 	} else {
-		player.spell = button;
+
 		//console.log('player spell now',player.spell)
 		var event = {trigger:game.monsters[player.unitSelected]}
-		if (game.monsters[player.unitSelected].spells[button].fire('cast', event)){
-			disableSpell(true)
+		game.monsters[player.unitSelected].spells[button].fire('cast', event)
+		disableSpell(true)
+		player.changeActionState(ACTION_STATE_SPELL)
+			player.spell = button;
 			//cancelButton.hidden = false;
-		}
-
 
 	}
 
@@ -1266,9 +1267,9 @@ function drawUIFrame(){
 
 function drawProjectile(dt){
 	for (var i = game.projectiles.length-1; i>=0; i--){
-		var p =
-		game.projectiles[i].update(dt)
 		game.projectiles[i].render()
+		game.projectiles[i].update(dt)
+
 	}
 }
 
@@ -1313,16 +1314,6 @@ function drawAnimations(dt){
 				ctx.drawImage(IMAGES['New Crest'][nextcrest],0,a.size*(1-a.index+Math.floor(a.index)),a.size,a.size *  (a.index-Math.floor(a.index)))
 
 				ctx.translate(-a.x+a.size/2,-a.y+a.size/2)
-		} else if(a.type == 'text'){
-			ctx.globalAlpha = a.duration*2;
-			ctx.fillStyle = white;
-			if (a.color)ctx.fillStyle = a.color;
-			if (a.dx)	a.x = a.x+ dt*a.dx;
-			if (a.dy) a.y = a.y+ dt*a.dy;
-			ctx.font = "20px Arial";
-			//console.log(a.text)
-			ctx.fillText(a.text,a.x, a.y)
-			ctx.globalAlpha = 1;
 		} else if (a.effect == 'pan'){
 			if (a.dx)	a.x = a.x+ dt*a.dx;
 			if (a.dy) a.y = a.y+ dt*a.dy;

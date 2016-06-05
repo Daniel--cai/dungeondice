@@ -103,7 +103,7 @@ function openConnection(c,num){
 			opponent.endTurn();
 			game.turn++;
       player.startTurn()
-			player.changeActionState(ACTION_STATE_ROLL)
+			player.changeActionState(ACTION_STATE_NEUTRAL)
 		}
 		sendSwitch = true;
 

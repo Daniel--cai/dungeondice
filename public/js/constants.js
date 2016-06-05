@@ -339,6 +339,25 @@ validPlacement = function(player,selection){
   return valid;
 }
 
+//projectile position calculations
+function positionAdjustment (value, dir){
+  var fixed = value;
+  if (dir < 0){
+    if (value-Math.floor(value) <= 0.2) {
+      fixed  = Math.floor(value)
+    } else {
+      fixed = Math.ceil(value)
+    }
+  } else if (dir > 0){
+    if (Math.ceil(value)- value <= 0.2) {
+      fixed = Math.ceil(value)
+    } else {
+      fixed = Math.floor(value)
+    }
+  }
+  return fixed
+}
+
 function rotateShape(shape,rotate){
 	shape = shapes[shape];
 	cshape = [[0,0],[0,0],[0,0],[0,0], [0,0],[0,0]]

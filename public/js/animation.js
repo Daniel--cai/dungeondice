@@ -3,8 +3,6 @@ class Animation {
     this.duration = 0;
     this.timeElapsed = 0;
     this.repeat = 0;
-    this.x = -1;
-    this.y = -1;
     this.delay = 0;
     if (!Animation.hasOwnProperty('list')){
       Animation.list = []
@@ -116,5 +114,30 @@ class Move extends Animation {
     var end = this.path[this.path.length-1]
     this.unit.setBoardXY(end[0],end[1])
     this.unit.path = []
+  }
+}
+
+
+class FloatText extends Animation {
+  constructor(text, x,y){
+    super()
+    this.x = x
+    this.y = y
+    this.duration = 0.75;
+    this.color = white
+    this.dy = -25
+    this.text = text
+  }
+
+  periodic(dt){
+    this.y = this.y+ dt*this.dy;
+  }
+  render(){
+		ctx.globalAlpha = this.duration*2;
+	  ctx.fillStyle = this.color;
+		ctx.font = "20px Arial";
+		//console.log(a.text)
+		ctx.fillText(this.text,this.x, this.y)
+		ctx.globalAlpha = 1;
   }
 }

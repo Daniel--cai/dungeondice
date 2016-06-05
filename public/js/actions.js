@@ -107,11 +107,11 @@ ActionClass[ACTION_STATE_ATTACK].on('click', function(event){
 ActionClass[ACTION_STATE_SPELL].on('click',function(event){
   console.log('cast',player.spell)
   var spell = game.monsters[player.unitSelected].spells[player.spell]
-  var m = game.board.getUnitAtLoc(x,y)
+  var m = game.board.getUnitAtLoc(event.location[0],event.location[1])
   var target = m != EMPTY ? game.monsters[m] : null
   //console.log(target.name)
-  var event = {trigger: game.monsters[player.unitSelected], location: [x,y], target:target};
-  conn.send({id:'spell effect', spell:player.spell, location:[x,y], target:m})
+  var event = {trigger: game.monsters[player.unitSelected], location: event.location, target:target};
+  conn.send({id:'spell effect', spell:player.spell, location:event.location, target:m})
   spell.fire('effect',event);
 })
 

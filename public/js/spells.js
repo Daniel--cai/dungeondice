@@ -23,7 +23,7 @@ class Spell {
 		//console.log('finishing spell')
 		console.log(this.cost())
 		event.trigger.player.updatePool(this.cost()[0],-this.cost()[1])
-		event.trigger.player.changeState(GAME_STATE_UNIT)
+		event.trigger.player.changeActionState(ACTION_STATE_NEUTRAL)
 	}
 
 	fire(event){
@@ -303,7 +303,7 @@ SPELLS['Ahri'][1].on('effect', function(event){
 		DamageUnit(event.caster.id,event.trigger.id, 10);
 	})
 	p.on('finish', function(event){
-		console.log('finished!',p.dx,p.dy,p.x,p.y)
+		//console.log('finished!',p.dx,p.dy,p.x,p.y)
 		var s = new Projectile(p.dx,p.dy,p.x,p.y, p.caster)
 		s.delay = 2;
 		s.on('collision', function(event){
@@ -314,6 +314,9 @@ SPELLS['Ahri'][1].on('effect', function(event){
 	return true;
 })
 
+SPELLS['Ahri'][1].on('cast', function(event){
+	return true;
+})
 SPELLS['Ahri'][2] = new Spell("Charm", [CREST_MAGIC, 0],"target")
 SPELLS['Ahri'][2].on('effect', function(event){
 	if (!event.target ) {
