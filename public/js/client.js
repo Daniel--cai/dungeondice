@@ -986,10 +986,9 @@ rollButton.addEventListener("click", function(){
 				x:x+i*dx,y:y, dx:-sxy,dy:-sxy, sx:size, sy:size,
 				duration:duration, fade:false, delay:3.5
 			})
-
-			animation.push({type:'dice', speed:1, accel:5, x:x+i*dx,y:y, size:size,
-											duration:2+i*0.5, index:0, dice:player.dices[data[i]].pattern})
-
+ 
+			animation.push({type:'dice', speed:1, accel:5, x:x+i*dx,y:y, size:size, duration:2+i*0.5, index:0, dice:player.dices[data[i]].pattern});
+			new DiceRoll(i, player.dices[data[i]].pattern, result);	
 			if (i == 2) {
 				animation[animation.length-1].onfinish = onfinish
 				animation[animation.length-1].args = [result]

@@ -45,7 +45,7 @@ function openConnection(c,num){
 
 
 			//player.changeState(GAME_STATE_UNIT)
-			player.changeActionState(ACTION_STATE_NEUTRAL)
+			player.changeActionState(ACTION_STATE_ROLL)
 		} else {
 			player.changeActionState(ACTION_STATE_END)
 		}
