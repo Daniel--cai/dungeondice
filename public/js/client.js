@@ -359,12 +359,12 @@ function Board(){
 	this.tiles = [];
 	this.units = [];
 	this.boardSizeX = 13;
-	this.boardSizeY = 19
+	this.boardSizeY = 19;
 
 	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
-			this.tiles[i].push(0);
+			this.tiles[i].push(-1);
 			//this.tiles[i].push(EMPTY);
 		}
 	}
@@ -624,6 +624,9 @@ var DiceSelection = []
 var DiceButtonSize = 40;
 var SummonPool = []
 
+class SummonPoolClass(){
+	
+}
 
 for (var i=0; i<3; i++){
 	for (var j=0;j<5;j++){
@@ -943,16 +946,22 @@ rollButton.addEventListener("click", function(){
     }
     var result = player.onRoll(data)
 
-		var size = 50;
-		var duration = 0.25
-		var sxy = size*(1/duration)
-		var x = 100+boardXPadding+size/2
-		var dx = 75;
-		var y =  200+boardYPadding+size/2
-	//animation.push({type:'fade dice', crest:result[0], x:25, y:50, duration:4.5, size:size})
-		//animation.push({type:'fade dice', crest:result[1], x:100, y:50, duration:4.5, size:size})
-		//animation.push({type:'fade dice', crest:result[2], x:175, y:50, duration:4.5, size:size})
+		for (let i =0; i <3; i++){
+			new DiceRoll(i, player.dices[data[i]].pattern, result);
+		}
 
+/*
+
+//animation.push({type:'fade dice', crest:result[0], x:25, y:50, duration:4.5, size:size})
+	//animation.push({type:'fade dice', crest:result[1], x:100, y:50, duration:4.5, size:size})
+	//animation.push({type:'fade dice', crest:result[2], x:175, y:50, duration:4.5, size:size})
+
+var size = 50;
+var duration = 0.25
+var sxy = size*(1/duration)
+var x = 100+boardXPadding+size/2
+var dx = 75;
+var y =  200+boardYPadding+size/2
 		var onfinish = function(result){
 
 			for (var i = 0; i<result.length; i++){
@@ -962,6 +971,8 @@ rollButton.addEventListener("click", function(){
 				}
 			}
 		}
+
+
 
 		var ongrow = function(i){
 			//console.log(SummonPool)
@@ -986,9 +997,9 @@ rollButton.addEventListener("click", function(){
 				x:x+i*dx,y:y, dx:-sxy,dy:-sxy, sx:size, sy:size,
 				duration:duration, fade:false, delay:3.5
 			})
- 
+
 			animation.push({type:'dice', speed:1, accel:5, x:x+i*dx,y:y, size:size, duration:2+i*0.5, index:0, dice:player.dices[data[i]].pattern});
-			new DiceRoll(i, player.dices[data[i]].pattern, result);	
+
 			if (i == 2) {
 				animation[animation.length-1].onfinish = onfinish
 				animation[animation.length-1].args = [result]
@@ -996,13 +1007,13 @@ rollButton.addEventListener("click", function(){
 
 			if (result[i][0] != CREST_SUMMON) continue
 			//console.log(player.summon)
-			/*
-			animation.push({
-				effect:'grow', image:IMAGES['LucianSquare'],
-			x:x+i*dx,y:y, dx:0,dy:0, sx:size, sy:size,
-				duration:10, fade:false, delay:3+duration+.5
-			})
-			*/
+
+			//animation.push({
+			//	effect:'grow', image:IMAGES['LucianSquare'],
+			//x:x+i*dx,y:y, dx:0,dy:0, sx:size, sy:size,
+			//	duration:10, fade:false, delay:3+duration+.5
+			//})
+
 
 			if (player.summon.length == 0) continue
 			animation.push({
@@ -1011,11 +1022,9 @@ rollButton.addEventListener("click", function(){
 				duration:duration, fade:false, delay:3.5,onfinish:ongrow, args:[i]
 			})
 
-
-
 		}
 
-		/*
+
 		animation.push({type:'dice', speed:0.4, accel:5, x:100,y:50, size:size,
 										duration:2.5, index:0, dice:player.dices[data[1]].pattern})
 		animation.push({type:'dice', speed:0.4, accel:5, x:175,y:50, size:size,

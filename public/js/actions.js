@@ -22,6 +22,7 @@ ActionClass[ACTION_STATE_NEUTRAL] = new Action('neutral')
 ActionClass[ACTION_STATE_ATTACK]  = new Action('attack')
 ActionClass[ACTION_STATE_MOVE] = new Action('move')
 ActionClass[ACTION_STATE_SPELL]  = new Action('spell')
+ActionClass[ACTION_STATE_ROLL] = new Action('roll')
 ActionClass[ACTION_STATE_SUMMON] = new Action('summon')
 ActionClass[ACTION_STATE_RESPONSE] = new Action('response')
 ActionClass[ACTION_STATE_AWAITING] = new Action('awaiting')
@@ -115,7 +116,7 @@ ActionClass[ACTION_STATE_SPELL].on('click',function(event){
   spell.fire('effect',event);
 })
 
-ActionClass[ACTION_STATE_ROLL] = new Action('roll')
+
 ActionClass[ACTION_STATE_ROLL].on('enter', function(event){
   disableButtons(false,true)
   for (i=0;i<15;i++) DicePool[i].reset();
@@ -137,7 +138,7 @@ ActionClass[ACTION_STATE_ROLL].on('render',function(event){
 	for (var i=0; i<DiceSelection.length; i++){
 		var l = DiceSelection.length
 		//100+boardXPadding + 75*i,150+boardYPadding
-		var x = 25+(l-i)*75
+		var x = 25+(l-ig)*75
 		var y = 200
 		var s = 50;
 		var txgap = 18;
@@ -175,6 +176,10 @@ ActionClass[ACTION_STATE_ROLL].on('render',function(event){
     ctx.fillText(p[1],xpad + j* xgap+txgap ,ypad+ tygap);
     ctx.strokeText(p[1],xpad + j* xgap+txgap ,ypad + tygap);
   }
+
+  //unit
+
+
 })
 
 
@@ -184,7 +189,7 @@ ActionClass[ACTION_STATE_SUMMON].on('click', function(event){
   game.createUnit(player,player.dices[player.summonchoice].type,event.location)
   //DicePool[player.summonchoice].hidden = true;
   player.dices[player.summonchoice] = null;
-  //SummonPool = []
+
   player.changeActionState(ACTION_STATE_NEUTRAL)
 })
 
