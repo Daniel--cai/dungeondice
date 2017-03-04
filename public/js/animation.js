@@ -181,15 +181,17 @@ class DiceRoll extends Animation{
     var result = this.result
     var index = this.i
     if (player.summon.length > 0){
-      console.log(index)
-      var grow = new ButtonImageGrow(this.i, player.dices[DiceSelection[this.i].id].type.name);
+      //console.log(player.summon)
+      var grow = new ButtonImageGrow(index, player.dices[SummonPool.selection()[index].id].type.name);
       grow.delay = 2-this.i*0.5;
       grow.duration = 0.5;
       grow.end = function(){
-        SummonPool[index].hidden = false;
+        SummonPool.hide(index, false);
+        console.log(index)
       }
     }
     var shrink = new DiceGrow(this.i, this.result[this.i][0], false);
+
     shrink.duration = 0.5;
     shrink.delay = 2-this.i*0.5;
 

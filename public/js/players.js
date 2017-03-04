@@ -7,9 +7,11 @@ class Player {
 
 		//this.state = GAME_STATE_END;
 		//this.actionstate = PLAYER_STATE_NEUTRAL;
-		this.summon = [];
-		this.summonlevel = 0;
-		this.summonchoice = EMPTY;
+		//this.summon = [];
+		//this.summonlevel = 0;
+		//this.summonchoice = EMPTY;
+		//this.dicePattern
+		//this.diceButtonFocus = -1;
 
 		this.shape = 0;
 		this.rotate = 0;
@@ -22,7 +24,7 @@ class Player {
 		this.movePath = []
 		this.rolled = false;
 		this.spell = EMPTY;
-		this.dicePattern
+
 
 		this.actionstate = 0
 
@@ -30,9 +32,6 @@ class Player {
 		this.dices = [DICES['Lucian'],DICES['Lucian'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],
 									DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],
 									DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen']];
-
-		this.diceButtonFocus = -1;
-
 		this.spell = EMPTY;
 	}
 
@@ -73,6 +72,7 @@ class Player {
 	}
 
 	updateTile(shape){
+		if (player.summonchoice == null) return
 		this.tileSelected = shape;
 		if (this.tileSelected == null) this.tileSelected = []
 		//console.log('update tile')
@@ -186,42 +186,7 @@ class Player {
 		}
 	}
 
-	onRoll(data){
-		console.log(this.dices[2])
-		var summonlevel = 0;
-		var summon = [[],[],[],[],[]];
-		var result = [];
-		//var dicechoice= [];
 
-		for (var i=0;i<data.length; i++){
-			var dices = this.dices[data[i]]
-			var r = dices.roll();
-			result.push(r)
-
-
-			if (r[0] != CREST_SUMMON){
-				//console.log(this.pool);
-				//this.updatePool(r[0],r[1])
-				//console.log(this.pool);
-				console.log(CREST_TEXT[r[0]] + " " + r[1]);
-			} else {
-				summon[r[1]].push(data[i]);
-				console.log("SUMMON " + r[1]);
-				if (summon[r[1]].length > 1){
-					summonlevel = r[1]
-				}
-			}
-		}
-
-		if (summonlevel){
-			//string += "Summoning level: " + summonlevel + "<br\>";
-			this.summon = summon[summonlevel];
-			//result = summon[summonlevel]
-			//console.log('hello',this.summon)
-			//this.summonlevel = summonlevel
-		}
-		return result;
-	}
 
 
 	selectUnit(x,y){

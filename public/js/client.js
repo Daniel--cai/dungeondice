@@ -612,132 +612,225 @@ function changeCursor(cursor){
 	canvas.style.cursor = cursor;
 
 }
+const SummonPool = (()=> {
+	var DicePool = [];
+	var DiceSelection = []
+	var DiceSelectionButton = []
+	const DiceButtonSize = 40
+	var toggle = false
+	function _init() {
+		for (let i=0;i<3;i++){
+			var b = new Button(i, IMAGES['New Crest'][CREST_SUMMON], 100+boardXPadding + 75*i,150+boardYPadding,50,50)
+			b.onClick = function(x,y){
+				console.log('clicked')
+				if (player.actionstate != ACTION_STATE_SUMMON) return;
+				//if (player.tileSelected.length > 0 ) return;
+
+				player.summonchoice = DiceSelection[b.id].id;
+				console.log('summoinining', player.summonchoice)
+					//player.dices[player.summonchoice]
+				player.updateTile(player.updateShape(cursorX,cursorY))
+				SummonPool.hide()
+				DiceSelection = []
+			}
+			b.onFocus = function(){
+			}
+			b.render = function(){
+				//if (player.state != GAME_STATE_SUMMON) return;
+				//var l = DiceSelection.length
+				//if (l <= this.id) return;
+				//drawText(player.dices[DiceSelection[this.id].id].type.name, '20px Arial bolder', 200+ 50*this.id,200)
+				//ctx.drawImage(IMAGES[player.dices[DiceSelection[this.id].id].type.name+'Square'], this.x ,this.y, this.sx,this.sy )
+			}
+			b.hidden = true;
+			DiceSelectionButton.push(b);
+		}
+	}
+
+	for (var i=0; i<3; i++){
+			for (var j=0;j<5;j++){
+				//console.log((i*3)+j)
+				var b = new Button((i*5)+j,IMAGES['New Crest'][CREST_SUMMON], 75+(DiceButtonSize+15)*j,300+(DiceButtonSize+15)*i, DiceButtonSize,DiceButtonSize)
+				b.onUnfocus = function(){
+					if (player.diceButtonFocus == this.id){
+						player.diceButtonFocus = -1
+						player.dicePattern = null
+					}
+				}
+				b.onFocus = function(){
+					player.diceButtonFocus = this.id
+					player.dicePattern = player.dices[this.id]
 
 
 
+				}
+				b.onClick = function(x,y){
+					if (player.actionstate != ACTION_STATE_ROLL) return;
+					if (this.toggle){
+						this.toggle = false;
+						DiceSelection.splice(DiceSelection.indexOf(this),1);
+						//this.onUnfocus(x,y);
+					} else {
+						this.toggle = true;
+						DiceSelection.unshift(this);
+						if (DiceSelection.length > 3){
+							var b = DiceSelection.pop();
+							b.toggle = false;
+							b.onUnfocus(x,y);
+						}
+					}
+					for (var i=0; i<DicePool.length; i++){
+						DicePool[i].unfocus = false;
+					}
 
+					if (DiceSelection.length == 3){
+						disableButtons(false,true)
 
+						for (var i=0; i<15; i++)
+							DicePool[i].unfocus = true;
+					}
+				}
 
-var summonToggle;
-var DicePool = []
-var DiceSelection = []
-var DiceButtonSize = 40;
-var SummonPool = []
+				b.render = function(){
+					ctx.globalAlpha = 1;
+					var mod = 0;
+					if (this.unfocus){
+						ctx.globalAlpha = 0.1;
+					}
+					if (this.focus){
+						mod = 0;
+					}
+					if (this.toggle){
+						ctx.globalAlpha = 0.5;
+						if (player.actionstate == ACTION_STATE_ROLL){
+							ctx.fillStyle = black;
+						}
+						ctx.fillRect(this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod);
+					}
+					//drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
+					ctx.drawImage(this.img,  this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
+					//var lvl = player.dices[this.id].pattern[0][1]
+					var lvl = 4;
+					ctx.fillStyle = white;
+					ctx.strokeStyle = black;
+					ctx.lineWidth = 1;
+					ctx.font = "bolder 20px Arial";
+					ctx.strokeText(lvl,this.rx+11,this.ry+24);
+					ctx.fillText(lvl,this.rx+11,this.ry+24);
 
-class SummonPoolClass(){
-	
-}
+					//dice pattern
+					var count = 0
+					var xpad = 110;
+					var ypad = 260
+					var xgap = 30;
+					var txgap =9;
+					var tygap =20;
+					//console.log("render pattern")
+					if (player.dicePattern == null) return;
+					for (var j=0; j<6; j++){
+						var p = player.dicePattern.pattern[j];
+						ctx.fillStyle = white
+						ctx.strokeStyle = black
+						ctx.drawImage(IMAGES['New Crest'][p[0]],xpad +j*xgap, ypad, 25, 25)
+						ctx.font = "bolder 20px Arial ";
+						ctx.lineWidth = 1;
+						ctx.fillText(p[1],xpad + j* xgap+txgap ,ypad+ tygap);
+						ctx.strokeText(p[1],xpad + j* xgap+txgap ,ypad + tygap);
+					}
 
-for (var i=0; i<3; i++){
-	for (var j=0;j<5;j++){
-		//console.log((i*3)+j)
-		var b = new Button((i*5)+j,IMAGES['New Crest'][CREST_SUMMON], 75+(DiceButtonSize+15)*j,300+(DiceButtonSize+15)*i, DiceButtonSize,DiceButtonSize)
+				}
+				DicePool.push(b);
+			}
+		};
 
-		b.onUnfocus = function(){
-			if (player.diceButtonFocus == this.id){
-				player.diceButtonFocus = -1
-				player.dicePattern = null
+		function roll(data){
+			var summonlevel = 0;
+			var summon = [[],[],[],[],[]];
+			var result = [];
+			for (var i=0;i<data.length; i++){
+				var dices = player.dices[data[i]]
+				var r = dices.roll();
+				result.push(r)
+				if (r[0] != CREST_SUMMON){
+					//console.log(this.pool);
+					//this.updatePool(r[0],r[1])
+					//console.log(this.pool);
+					console.log(CREST_TEXT[r[0]] + " " + r[1]);
+				} else {
+					summon[r[1]].push(data[i]);
+					console.log("SUMMON " + r[1]);
+					if (summon[r[1]].length > 1){
+						summonlevel = r[1]
+					}
+				}
 			}
 
+			if (summonlevel){
+				//string += "Summoning level: " + summonlevel + "<br\>";
+				player.summon = summon[summonlevel];
+				//result = summon[summonlevel]
+				//console.log('hello',this.summon)
+				//this.summonlevel = summonlevel
+			}
+			return result;
 		}
-		b.onFocus = function(){
-
-			player.diceButtonFocus = this.id
-			player.dicePattern = player.dices[this.id]
-			//console.log(DicePattern)
-		}
-
-		b.onClick = function(x,y){
-			if (player.actionstate != ACTION_STATE_ROLL) return;
-			if (this.toggle){
-				this.toggle = false;
-				DiceSelection.splice(DiceSelection.indexOf(this),1);
-				//this.onUnfocus(x,y);
+	//==
+	return {
+		init: function(){
+			_init();
+		},
+		roll: function(data){
+			return roll(data)
+		},
+		hide: function(index = -1, bool = true){
+			if (index == -1){
+				DiceSelectionButton[0].hidden = bool;
+				DiceSelectionButton[1].hidden = bool;
+				DiceSelectionButton[2].hidden = bool;
 			} else {
-				this.toggle = true;
-				DiceSelection.unshift(this);
-				if (DiceSelection.length > 3){
-					var b = DiceSelection.pop();
-					b.toggle = false;
-					b.onUnfocus(x,y);
+				DiceSelectionButton[index].hidden = bool;
+			}
+		},
+		selection: function(){
+			return DiceSelection;
+		},
+		render: function() {
+				ctx.globalAlpha = 1
+				//if (!DiceSelection[0].hidden) DiceSelection[i].render()
+				//if (!DiceSelection[1].hidden) DiceSelection[i].render()
+				//if (!DiceSelection[2].hidden) DiceSelection[i].render()
+
+				for (var i=0; i<DiceSelection.length; i++){
+					if (DiceSelection[i].hidden) continue
+					var l = DiceSelection.length
+					//100+boardXPadding + 75*i,150+boardYPadding
+					var x = 25+(l-i)*75
+					var y = 200
+					var s = 50;
+					var txgap = 18;
+					var tygap = 35;
+					ctx.drawImage(IMAGES['New Crest'][CREST_SUMMON],  x ,y, s,s)
+					var lvl = player.dices[DiceSelection[i].id].pattern[0][1]
+					ctx.fillStyle = white;
+					ctx.strokeStyle = black;
+					ctx.lineWidth = 2;
+					ctx.font = "bolder 30px Arial";
+					ctx.strokeText(lvl,x+txgap,y+tygap);
+					ctx.fillText(lvl,x+txgap,y+tygap);
+			}
+		},
+		resetDicePool: function(){
+			for (i=0;i<15;i++) DicePool[i].reset();
+			for (i=0; i<15; i++){
+				if (player.dices[i]){
+					DicePool[i].hidden = false;
 				}
 			}
-			for (var i=0; i<DicePool.length; i++){
-				DicePool[i].unfocus = false;
-			}
-
-			if (DiceSelection.length == 3){
-				disableButtons(false,true)
-
-				for (var i=0; i<15; i++)
-					DicePool[i].unfocus = true;
-			}
 		}
-
-		b.render = function(){
-			ctx.globalAlpha = 1;
-			var mod = 0;
-			if (this.unfocus){
-				ctx.globalAlpha = 0.1;
-			}
-
-			if (this.focus){
-				mod = 0;
-			}
-
-			if (this.toggle){
-				ctx.globalAlpha = 0.5;
-				if (player.actionstate == ACTION_STATE_ROLL){
-					ctx.fillStyle = black;
-				}
-				ctx.fillRect(this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod);
-			}
-			//drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
-			ctx.drawImage(this.img,  this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
-			//var lvl = player.dices[this.id].pattern[0][1]
-			var lvl = 4;
-			ctx.fillStyle = white;
-			ctx.strokeStyle = black;
-			ctx.lineWidth = 1;
-			ctx.font = "bolder 20px Arial";
-			ctx.strokeText(lvl,this.rx+11,this.ry+24);
-			ctx.fillText(lvl,this.rx+11,this.ry+24);
-		}
-
-		//console.log(b.id)
-		DicePool.push(b);
 	}
-}
+})();
 
-for (var i=0;i<3;i++){
-	var b = new Button(i, IMAGES['New Crest'][CREST_SUMMON], 100+boardXPadding + 75*i,150+boardYPadding,50,50)
-	b.onClick = function(x,y){
-		if (player.actionstate != ACTION_STATE_SUMMON) return;
-		if (player.tileSelected.length > 0 ) return;
-		player.summonchoice = DiceSelection[this.id].id;
-		console.log('summoinining', player.summonchoice)
-			//player.dices[player.summonchoice]
-		player.updateTile(player.updateShape(cursorX,cursorY))
-		SummonPool[0].hidden = true;
-		SummonPool[1].hidden = true;
-		SummonPool[2].hidden = true;
-		DiceSelection = []
-		//SummonPool = []
-	}
-
-	b.onFocus = function(){
-		//console.log('summon buttons ',this.id, DiceSelection[this.id].id)
-	}
-	b.render = function(){
-		//if (player.state != GAME_STATE_SUMMON) return;
-		//var l = DiceSelection.length
-		//if (l <= this.id) return;
-		//drawText(player.dices[DiceSelection[this.id].id].type.name, '20px Arial bolder', 200+ 50*this.id,200)
-		ctx.drawImage(IMAGES[player.dices[DiceSelection[this.id].id].type.name+'Square'], this.x ,this.y, this.sx,this.sy )
-	}
-	b.hidden = true;
-	SummonPool.push(b)
-}
+SummonPool.init()
 
 //colours
 var blue    = "#000099";
@@ -934,108 +1027,23 @@ endturnButton.addEventListener("click", function(){
 
 
 rollButton.addEventListener("click", function(){
-	//this.state = PLAYER_STATE_ROLL;
-    //setDicePanelText("+2 MOVEMENT")
-    //var dices = [Dice_Teemo, Dice_Soraka, Dice_Teemo];
-    //var summonlevel = 0;
-    //var summon = [[],[],[],[]];
-    //update crestpool
     var data = [];
-    for (var i=0; i<DiceSelection.length; i++){
-    	data.push(DiceSelection[i].id)
+		var selection = SummonPool.selection()
+		if (selection.length != 3 ) return;
+    for (var i=0; i<3; i++){
+    	data.push(selection[i].id)
     }
-    var result = player.onRoll(data)
+    var result = SummonPool.roll(data)
+		console.log(result)
 
 		for (let i =0; i <3; i++){
 			new DiceRoll(i, player.dices[data[i]].pattern, result);
 		}
-
-/*
-
-//animation.push({type:'fade dice', crest:result[0], x:25, y:50, duration:4.5, size:size})
-	//animation.push({type:'fade dice', crest:result[1], x:100, y:50, duration:4.5, size:size})
-	//animation.push({type:'fade dice', crest:result[2], x:175, y:50, duration:4.5, size:size})
-
-var size = 50;
-var duration = 0.25
-var sxy = size*(1/duration)
-var x = 100+boardXPadding+size/2
-var dx = 75;
-var y =  200+boardYPadding+size/2
-		var onfinish = function(result){
-
-			for (var i = 0; i<result.length; i++){
-				if (result[i][0] != CREST_SUMMON){
-					//player.animateDice(result[0])
-					player.updatePool(result[i][0],result[i][1])
-				}
-			}
+		if( player.summon != 0 ) {
+			player.changeActionState(ACTION_STATE_SUMMON)
+		} else {
+			player.changeActionState(ACTION_STATE_NEUTRAL)
 		}
-
-
-
-		var ongrow = function(i){
-			//console.log(SummonPool)
-			if (!SummonPool[i]){
-				console.log('ongrow summonpool error')
-				return;
-			}
-			//console.log(DiceSelection[i])
-			console.log('unhiding button')
-			SummonPool[i].hidden = false;
-		}
-
-		for (let i =0; i <3; i++){
-			animation.push({
-				effect:'grow', image:IMAGES['New Crest'][result[i][0]],
-				x:x+i*dx,y:y, dx:0,dy:0, sx:size, sy:size,
-				duration:3.5, fade:false, text:result[i][1],tx:18,ty:35
-			})
-
-			animation.push({
-				effect:'grow', image:IMAGES['New Crest'][result[i][0]],
-				x:x+i*dx,y:y, dx:-sxy,dy:-sxy, sx:size, sy:size,
-				duration:duration, fade:false, delay:3.5
-			})
-
-			animation.push({type:'dice', speed:1, accel:5, x:x+i*dx,y:y, size:size, duration:2+i*0.5, index:0, dice:player.dices[data[i]].pattern});
-
-			if (i == 2) {
-				animation[animation.length-1].onfinish = onfinish
-				animation[animation.length-1].args = [result]
-			}
-
-			if (result[i][0] != CREST_SUMMON) continue
-			//console.log(player.summon)
-
-			//animation.push({
-			//	effect:'grow', image:IMAGES['LucianSquare'],
-			//x:x+i*dx,y:y, dx:0,dy:0, sx:size, sy:size,
-			//	duration:10, fade:false, delay:3+duration+.5
-			//})
-
-
-			if (player.summon.length == 0) continue
-			animation.push({
-				effect:'grow', image:IMAGES[player.dices[DiceSelection[i].id].type.name+'Square'],
-				x:x+i*dx,y:y, dx:sxy,dy:sxy, sx:0, sy:0, msx:size, msy:size,
-				duration:duration, fade:false, delay:3.5,onfinish:ongrow, args:[i]
-			})
-
-		}
-
-
-		animation.push({type:'dice', speed:0.4, accel:5, x:100,y:50, size:size,
-										duration:2.5, index:0, dice:player.dices[data[1]].pattern})
-		animation.push({type:'dice', speed:0.4, accel:5, x:175,y:50, size:size,
-										duration:3, index:0, dice:player.dices[data[2]].pattern,onfinish:onfinish,args:result})
-
-*/
-	if( player.summon != 0 ) {
-		player.changeActionState(ACTION_STATE_SUMMON)
-	} else {
-		player.changeActionState(ACTION_STATE_NEUTRAL)
-	}
     //socket.send(JSON.stringify({id:'c_roll', data:data}));
 })
 
