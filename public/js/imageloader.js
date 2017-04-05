@@ -16,12 +16,13 @@ for (var i=0; i<6;i++){
 
 ImageLoader('HUD', 'buttons/rollhud.png')
 
+
 ImageLoader('Heart', 'Health_Potion_item.png')
 ImageLoader('Sword', 'Long_Sword.png')
 ImageLoader('Heart Grey',  'Health_Potion_item_grey.png')
 ImageLoader('Shield','dshield.png')
 ImageLoader('ButtonHUD','buttons/button.png')
-
+ImageLoader('ButtonHover','buttons/button-corner.png')
 ImageLoader('Crest', 'championstats_icons.jpg')
 ImageLoader('Lucian', 'lucian.jpg')
 ImageLoader('Lightslinger', 'Lightslinger.png')
@@ -37,7 +38,7 @@ ImageLoader('Texture2','texture2.jpg')
 ImageLoader('UI', 'border.png')
 ImageLoader('UITEXTURE', 'bgtexture.png')
 ImageLoader('Runeterra', 'runeterra.png')
-ImageLoader('ButtonFrame', 'buttonframe.png')
+ImageLoader('ButtonFrame', 'buttons/button-corner.png')
 ImageLoader('Guard', 'armor.png')
 ImageLoader('Relentless Pursuit', 'Relentless_Pursuit.png')
 ImageLoader('Ardent Blaze', 'Ardent_Blaze.png')

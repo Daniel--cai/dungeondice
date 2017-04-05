@@ -16,6 +16,7 @@ canvas.width = 1200;
 canvas.height = 680;
 
 
+
 function getRandomInt(min, max) {
 	return Math.floor(Math.random() * (max - min)) + min;
 }
@@ -210,12 +211,9 @@ function Game(){
 			if (prevX == cursorX && prevY == cursorY){
 				return;
 			}
+			//var event = {unit:getUnitById(game.board.getUnitAtLoc(cursorX,cursorY)), location: [cursorX,cursorY]}
 
-
-
-			var event = {unit:getUnitById(game.board.getUnitAtLoc(cursorX,cursorY)), location: [cursorX,cursorY]}
-
-			ActionClass[player.actionstate].fire('move', event)
+			//ActionClass[player.actionstate].fire('move', event)
 		});
 		canvas.addEventListener("click", function(e){
 			//if (PLAYER_ID.id != currentPlayer.id)
@@ -329,7 +327,7 @@ DICES['Soraka'] = new Dice(UNITS['Soraka'],
 					 [CREST_MAGIC,3]]);
 
 
-DICES['Poppy'] = new Dice(UNITS['Poppy'],
+DICES['Nasus'] = new Dice(UNITS['Nasus'],
 					[[CREST_SUMMON,1],
 					 [CREST_SUMMON,1],
 					 [CREST_SUMMON,1],
@@ -352,7 +350,45 @@ DICES['Garen'] = new Dice(UNITS['Garen'],
  					 [CREST_MOVEMENT,1],
  					 [CREST_MAGIC,3],
  					 [CREST_TRAP,2]])
+ DICES['Nunu'] = new Dice(UNITS['Nunu'],
+ 					[[CREST_SUMMON,3],
+ 					 [CREST_SUMMON,3],
+ 					 [CREST_SUMMON,3],
+ 					 [CREST_MOVEMENT,1],
+ 					 [CREST_MAGIC,3],
+ 					 [CREST_TRAP,2]])
 
+ DICES['Bard'] = new Dice(UNITS['Bard'],
+ 					[[CREST_SUMMON,2],
+ 					 [CREST_SUMMON,2],
+ 					 [CREST_SUMMON,2],
+ 					 [CREST_SUMMON,2],
+ 					 [CREST_MAGIC,1],
+ 					 [CREST_MOVEMENT,1]])
+
+ DICES['Vayne'] = new Dice(UNITS['Vayne'],
+ 					[[CREST_SUMMON,1],
+ 					 [CREST_SUMMON,1],
+ 					 [CREST_DEFENSE,1],
+ 					 [CREST_SUMMON,1],
+ 					 [CREST_SUMMON,1],
+ 					 [CREST_ATTACK,4]])
+
+DICES['Janna'] = new Dice(UNITS['Janna'],
+					[[CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_SUMMON,1],
+					 [CREST_DEFENSE,2],
+					 [CREST_ATTACK,4]])
+
+ DICES['Braum'] = new Dice(UNITS['Braum'],
+						[[CREST_SUMMON,1],
+						 [CREST_SUMMON,1],
+						 [CREST_DEFENSE,1],
+						 [CREST_SUMMON,1],
+						 [CREST_SUMMON,1],
+						 [CREST_TRAP,2]])
 //var diceid = 0;
 
 function Board(){
@@ -364,7 +400,7 @@ function Board(){
 	for (var i=0; i<this.boardSizeY;i++){
 		this.tiles[i] = [];
 		for (var j=0;j<this.boardSizeX; j++){
-			this.tiles[i].push(-1);
+			this.tiles[i].push(0);
 			//this.tiles[i].push(EMPTY);
 		}
 	}
@@ -488,6 +524,35 @@ function flipXY(x,y){
 }
 
 
+/*
+var nx = x*squareSize+bordersize/2;
+var ny = y*squareSize+bordersize/2
+var s = squareSize-bordersize
+var angle = Math.PI
+//console.log(angle)
+ctx.fillRect(x*squareSize,y*squareSize,squareSize,squareSize);
+//ctx.strokeRect(x,y,squareSize,squareSize);
+if (this.player.num == opponent.num){
+	ctx.translate(nx,ny)
+	ctx.rotate(angle);
+	ctx.drawImage(IMAGES[this.name+'Square'],-s,-s,s,s);
+	ctx.rotate(-angle);
+	ctx.translate(-nx,-ny)
+} else {
+}
+
+*/
+
+
+function drawCursor(){
+	ctx.globalAlpha = 1;
+	var x = 415+150;
+	var y = 200+i*60+20;
+	var nx = cursorX*squareSize;
+	var ny = cursorY*squareSize;
+	var size = 30;
+	ctx.drawImage(IMAGES['ButtonHover'],nx,ny,size,size)
+}
 
 function drawSelection (player){
 	var selection = player.tileSelected;
@@ -624,11 +689,8 @@ const SummonPool = (()=> {
 			b.onClick = function(x,y){
 				console.log('clicked')
 				if (player.actionstate != ACTION_STATE_SUMMON) return;
-				//if (player.tileSelected.length > 0 ) return;
-
 				player.summonchoice = DiceSelection[b.id].id;
-				console.log('summoinining', player.summonchoice)
-					//player.dices[player.summonchoice]
+				console.log('summoning', player.summonchoice)
 				player.updateTile(player.updateShape(cursorX,cursorY))
 				SummonPool.hide()
 				DiceSelection = []
@@ -647,8 +709,8 @@ const SummonPool = (()=> {
 		}
 	}
 
-	for (var i=0; i<3; i++){
-			for (var j=0;j<5;j++){
+	for (let i=0; i<3; i++){
+			for (let j=0;j<5;j++){
 				//console.log((i*3)+j)
 				var b = new Button((i*5)+j,IMAGES['New Crest'][CREST_SUMMON], 75+(DiceButtonSize+15)*j,300+(DiceButtonSize+15)*i, DiceButtonSize,DiceButtonSize)
 				b.onUnfocus = function(){
@@ -660,9 +722,6 @@ const SummonPool = (()=> {
 				b.onFocus = function(){
 					player.diceButtonFocus = this.id
 					player.dicePattern = player.dices[this.id]
-
-
-
 				}
 				b.onClick = function(x,y){
 					if (player.actionstate != ACTION_STATE_ROLL) return;
@@ -679,7 +738,7 @@ const SummonPool = (()=> {
 							b.onUnfocus(x,y);
 						}
 					}
-					for (var i=0; i<DicePool.length; i++){
+					for (let i=0; i<DicePool.length; i++){
 						DicePool[i].unfocus = false;
 					}
 
@@ -708,16 +767,27 @@ const SummonPool = (()=> {
 						ctx.fillRect(this.rx-(mod*4),this.ry-(mod*4), this.sx+8*mod,this.sy+8*mod);
 					}
 					//drawCrest(CREST_SUMMON, this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
-					ctx.drawImage(this.img,  this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
-					//var lvl = player.dices[this.id].pattern[0][1]
-					var lvl = 4;
+
+
+					var name = IMAGES[player.dices[this.id].type.name+'Square']
+					//console.log(name)
+					if (name)
+						ctx.drawImage(name,  this.rx-mod,this.ry-mod, this.sx+(2*mod), this.sy+(2*mod))
+
+					var lvl = player.dices[this.id].pattern[0][1];
 					ctx.fillStyle = white;
 					ctx.strokeStyle = black;
-					ctx.lineWidth = 1;
-					ctx.font = "bolder 20px Arial";
-					ctx.strokeText(lvl,this.rx+11,this.ry+24);
-					ctx.fillText(lvl,this.rx+11,this.ry+24);
+					ctx.lineWidth = 2;
+					ctx.font = "bolder 16px Arial";
 
+					ctx.strokeText(lvl,this.rx+30,this.ry+38);
+					ctx.fillText(lvl,this.rx+30,this.ry+38);
+					/*
+					ctx.beginPath();
+				 	ctx.arc(this.rx+40, this.ry+35, 8, 0, 2 * Math.PI, false);
+				 	ctx.strokeStyle = white;
+				 	ctx.stroke();
+					*/
 					//dice pattern
 					var count = 0
 					var xpad = 110;
@@ -727,7 +797,7 @@ const SummonPool = (()=> {
 					var tygap =20;
 					//console.log("render pattern")
 					if (player.dicePattern == null) return;
-					for (var j=0; j<6; j++){
+					for (let j=0; j<6; j++){
 						var p = player.dicePattern.pattern[j];
 						ctx.fillStyle = white
 						ctx.strokeStyle = black
@@ -764,7 +834,7 @@ const SummonPool = (()=> {
 					}
 				}
 			}
-
+			console.log("summon level",summonlevel)
 			if (summonlevel){
 				//string += "Summoning level: " + summonlevel + "<br\>";
 				player.summon = summon[summonlevel];
@@ -799,7 +869,7 @@ const SummonPool = (()=> {
 				//if (!DiceSelection[0].hidden) DiceSelection[i].render()
 				//if (!DiceSelection[1].hidden) DiceSelection[i].render()
 				//if (!DiceSelection[2].hidden) DiceSelection[i].render()
-
+				//console.log(DiceSelection)
 				for (var i=0; i<DiceSelection.length; i++){
 					if (DiceSelection[i].hidden) continue
 					var l = DiceSelection.length
@@ -807,15 +877,17 @@ const SummonPool = (()=> {
 					var x = 25+(l-i)*75
 					var y = 200
 					var s = 50;
-					var txgap = 18;
-					var tygap = 35;
-					ctx.drawImage(IMAGES['New Crest'][CREST_SUMMON],  x ,y, s,s)
+					var txgap = 38;
+					var tygap = 45;
+					var name = player.dices[DiceSelection[i].id].type.name
+					ctx.drawImage(IMAGES[name+'Square'], x ,y, s,s)
 					var lvl = player.dices[DiceSelection[i].id].pattern[0][1]
 					ctx.fillStyle = white;
 					ctx.strokeStyle = black;
 					ctx.lineWidth = 2;
-					ctx.font = "bolder 30px Arial";
-					ctx.strokeText(lvl,x+txgap,y+tygap);
+					ctx.font = "bolder 15px Arial";
+
+					ctx.strokeText(lvl,x+txgap ,y+tygap);
 					ctx.fillText(lvl,x+txgap,y+tygap);
 			}
 		},
@@ -1224,7 +1296,7 @@ registerMoveEvent(
 		//player.cursorX = data.X;
 		//player.cursorY = data.Y;
 		//console.log('playrerx',p1.cursorX)
-
+		if (player.summonchoice == EMPTY) return;
 		player.updateTile(player.updateShape(cursorX, cursorY))
 
 			//socket.send(JSON.stringify({id :'mouse move', data:{X:cursorX, Y:cursorY}}))
@@ -1604,6 +1676,7 @@ function render(){
 	drawUIFrame()
 
 	ctx.translate(boardXPadding,boardYPadding)
+	
 	drawBoard();
 	drawUnits(dt);
 	drawProps();
@@ -1611,6 +1684,7 @@ function render(){
 	//drawDiceSelection();
 	drawSelection(player);
 	drawSelection(opponent);
+	drawCursor();
 	drawPath();
 	//drawAlert();
 	drawDialog();
@@ -1618,6 +1692,7 @@ function render(){
 	drawCrestPool(opponent,425,400);
 	//updateCrest(player.pool);
 	drawProjectile(dt)
+
 
 
 	//====

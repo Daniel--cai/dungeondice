@@ -7,9 +7,9 @@ class Player {
 
 		//this.state = GAME_STATE_END;
 		//this.actionstate = PLAYER_STATE_NEUTRAL;
-		//this.summon = [];
+		this.summon = [];
 		//this.summonlevel = 0;
-		//this.summonchoice = EMPTY;
+		this.summonchoice = EMPTY;
 		//this.dicePattern
 		//this.diceButtonFocus = -1;
 
@@ -24,14 +24,14 @@ class Player {
 		this.movePath = []
 		this.rolled = false;
 		this.spell = EMPTY;
-
+		this.scrollScale = 1;
 
 		this.actionstate = 0
 
 		this.valid = false;
-		this.dices = [DICES['Lucian'],DICES['Lucian'],DICES['Teemo'],DICES['Teemo'],DICES['Teemo'],
-									DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],DICES['Soraka'],
-									DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen'],DICES['Garen']];
+		this.dices = [DICES['Lucian'],DICES['Braum'],DICES['Teemo'],DICES['Nunu'],DICES['Bard'],
+									DICES['Vayne'],DICES['Janna'],DICES['Janna'],DICES['Vayne'],DICES['Bard'],
+									DICES['Teemo'],DICES['Nasus'],DICES['Garen'],DICES['Garen'],DICES['Garen']];
 		this.spell = EMPTY;
 	}
 
@@ -72,7 +72,6 @@ class Player {
 	}
 
 	updateTile(shape){
-		if (player.summonchoice == null) return
 		this.tileSelected = shape;
 		if (this.tileSelected == null) this.tileSelected = []
 		//console.log('update tile')
